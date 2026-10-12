@@ -25,4 +25,3 @@ export function normalizeMedia(media) {
     carousel: (media.carousel_media ?? []).map(normalizeMedia).filter(Boolean),
   };
 }
-
