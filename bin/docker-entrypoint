@@ -1,0 +1,17 @@
+#!/bin/sh
+umask 077
+state_dir=${UBER_CLI_STATE_DIR:-/state}
+mkdir -p "$state_dir" || exit 1
+chmod 700 "$state_dir" || exit 1
+# Docker Desktop's host file-sharing mount failed cross-container flock checks.
+if [ "$(stat -f -c %t "$state_dir")" = "6a656a63" ]; then
+  printf '%s\n' '{"error":{"code":"unsupported_state_filesystem","message":"Use a Docker named volume for /state; this Docker Desktop bind mount does not support reliable cross-container locks"}}' >&2
+  exit 1
+fi
+# Kernel lock survives PID namespace differences and releases on process exit.
+flock -w 30 -E 75 "$state_dir/.command.lock" sh -c 'export UBER_CLI_KERNEL_LOCK=1; exec node /app/bin/uber "$@"' sh "$@"
+result=$?
+if [ "$result" -eq 75 ]; then
+  printf '%s\n' '{"error":{"code":"state_lock_timeout","message":"Timed out waiting for another Uber CLI command"}}' >&2
+fi
+exit "$result"
