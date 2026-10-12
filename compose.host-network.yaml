@@ -1,0 +1,6 @@
+# Linux only: lets Spotify receive LAN multicast discovery from speakers.
+# The debugger remains bound to 127.0.0.1. This override publishes no ports.
+services:
+  spotify:
+    network_mode: host
+    shm_size: 256mb

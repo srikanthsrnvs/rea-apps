@@ -53,6 +53,19 @@ The current official Linux package is amd64. The image uses Debian 13 because Sp
 
 For playback, select an available Spotify Connect speaker/computer using `devices` and `transfer DEVICE_ID`. Local sound on the Linux host requires an audio service and output device configured separately; the container does not configure audio hardware.
 
+On a Linux host, enable host networking for discovery of speakers on the local network:
+
+```sh
+docker compose -f compose.yaml -f compose.host-network.yaml up -d --build
+docker compose -f compose.yaml -f compose.host-network.yaml exec -T spotify /opt/spotify-cli/bin/spotify devices --pretty
+```
+
+ARM64 Linux requires working amd64 emulation. An actual Jetson Orin on Ubuntu 22.04 was tested with QEMU 10.2.3 from [tonistiigi/binfmt](https://github.com/tonistiigi/binfmt/releases/tag/deploy%2Fv10.2.3-68), with `P` (preserve argv0) and `F` (fix interpreter) binfmt flags. Ubuntu's QEMU 6.2 crashed. The container entrypoint supplies an explicit CEF subprocess path and disables zygote and GPU processes to support that setup. Simply selecting `platform: linux/amd64` does not install a working emulator. Register the amd64 emulator on the host before starting the container; preserve that registration across host reboots.
+
+On ARM, run the CLI with a native ARM64 Node runtime against the container's localhost debugger to avoid emulating each command. Install the checkout's dependencies with `npm ci`, then use `bin/spotify devices` or `bin/spotify mcp` on the host; `SPOTIFY_NODE` can select a user-installed runtime. Keep the Spotify container running.
+
+Live Jetson checks covered native device pairing, search, Spotify Connect discovery, session restoration after container recreation and all 48 MCP tools being listed. Login state and devices were also read through MCP. The native ARM64 CLI completed these reads in about 0.2 seconds after startup. Device results include `available`; a discovered device with `available:false` is not ready for playback.
+
 ## Commands
 
 `spotify help` lists commands. `spotify help playlist-move` describes arguments. `spotify tools` emits JSON Schemas for all 47 app commands. Both `playlist-add` and `playlist add` work, as do equivalent queue and folder aliases. Quote multi-word values.
