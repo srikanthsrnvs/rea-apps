@@ -4,10 +4,26 @@ A Node.js CLI reconstructed from Uber's Android app. It performs login exchange,
 
 Requires Node.js 22.19 or later. No npm dependencies, Java, ADB or REA are needed to run it.
 
+## Install
+
+From this repository's `uber/` directory on macOS, or with an existing supported Node runtime:
+
 ```sh
 npm install --global .
 uber login
 ```
+
+On Linux, the native installer reuses a compatible Node runtime or downloads a checksummed Node 24 release. It supports x86_64 and ARM64 with glibc 2.28 or newer and requires Git, curl, tar, xz and sha256sum if Node must be downloaded. It leaves system Node unchanged:
+
+```sh
+git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+cd rea-apps
+./scripts/setup-linux.sh --uber-only
+export PATH="$HOME/.local/bin:$PATH"
+uber login
+```
+
+For both apps, run `./scripts/setup-linux.sh`; see the [combined installation guide](../README.md). A package archive also includes `scripts/setup-linux.sh` for installing Uber alone. Keep its unpacked directory in place because the command links to it.
 
 Open the printed URL on your phone or computer and finish signing in. The final page may say it cannot be found: copy its **full URL**, containing `session` and `authCode`. On the machine running the CLI:
 

@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+uber_node=${UBER_NODE:-$workspace/.runtime/node}
+if [ ! -x "$uber_node" ]; then
+  printf '%s\n' 'Run uber/scripts/setup-linux.sh first, or set UBER_NODE to a compatible Node executable.' >&2
+  exit 1
+fi
+exec "$uber_node" "$workspace/bin/uber" "$@"

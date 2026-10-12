@@ -19,4 +19,12 @@ if (!((major === 22 && minor >= 19) || (major === 24 && minor >= 11) || major >=
 '
 PATH="$(dirname -- "$rea_node"):$PATH"
 export PATH
-exec "$rea_node" "$workspace/rea/scripts/rea.mjs" "$@"
+rea_directory=${REA_DIR:-$workspace/rea}
+if [ ! -f "$rea_directory/scripts/rea.mjs" ] && [ -z "${REA_DIR:-}" ]; then
+  rea_directory="$HOME/.local/share/rea-apps/investigation/rea"
+fi
+if [ ! -f "$rea_directory/scripts/rea.mjs" ]; then
+  printf '%s\n' 'Clone and build REA separately, then set REA_DIR to that checkout (see docs/reverse-engineering.md).' >&2
+  exit 1
+fi
+exec "$rea_node" "$rea_directory/scripts/rea.mjs" "$@"

@@ -19,6 +19,8 @@ cd rea-apps
 
 The installer sets up Spotify's container and native Node runtime, then installs `spotify` and `uber` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify needs Docker Engine with Compose v2; see its [Linux prerequisites](spotify/docs/headless-linux.md). On ARM64, its emulator setup requires systemd and sudo. Uber uses the same native Node runtime, with no emulation or Android dependencies.
 
+For Uber alone, use `./scripts/setup-linux.sh --uber-only`.
+
 For an existing Spotify installation, preserve its saved container volume and use:
 
 ```sh

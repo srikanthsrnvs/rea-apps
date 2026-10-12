@@ -2,7 +2,7 @@
 
 The investigation used the [REA repository](https://github.com/morluto/rea) at commit `6611bcf6e86630c775c24e6afa00d7239c64e70e`, package 6.4.0. `npm ci` and `npm run build:cached` succeeded using existing Node 24.19.0 and npm 10.9.2. REA's exact pins are Node 24.18.0 and npm 11.16.0; no global toolchain was upgraded.
 
-`bin/rea` selects the compatible bundled runtime. Set `REA_NODE` to override it. The shell's default Node 23 is unsupported by REA. Its MCP stdio smoke test listed 172 tools. Persistent Codex registration was not changed. See REA's [installation guide](https://github.com/morluto/rea/blob/6611bcf6e86630c775c24e6afa00d7239c64e70e/docs/installation.md). The CLI runs independently of REA. To reproduce the optional investigation setup:
+`bin/rea` selects the compatible bundled runtime. Set `REA_NODE` to override it and `REA_DIR` to select a separately built REA checkout. The shell's default Node 23 is unsupported by REA. Its MCP stdio smoke test listed 172 tools. Persistent Codex registration was not changed. See REA's [installation guide](https://github.com/morluto/rea/blob/6611bcf6e86630c775c24e6afa00d7239c64e70e/docs/installation.md). The CLI runs independently of REA. To reproduce the optional investigation setup:
 
 ```sh
 git clone https://github.com/morluto/rea.git rea
@@ -53,7 +53,7 @@ Live observations on the official Linux 1.2.95.453 package: a fresh unlogged cli
 
 This validates native pairing with approval on another device. Completely terminal-only first login, Linux local audio output, and the full Mac mutation acceptance suite on Linux were not tested. The repository does not automate Accounts password/OTP forms or visual challenges.
 
-Local evidence is in `analysis/auth/static-findings.json`, `desktop-login-native-descriptor.json`, `linux-mcp-verification.json`, and the Docker build/launch reports. Native profile data stays in the local container or its private volume and is excluded from the build context and repository.
+Private evidence is archived outside the checkout under `~/.local/share/rea-apps/private/spotify/analysis`; historical report names below are relative to that archive. Login evidence includes `auth/static-findings.json`, `desktop-login-native-descriptor.json`, `linux-mcp-verification.json`, and the Docker build/launch reports. Native profile data stays in the local container or its private volume and is excluded from the build context and repository.
 
 | File                                                      | Purpose                           |
 | --------------------------------------------------------- | --------------------------------- |

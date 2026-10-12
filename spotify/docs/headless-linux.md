@@ -15,8 +15,8 @@ Docker isolates Spotify's newer library requirements from the host. The image us
 ## Install and use
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git
-cd spotify-desktop-cli
+git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+cd rea-apps/spotify
 ./scripts/setup-headless.sh
 bin/spotify-headless login
 # Open verificationUri on another device; approve userCode.
@@ -84,7 +84,7 @@ Point any stdio MCP client at the absolute wrapper path:
 {
   "mcpServers": {
     "spotify-desktop": {
-      "command": "/absolute/path/to/spotify-desktop-cli/bin/spotify-headless",
+      "command": "/absolute/path/to/rea-apps/spotify/bin/spotify-headless",
       "args": ["mcp"]
     }
   }

@@ -9,8 +9,8 @@ Playback and library operations were tested with Spotify 1.2.92.148 on Apple Sil
 Install Node 22.19 or newer and Spotify for macOS. The launcher uses `node` from PATH, or an existing bundled Codex runtime when available. Set `SPOTIFY_NODE` to choose a specific executable.
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git
-cd spotify-desktop-cli
+git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+cd rea-apps/spotify
 npm ci
 export PATH="$PWD/bin:$PATH"
 spotify connect
@@ -32,8 +32,8 @@ Yes: setup, login, discovery, commands, and MCP work over SSH, without a physica
 On x86_64 or ARM64 Linux, install Docker Engine with Compose v2, Git, curl, tar, xz and sha256sum, then:
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git
-cd spotify-desktop-cli
+git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+cd rea-apps/spotify
 ./scripts/setup-headless.sh
 bin/spotify-headless login
 # Open the returned verificationUri on another device and approve userCode.
@@ -107,7 +107,7 @@ For an MCP client supporting local stdio servers, use [mcp-config.example.json](
 {
   "mcpServers": {
     "spotify-desktop": {
-      "command": "/absolute/path/to/spotify-desktop-cli/bin/spotify",
+      "command": "/absolute/path/to/rea-apps/spotify/bin/spotify",
       "args": ["mcp"]
     }
   }
@@ -138,4 +138,4 @@ npm test
 npm run test:live
 ```
 
-The live acceptance run passed 55 operations against the logged-in app, including exact duplicate playlist editing, private creation, queue reordering, playback, settings, and transfers between the Mac and a speaker. It restored the original track, context, position, device, volume, shuffle, and repeat settings, and unfollowed its temporary playlist. Additional live checks covered folders, catalog queries, search categories, cold launch, and MCP execution. Reports and static evidence are stored under the ignored `analysis/` directory.
+The live acceptance run passed 55 operations against the logged-in app, including exact duplicate playlist editing, private creation, queue reordering, playback, settings, and transfers between the Mac and a speaker. It restored the original track, context, position, device, volume, shuffle, and repeat settings, and unfollowed its temporary playlist. Additional live checks covered folders, catalog queries, search categories, cold launch, and MCP execution. Private reports and static evidence are archived outside this checkout; they are not needed at runtime.
