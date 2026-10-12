@@ -5,7 +5,8 @@ case "${1:-}" in
   '') [ "$#" = 0 ] || exit 2; mode=both; spotify_option= ;;
   --no-build) [ "$#" = 1 ] || exit 2; mode=both; spotify_option=--no-build ;;
   --uber-only) [ "$#" = 1 ] || exit 2; mode=uber; spotify_option= ;;
-  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only]' >&2; exit 2 ;;
+  --instagram-only) [ "$#" = 1 ] || exit 2; mode=instagram; spotify_option= ;;
+  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only|--instagram-only]' >&2; exit 2 ;;
 esac
 if [ "$mode" = both ]; then
   if [ -n "$spotify_option" ]; then
@@ -24,7 +25,10 @@ if [ "$mode" = both ]; then
   fi
   ln -sfn "$workspace/spotify/bin/spotify-headless" "$destination"
   UBER_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/uber/scripts/setup-linux.sh"
-else
+  INSTAGRAM_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/instagram/scripts/setup-linux.sh"
+elif [ "$mode" = uber ]; then
   "$workspace/uber/scripts/setup-linux.sh"
+else
+  "$workspace/instagram/scripts/setup-linux.sh"
 fi
 printf '%s\n' 'Add ~/.local/bin to PATH if needed: export PATH="$HOME/.local/bin:$PATH"'

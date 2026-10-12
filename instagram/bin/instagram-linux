@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+instagram_node=${INSTAGRAM_NODE:-$workspace/.runtime/node}
+if [ ! -x "$instagram_node" ]; then
+  printf '%s\n' 'Run instagram/scripts/setup-linux.sh first, or set INSTAGRAM_NODE to a compatible Node executable.' >&2
+  exit 1
+fi
+exec "$instagram_node" "$workspace/bin/instagram" "$@"
