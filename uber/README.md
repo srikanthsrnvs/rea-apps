@@ -127,7 +127,7 @@ This image includes Node, the CLI and the base image’s `flock` utility. APKs, 
 
 ## Validation and current scope
 
-`npm test` verifies PKCE, callback validation, coordinate bounds, trusted regional redirects, refresh and integrity renewal, bounded read retries, mutation journals, payment selection, signed fare binding and expiry, cancellation fee changes, response normalization and concurrent/crashed-process state handling. All 51 checks pass on macOS and Linux ARM64 using Node 22.
+`npm test` verifies PKCE, callback validation, coordinate bounds, trusted regional redirects, refresh and integrity renewal, bounded read retries, mutation journals, payment selection, signed fare binding and expiry, cancellation fee changes, response normalization and concurrent/crashed-process state handling. All 51 checks pass on macOS and Linux ARM64 using Node 22 and Node 24. Native deployment on ARM64 Ubuntu 22.04 also verified installer reruns, persisted login with automatic OAuth refresh, account status, place search and resolution, and signed quotes returning 22 car options. This native run used no Android device, Docker container, browser process or display server.
 
 Live Linux ARM64 HTTP shopping returned 22 ride options for a sample city route. A complete search → resolution → quote → status test for an airport route returned 19 products and 23 price variants using persisted credentials. Live booking preparation resolves the current Personal profile and payment method and binds a selected car to its signed fare. Pickup ETA is unavailable in these responses and remains null.
 

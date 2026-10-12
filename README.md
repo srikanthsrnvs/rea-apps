@@ -27,6 +27,8 @@ For an existing Spotify installation, preserve its saved container volume and us
 ./scripts/setup-linux.sh --no-build
 ```
 
+When moving an older checkout, keep its private `.env` (including the device hostname) in `spotify/.env`. Run setup from the new directory to refresh the runtime and command links.
+
 The fixed Spotify Compose project and volume names are retained when updating this repository, so moving into `spotify/` preserves its saved login. Never run `docker compose down -v` during migration.
 
 ## Sign in and use
