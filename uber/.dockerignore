@@ -1,0 +1,6 @@
+**
+!package.json
+!bin/
+!bin/**
+!src/
+!src/**

@@ -1,0 +1,22 @@
+{
+  "name": "uber-standalone-cli",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone headless Uber login, ride shopping, booking and cancellation CLI",
+  "bin": {
+    "uber": "bin/uber"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "docs/",
+    "README.md"
+  ]
+}
