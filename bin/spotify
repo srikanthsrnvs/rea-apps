@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+bundled_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+if [ -n "${SPOTIFY_NODE:-}" ]; then
+  spotify_node=$SPOTIFY_NODE
+elif [ -x "$bundled_node" ]; then
+  spotify_node=$bundled_node
+else
+  spotify_node=$(command -v node)
+fi
+exec "$spotify_node" "$workspace/src/cli.mjs" "$@"

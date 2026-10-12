@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "spotify-desktop": {
+      "command": "/absolute/path/to/spotify-desktop-cli/bin/spotify",
+      "args": ["mcp"]
+    }
+  }
+}

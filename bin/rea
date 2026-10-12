@@ -1,0 +1,22 @@
+#!/bin/sh
+# Run this checkout with a supported Node runtime, without changing global tools.
+set -eu
+workspace=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+bundled_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+if [ -n "${REA_NODE:-}" ]; then
+  rea_node=$REA_NODE
+elif [ -x "$bundled_node" ]; then
+  rea_node=$bundled_node
+else
+  rea_node=$(command -v node)
+fi
+"$rea_node" -e '
+const [major, minor] = process.versions.node.split(".").map(Number);
+if (!((major === 22 && minor >= 19) || (major === 24 && minor >= 11) || major >= 26)) {
+  console.error("REA needs Node 22.19+, 24.11+, or 26+. Set REA_NODE to a compatible executable.");
+  process.exit(1);
+}
+'
+PATH="$(dirname -- "$rea_node"):$PATH"
+export PATH
+exec "$rea_node" "$workspace/rea/scripts/rea.mjs" "$@"

@@ -1,0 +1,25 @@
+{
+  "name": "spotify-desktop-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Control the logged-in Spotify desktop application through its local runtime",
+  "bin": {
+    "spotify": "bin/spotify"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:live": "node scripts/verify-live.mjs",
+    "start": "node src/cli.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/core": "2.3.1",
+    "@modelcontextprotocol/server": "2.3.1"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
