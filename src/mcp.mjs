@@ -42,7 +42,7 @@ export async function serveMcp(options = {}) {
   };
   register(
     "spotify_connect",
-    "Connect to the desktop app. If already running without debugging, restart:true restarts it once.",
+    "Connect or launch Spotify. Headless Linux uses Xvfb and D-Bus. On macOS restart:true enables debugging by restarting the app. If logged out, use spotify_login.",
     {
       type: "object",
       properties: { restart: { type: "boolean", default: false } },

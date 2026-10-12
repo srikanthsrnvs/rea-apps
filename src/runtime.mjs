@@ -128,7 +128,7 @@ export async function spotifyRuntime(operation, args) {
         state: !state?.item ? "stopped" : state.isPaused ? "paused" : "playing",
         track: item(state?.item),
         context: state?.context?.uri ?? null,
-        positionMs: state
+        positionMs: state?.item
           ? Math.min(state.duration || Infinity, state.positionAsOfTimestamp + elapsed)
           : 0,
         durationMs: state?.duration ?? 0,
@@ -144,7 +144,11 @@ export async function spotifyRuntime(operation, args) {
     const webpack = () => {
       window.__spotifyDesktopCli ??= {};
       if (!window.__spotifyDesktopCli.require) {
-        const chunks = [window.webpackChunkclient_web, window.rspackChunk].find(Array.isArray);
+        const chunks = [
+          window.webpackChunkclient_web,
+          window.rspackChunk,
+          window.rspackChunkclient_web,
+        ].find(Array.isArray);
         if (!Array.isArray(chunks)) fail("UNSUPPORTED", "Spotify module loader is unavailable.");
         chunks.push([
           [`spotify_desktop_cli_${Date.now()}`],

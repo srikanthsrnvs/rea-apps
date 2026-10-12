@@ -1,0 +1,9 @@
+*
+!package.json
+!package-lock.json
+!src/
+!src/**
+!bin/
+!bin/spotify
+!docker/
+!docker/entrypoint.sh

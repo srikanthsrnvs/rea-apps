@@ -1,0 +1,11 @@
+services:
+  spotify:
+    build: .
+    platform: linux/amd64
+    init: true
+    restart: unless-stopped
+    volumes:
+      - spotify-home:/home/spotifycli
+    # No published ports. Invoke the CLI with `docker compose exec`.
+volumes:
+  spotify-home:

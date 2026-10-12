@@ -16,6 +16,11 @@ test("real stdio MCP catalog and pre-execution argument rejection", async () => 
     await client.connect(transport);
     const tools = (await client.listTools()).tools;
     assert.equal(tools.length, catalog.length + 1);
+    assert.equal(tools.find((t) => t.name === "spotify_login").annotations.readOnlyHint, false);
+    assert.equal(
+      tools.find((t) => t.name === "spotify_login_status").annotations.readOnlyHint,
+      true,
+    );
     const pause = tools.find((t) => t.name === "spotify_pause");
     assert.equal(pause.annotations.readOnlyHint, false);
     assert.equal(tools.find((t) => t.name === "spotify_search").annotations.readOnlyHint, true);

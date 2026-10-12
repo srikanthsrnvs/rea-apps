@@ -35,6 +35,15 @@ const entry = (
 });
 export const catalog = [
   entry(
+    "login",
+    "Start native device pairing; approve the returned URL and code on another device. Repeated calls reuse the pending code.",
+    {},
+    [],
+    [],
+    "write",
+  ),
+  entry("login-status", "Check native login and pairing state without exposing credentials"),
+  entry(
     "status",
     "Current track, playback position, options, restrictions, volume and active device",
   ),

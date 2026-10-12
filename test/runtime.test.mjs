@@ -59,6 +59,18 @@ test("unsupported volume is not mistaken for confirmed zero volume", async () =>
   assert.equal(reads, 2);
 });
 
+test("a stopped player reports zero position even when its timestamp is zero", async () => {
+  const invoke = runtime({
+    PlayerAPI: { getState: () => ({ timestamp: 0, positionAsOfTimestamp: 0, duration: 0 }) },
+    ConnectDevicesAPI: { getDevices: () => [] },
+    PlaybackAPI: { getVolume: () => 1 },
+  });
+  const response = await invoke("status");
+  assert.equal(response.ok, true);
+  assert.equal(response.result.state, "stopped");
+  assert.equal(response.result.positionMs, 0);
+});
+
 test("playlist updates wait for the returned metadata to reflect the change", async () => {
   let reads = 0;
   const invoke = runtime({
@@ -77,7 +89,7 @@ test("playlist updates wait for the returned metadata to reflect the change", as
 });
 
 test("query discovery captures both webpack and cold-start Rspack loaders", async () => {
-  for (const name of ["webpackChunkclient_web", "rspackChunk"]) {
+  for (const name of ["webpackChunkclient_web", "rspackChunk", "rspackChunkclient_web"]) {
     const loader = {
       m: {
         1: function () {

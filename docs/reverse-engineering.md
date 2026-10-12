@@ -43,16 +43,28 @@ Twenty-five service families were discovered, including offline state, equalizer
 
 ## Evidence
 
-| File | Purpose |
-| --- | --- |
-| `analysis/spotify-plist.json` | Bundle metadata |
-| `analysis/spotify-xpui-artifact.json` | ZIP inventory |
+### Native login and headless Linux
+
+The login investigation analyzed the shipped `login.spa` JavaScript and the native `es_desktop_login.proto` descriptor in macOS Spotify 1.3.4.258. REA rejected the archive's absolute root entry, so analysis used explicit safe ZIP member reads rather than extracting that entry. REA's selected JavaScript analysis produced evidence ID `ev_61d0ae342fcf2e5583ae8a85f5701b95a2cdcb0aff5560c07a6ee6499bc2a35b`; this covers the selected login bundle, not the entire app.
+
+The observed service is `spotify.desktop.login_esperanto.proto.DesktopLogin`. The renderer's `executeEsperantoCall` bridge takes three big-endian int32-length-prefixed chunks: service name, method name and protobuf request. `GetSessionState` returns a login boolean and username. Streaming `LoginWithQRCode` returns pairing instructions, empty-message success, timeout or a native error. The CLI implements only these two methods. Successful login navigates to `spotify:app:xpui`, matching the shipped login UI. Spotify performs the device authorization exchange and stores its credentials internally; the CLI receives no access or refresh tokens.
+
+Live observations on the official Linux 1.2.95.453 package: a fresh unlogged client ran under Xvfb without a physical display; CLI pairing produced instructions; the human approved on another device; `GetSessionState` confirmed authentication; search, liked songs, playlists, device discovery and MCP worked; restarting the container restored the session without reapproval. The Linux build exposed `rspackChunkclient_web`, an additional module-loader variant now covered by discovery. The Linux package could not install on Debian 12 due to its glibc requirement and installed successfully on Debian 13.
+
+This validates native pairing with approval on another device. Completely terminal-only first login, Linux local audio output, and the full Mac mutation acceptance suite on Linux were not tested. The repository does not automate Accounts password/OTP forms or visual challenges.
+
+Local evidence is in `analysis/auth/static-findings.json`, `desktop-login-native-descriptor.json`, `linux-mcp-verification.json`, and the Docker build/launch reports. Native profile data stays in the local container or its private volume and is excluded from the build context and repository.
+
+| File                                                      | Purpose                           |
+| --------------------------------------------------------- | --------------------------------- |
+| `analysis/spotify-plist.json`                             | Bundle metadata                   |
+| `analysis/spotify-xpui-artifact.json`                     | ZIP inventory                     |
 | `analysis/spotify-xpui-extraction.json`, `analysis/xpui/` | Extraction provenance and sources |
-| `analysis/spotify-javascript.json` | REA static analysis |
-| `analysis/spotify-runtime-targets.json` | Runtime discovery |
-| `analysis/playlist-creation-boundary.json` | Permissions behavior |
-| `analysis/cli-live-verification.json` | Live checks and restoration |
-| `analysis/spotify-mcp-verification.json` | MCP schemas and live invocation |
-| `analysis/cli-reconnect.json` | Launch and reconnection |
+| `analysis/spotify-javascript.json`                        | REA static analysis               |
+| `analysis/spotify-runtime-targets.json`                   | Runtime discovery                 |
+| `analysis/playlist-creation-boundary.json`                | Permissions behavior              |
+| `analysis/cli-live-verification.json`                     | Live checks and restoration       |
+| `analysis/spotify-mcp-verification.json`                  | MCP schemas and live invocation   |
+| `analysis/cli-reconnect.json`                             | Launch and reconnection           |
 
 These evidence files are local investigation artifacts, contain account-specific state, and are not distributed in this repository. They are ignored by version control. The CLI does not extract or persist credentials. Named operations return compact data; credential-shaped fields in generic results are redacted.

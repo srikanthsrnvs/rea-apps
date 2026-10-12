@@ -33,7 +33,7 @@ export class SpotifyConnection {
     });
   }
 
-  static async connect(port = 9222, timeoutMs = 20000) {
+  static async connect(port = 9222, timeoutMs = 20000, { allowLogin = false } = {}) {
     if (!Number.isInteger(port) || port < 1024 || port > 65535) {
       throw new SpotifyError("INVALID_ARGUMENT", "Port must be an integer between 1024 and 65535.");
     }
@@ -56,8 +56,20 @@ export class SpotifyConnection {
         "Selected port did not return a debugger target list.",
       );
     const candidates = targets.filter(
-      (t) => t?.type === "page" && /^https:\/\/xpui\.app\.spotify\.com\//.test(t.url),
+      (t) =>
+        t?.type === "page" &&
+        (/^https:\/\/xpui\.app\.spotify\.com\//.test(t.url) ||
+          (allowLogin && /^https:\/\/login\.app\.spotify\.com\//.test(t.url))),
     );
+    if (
+      !allowLogin &&
+      candidates.length === 0 &&
+      targets.some((t) => t?.type === "page" && /^https:\/\/login\.app\.spotify\.com\//.test(t.url))
+    )
+      throw new SpotifyError(
+        "LOGIN_REQUIRED",
+        "Run spotify login, approve its pairing code on another device, then check login-status.",
+      );
     if (candidates.length !== 1)
       throw new SpotifyError("TARGET_UNAVAILABLE", "Expected exactly one Spotify desktop UI.", {
         count: candidates.length,
