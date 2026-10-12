@@ -1,6 +1,7 @@
 services:
   spotify:
     build: .
+    image: spotify-desktop-cli:headless
     platform: linux/amd64
     init: true
     restart: unless-stopped

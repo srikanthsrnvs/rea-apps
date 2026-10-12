@@ -1,0 +1,12 @@
+[Unit]
+Description=Enable amd64 emulation for headless Spotify
+After=systemd-binfmt.service binfmt-support.service
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/libexec/spotify-cli/register-binfmt
+
+[Install]
+WantedBy=multi-user.target

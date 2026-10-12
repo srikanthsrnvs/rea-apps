@@ -27,44 +27,25 @@ Use `--port N` or `SPOTIFY_PORT` for another loopback port. On a fresh checkout,
 
 ## Headless Linux
 
-The included container runs the official Linux desktop client under Xvfb, a virtual display. It needs no physical screen, desktop session, VNC, or browser on the Linux host. Another device is used only for first-login approval.
+Yes: setup, login, discovery, commands, and MCP work over SSH, without a physical screen, desktop session, VNC, or browser on the Linux host. Spotify runs under Xvfb inside a container. First login needs one approval on an already logged-in phone or computer. No developer API key is needed.
+
+On x86_64 or ARM64 Linux, install Docker Engine with Compose v2, Git, curl, tar, xz and sha256sum, then:
 
 ```sh
-docker compose up -d --build
-docker compose exec -T spotify /opt/spotify-cli/bin/spotify connect
-docker compose exec -T spotify /opt/spotify-cli/bin/spotify login
-# Open the returned URL on another device and approve the code.
-docker compose exec -T spotify /opt/spotify-cli/bin/spotify login-status
-docker compose exec -T spotify /opt/spotify-cli/bin/spotify search "Daft Punk" --limit 5
-docker compose exec -T spotify /opt/spotify-cli/bin/spotify devices
+git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git
+cd spotify-desktop-cli
+./scripts/setup-headless.sh
+bin/spotify-headless login
+# Open the returned verificationUri on another device and approve userCode.
+bin/spotify-headless login-status
+bin/spotify-headless devices --pretty
+bin/spotify-headless search "Daft Punk" --type track --limit 5
+bin/spotify-headless mcp
 ```
 
-Allow the app to finish starting before calling `connect`. Login returns a pending pairing state; it does not claim authentication until `login-status` reports `loggedIn:true`. Repeated `login` calls reuse the pending code. If the phase is `expired` or `error`, run `login` again. A restart during pairing requires a new code.
+Setup installs a private native Node runtime, builds the container, enables LAN discovery and waits for the native login service. On ARM64 it also installs a pinned QEMU emulator and a boot service using sudo; this requires systemd. Session data stays in a private Docker volume. Spotify restarts automatically with Docker. Use `bin/spotify-headless service start|stop|restart|logs|wait` to manage it. The debugger listens only on `127.0.0.1:9222`.
 
-The named `spotify-home` volume preserves Spotify's native session across container recreation. Keep this private and preserve it; `docker compose down -v` deletes it and requires pairing again. The debugger has no published port. Commands run inside the container, including MCP:
-
-```sh
-docker compose exec -T spotify /opt/spotify-cli/bin/spotify mcp
-```
-
-For an MCP client, use `docker` as the executable with arguments `compose`, `--project-directory`, your absolute checkout path, `exec`, `-T`, `spotify`, `/opt/spotify-cli/bin/spotify`, `mcp`.
-
-The current official Linux package is amd64. The image uses Debian 13 because Spotify requires glibc 2.39 or newer; Debian 12 fails dependency resolution. Docker can emulate amd64 on an ARM host, with additional startup cost. On native Linux, install Spotify, Node, Xvfb, xauth and dbus-run-session, run `npm ci`, then `bin/spotify connect`; it starts a virtual display and D-Bus session when `DISPLAY` is absent. `SPOTIFY_BINARY` selects a nonstandard native executable. Stop an existing Linux Spotify service before enabling debugging.
-
-For playback, select an available Spotify Connect speaker/computer using `devices` and `transfer DEVICE_ID`. Local sound on the Linux host requires an audio service and output device configured separately; the container does not configure audio hardware.
-
-On a Linux host, enable host networking for discovery of speakers on the local network:
-
-```sh
-docker compose -f compose.yaml -f compose.host-network.yaml up -d --build
-docker compose -f compose.yaml -f compose.host-network.yaml exec -T spotify /opt/spotify-cli/bin/spotify devices --pretty
-```
-
-ARM64 Linux requires working amd64 emulation. An actual Jetson Orin on Ubuntu 22.04 was tested with QEMU 10.2.3 from [tonistiigi/binfmt](https://github.com/tonistiigi/binfmt/releases/tag/deploy%2Fv10.2.3-68), with `P` (preserve argv0) and `F` (fix interpreter) binfmt flags. Ubuntu's QEMU 6.2 crashed. The container entrypoint supplies an explicit CEF subprocess path and disables zygote and GPU processes to support that setup. Simply selecting `platform: linux/amd64` does not install a working emulator. Register the amd64 emulator on the host before starting the container; preserve that registration across host reboots.
-
-On ARM, run the CLI with a native ARM64 Node runtime against the container's localhost debugger to avoid emulating each command. Install the checkout's dependencies with `npm ci`, then use `bin/spotify devices` or `bin/spotify mcp` on the host; `SPOTIFY_NODE` can select a user-installed runtime. Keep the Spotify container running.
-
-Live Jetson checks covered native device pairing, search, Spotify Connect discovery, session restoration after container recreation and all 48 MCP tools being listed. Login state and devices were also read through MCP. The native ARM64 CLI completed these reads in about 0.2 seconds after startup. Device results include `available`; a discovered device with `available:false` is not ready for playback.
+Use an available Spotify Connect device for playback. Audio through the Linux machine's own hardware needs separate configuration. ARM emulation adds startup cost; Spotify's private interfaces may change with app updates. [Linux setup details](docs/headless-linux.md) cover prerequisites, pairing, persistence, MCP and troubleshooting.
 
 ## Commands
 

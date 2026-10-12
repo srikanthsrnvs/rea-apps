@@ -1,0 +1,36 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+compose() {
+  docker compose --project-name spotify-desktop-cli --project-directory "$workspace" \
+    -f "$workspace/compose.yaml" -f "$workspace/compose.host-network.yaml" "$@"
+}
+if [ "${1:-}" = service ]; then
+  [ "$#" = 2 ] || { printf '%s\n' 'Usage: spotify-headless service start|stop|restart|logs|wait' >&2; exit 2; }
+  case "${2:-}" in
+    start) compose up -d --no-build; exec "$0" service wait ;;
+    restart) compose restart spotify; exec "$0" service wait ;;
+    stop) compose stop spotify ;;
+    logs) compose logs --tail 100 spotify ;;
+    wait)
+      export SPOTIFY_NODE="${SPOTIFY_NODE:-$workspace/.runtime/node/bin/node}"
+      exec "$SPOTIFY_NODE" "$workspace/scripts/wait-headless.mjs"
+      ;;
+    *) printf '%s\n' 'Usage: spotify-headless service start|stop|restart|logs|wait' >&2; exit 2 ;;
+  esac
+  exit
+fi
+export SPOTIFY_NODE="${SPOTIFY_NODE:-$workspace/.runtime/node/bin/node}"
+if [ ! -x "$SPOTIFY_NODE" ]; then
+  printf '%s\n' 'Run ./scripts/setup-headless.sh first.' >&2
+  exit 1
+fi
+exec "$workspace/bin/spotify" "$@"

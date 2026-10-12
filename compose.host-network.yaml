@@ -3,4 +3,5 @@
 services:
   spotify:
     network_mode: host
+    hostname: ${SPOTIFY_DEVICE_NAME:-spotify-headless}
     shm_size: 256mb

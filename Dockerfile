@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get update && apt-get install -y --no-install-recommends spotify-client && \
     rm -rf /var/lib/apt/lists/* && useradd -m -u 10001 spotifycli
 
+RUN rm -f /etc/machine-id /var/lib/dbus/machine-id && \
+    ln -s /home/spotifycli/.local/state/spotify-cli/machine-id /etc/machine-id && \
+    ln -s /home/spotifycli/.local/state/spotify-cli/machine-id /var/lib/dbus/machine-id
+
 WORKDIR /opt/spotify-cli
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
