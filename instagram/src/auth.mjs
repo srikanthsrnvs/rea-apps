@@ -6,18 +6,25 @@ import { InstagramError } from './errors.mjs';
 import { InstagramClient } from './http.mjs';
 import { sessionFromExport, sessionStatus } from './session.mjs';
 import { readState, saveState, removeState, stateDirectory, withStateLock } from './state.mjs';
+import { createPairingAuth, pairingStatus } from './pairing.mjs';
+
+export const pairingAuth = createPairingAuth({ store: {
+  read: readState, save: saveState, remove: removeState, lock: withStateLock,
+} });
 
 export function loginInstructions() {
   return {
     browserApprovalRequired: true,
-    approvalUrl: 'https://www.instagram.com/accounts/login/',
+    browserRequiredOnHost: false,
+    startCommand: 'instagram login',
+    completeCommand: 'instagram auth wait',
     instructions: [
-      'On a computer with Chrome, install this CLI and run instagram login --browser.',
-      'Finish Instagram login and any security checks yourself in the opened Chrome window.',
-      'That command validates the account and saves its session privately.',
-      'For a headless host, transfer ~/.config/instagram-cli/session.json over SSH and run instagram auth import --file PATH.',
+      'Run instagram login on the headless host to generate an approvalUrl and code.',
+      'Send approvalUrl to the user. They sign in and approve on Instagram’s own website in their browser.',
+      'Run instagram auth wait on the host, or call instagram auth poll periodically, to validate and save the approved session.',
+      'Search, Explore and inbox commands then use HTTP without a browser or Android.',
     ],
-    note: 'Opening the approval URL alone does not transfer credentials. The browser helper or a cookie export is required.',
+    note: 'The user must confirm the code and click Continue until Instagram shows Success. Reopen the same link if sign-in redirects to Home.',
   };
 }
 
@@ -57,7 +64,7 @@ export async function importSessionFile(filename) {
 
 export async function browserLogin({ timeoutSeconds = 900, executablePath } = {}) {
   if (process.platform === 'linux' && !process.env.DISPLAY && !process.env.WAYLAND_DISPLAY) {
-    throw new InstagramError('DISPLAY_REQUIRED', 'Run the browser helper on your phone/computer, then import its session on this headless host.');
+    throw new InstagramError('DISPLAY_REQUIRED', 'Use instagram login without --browser on this headless host, approve its link on your own device, then run instagram auth wait.');
   }
   let chromium;
   try { ({ chromium } = await import('playwright-core')); }
@@ -123,7 +130,12 @@ export async function browserLogin({ timeoutSeconds = 900, executablePath } = {}
 }
 
 export async function authStatus() {
-  return withStateLock(async () => sessionStatus(await readState('session')));
+  return withStateLock(async () => {
+    const login = await readState('login');
+    const pairing = pairingStatus(login);
+    if (pairing.status === 'expired') await removeState('login');
+    return { ...sessionStatus(await readState('session')), pairing };
+  });
 }
 
 export async function logout() {

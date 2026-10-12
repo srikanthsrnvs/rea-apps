@@ -6,7 +6,7 @@ The implemented runtime follows the authenticated website. Android's request fac
 
 `GET https://www.instagram.com/` returns JSON bootstrap modules embedded in HTML. `PolarisViewer.data.id` must match the `ds_user_id` cookie before a session is saved. `PolarisViewer.data.fbid` supplies the web GraphQL actor. `DTSGInitialData` and `LSD` provide fresh request tokens, retained only in memory. `CurrentUserInitialData.USER_ID` is not used as the Instagram account ID.
 
-Reads send Instagram-scoped cookies and the approved browser's user agent. The GraphQL transport uses the website app ID `936619743392459`, observed ASBD ID `359341`, CSRF token, Origin, Referer, and same-origin fetch headers. Its form includes the current actor, fresh DTSG/LSD, derived `jazoest`, query variables, friendly name and document ID. No captured request body or account token is embedded in source.
+Reads send Instagram-scoped cookies and the session's web user agent. Default login uses the [verified TV pairing flow](auth-handoff.md), then validates its issued cookies against the website. The GraphQL transport uses the website app ID `936619743392459`, observed ASBD ID `359341`, CSRF token, Origin, Referer, and same-origin fetch headers. Its form includes the current actor, fresh DTSG/LSD, derived `jazoest`, query variables, friendly name and document ID. No captured request body or account token is embedded in source.
 
 Credentials never follow redirects. Responses are bounded to 20 MiB and unsafe integer identifiers decode to strings. Cookies rotate through server responses. There are no automatic retries after challenges, rate limits or protocol failures.
 
@@ -37,4 +37,4 @@ On 2026-10-12, ordinary Node HTTP requests with Chrome closed returned:
 - Inbox: 15 summaries followed by 9; the second page reached the end.
 - Account search: five account suggestions.
 
-These counts describe one live account and request sequence, not guaranteed page sizes. Private responses and browser captures remain outside Git. Automated tests use synthetic fixtures. The same operations and continuation pages passed on the native Linux ARM64 host with DISPLAY and WAYLAND_DISPLAY unset and no npm dependencies installed. All 18 automated tests passed on both macOS and Linux ARM64.
+These counts describe one live account and request sequence, not guaranteed page sizes. Private responses and browser captures remain outside Git. Automated tests use synthetic fixtures. The same operations and continuation pages passed on the native Linux ARM64 host with DISPLAY and WAYLAND_DISPLAY unset and no npm dependencies installed, including a fresh session issued through TV pairing. All 27 automated tests passed on both macOS and Linux ARM64.

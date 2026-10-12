@@ -1,17 +1,23 @@
 import { parseArgs } from 'node:util';
 import { InstagramError } from './errors.mjs';
-import { loginInstructions, browserLogin, authStatus, importSessionFile, logout } from './auth.mjs';
+import { loginInstructions, browserLogin, authStatus, importSessionFile, logout, pairingAuth } from './auth.mjs';
 import { InstagramClient } from './http.mjs';
 import { normalizeUser } from './normalize.mjs';
 import { explore, searchContent, searchUsers, inbox } from './read.mjs';
 import { readState, saveState, withStateLock } from './state.mjs';
 
 const tools = [
-  ['login', 'Print first-login instructions; --browser runs one approval helper on a computer with Chrome.', {
-    browser: { type: 'boolean' }, 'browser-path': { type: 'string' },
-    timeout: { type: 'integer', minimum: 30, maximum: 3600, default: 900 },
+  ['login', 'Generate an Instagram approval link for the user’s own browser. Reuses an active request unless --replace is set.', {
+    browser: { type: 'boolean', description: 'Optional local Chrome helper; requires a display. Default pairing works headlessly.' }, 'browser-path': { type: 'string' },
+    replace: { type: 'boolean' },
+    timeout: { type: 'integer', minimum: 30, maximum: 3600, default: 600 },
   }, []],
-  ['auth status', 'Inspect local authentication timestamps without exposing credentials.', {}],
+  ['auth poll', 'Check one pairing request; on approval validate and save the session. Pending output includes a retry interval.', {}],
+  ['auth wait', 'Wait for browser approval and save the validated session without a browser on this host.', {
+    timeout: { type: 'integer', minimum: 30, maximum: 3600, default: 600 },
+  }],
+  ['auth cancel', 'Cancel pending login and remove its temporary secrets, preserving the existing session.', {}],
+  ['auth status', 'Inspect local session timestamps and pending approval without exposing credentials.', {}],
   ['auth import', 'Validate and import a private JSON browser session export.', { file: { type: 'string' } }, ['file']],
   ['auth logout', 'Remove local credentials and the helper browser profile.', {}],
   ['me', 'Read the signed-in account and validate its saved session.', {}],
@@ -45,6 +51,7 @@ async function main(args) {
   try {
     parsed = parseArgs({ args, allowPositionals: true, tokens: true, options: {
       browser: { type: 'boolean' }, 'browser-path': { type: 'string' }, timeout: { type: 'string' },
+      replace: { type: 'boolean' },
       file: { type: 'string' }, query: { type: 'string' },
       cursor: { type: 'string' },
       raw: { type: 'boolean' }, pretty: { type: 'boolean' }, help: { type: 'boolean' },
@@ -65,14 +72,19 @@ async function main(args) {
   for (const name of Object.keys(values)) {
     if (!allowed.has(name)) throw new InstagramError('INVALID_ARGUMENT', `--${name} is not valid for ${command}.`);
   }
-  if (command === 'login') {
-    const timeoutSeconds = Number(values.timeout ?? 900);
+  if (command === 'login' || command === 'auth wait') {
+    const timeoutSeconds = Number(values.timeout ?? 600);
     if (!Number.isSafeInteger(timeoutSeconds) || timeoutSeconds < 30 || timeoutSeconds > 3600) {
       throw new InstagramError('INVALID_ARGUMENT', '--timeout must be between 30 and 3600 seconds.');
     }
+    if (command === 'auth wait') return pairingAuth.wait({ timeoutSeconds });
     if (values['browser-path'] && !values.browser) throw new InstagramError('INVALID_ARGUMENT', '--browser-path requires --browser.');
-    return values.browser ? browserLogin({ timeoutSeconds, executablePath: values['browser-path'] }) : loginInstructions();
+    if (values.browser && values.replace) throw new InstagramError('INVALID_ARGUMENT', '--replace is only valid for pairing login.');
+    return values.browser ? browserLogin({ timeoutSeconds, executablePath: values['browser-path'] })
+      : pairingAuth.start({ replace: values.replace, timeoutSeconds });
   }
+  if (command === 'auth poll') return pairingAuth.poll();
+  if (command === 'auth cancel') return pairingAuth.cancel();
   if (command === 'auth status') return authStatus();
   if (command === 'auth logout') return logout();
   if (command === 'auth import') {
@@ -85,7 +97,7 @@ async function main(args) {
   if (values.cursor !== undefined && (!values.cursor || values.cursor.length > 32768)) throw new InstagramError('INVALID_ARGUMENT', 'Invalid cursor.');
   return withStateLock(async () => {
     const session = await readState('session');
-    if (!session) throw new InstagramError('LOGIN_REQUIRED', 'Run instagram login for first-login instructions.');
+    if (!session) throw new InstagramError('LOGIN_REQUIRED', 'Run instagram login, approve its link in your browser, then run instagram auth wait.');
     const client = new InstagramClient(session, { saveSession: value => saveState('session', value) });
     const body = await client.me();
     if (command === 'me') return values.raw ? body : normalizeUser(body.user);

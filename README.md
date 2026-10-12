@@ -6,7 +6,7 @@ Standalone tools reconstructed from installed apps, with separate Spotify, Uber,
 | --- | --- | --- |
 | [Spotify](spotify/README.md) | Login, search, playback, library, playlists, speakers, MCP | macOS Spotify or the maintained headless Linux container |
 | [Uber](uber/README.md) | Login, address search, ride options, fares, payment selection, booking, cancellation | Native Node.js HTTP client; no Android device or display server required |
-| [Instagram](instagram/README.md) | Account and content search, Explore with pagination, inbox summaries | Native HTTP client after a desktop Chrome approval; Android used for protocol investigation |
+| [Instagram](instagram/README.md) | Account and content search, Explore with pagination, inbox summaries | Headless HTTP login with an Instagram approval link; Android used for protocol investigation |
 
 The CLIs output JSON and expose tool definitions for models. First login uses approval in a browser on another phone or computer. Subsequent use is headless; no developer API key is required.
 
@@ -18,7 +18,7 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's container and native Node runtime, then installs `spotify`, `uber`, and `instagram` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify needs Docker Engine with Compose v2; see its [Linux prerequisites](spotify/docs/headless-linux.md). On ARM64, its emulator setup requires systemd and sudo. Uber and Instagram reuse the native Node runtime. Neither needs Android or emulation at runtime. Instagram’s initial approval helper runs on a computer with Chrome.
+The installer sets up Spotify's container and native Node runtime, then installs `spotify`, `uber`, and `instagram` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify needs Docker Engine with Compose v2; see its [Linux prerequisites](spotify/docs/headless-linux.md). On ARM64, its emulator setup requires systemd and sudo. Uber and Instagram reuse the native Node runtime. Neither needs Android or emulation at runtime. Instagram returns an approval link that the user opens in their own browser; the Linux host needs no browser, display, or developer API key.
 
 For one native app, use `./scripts/setup-linux.sh --uber-only` or `./scripts/setup-linux.sh --instagram-only`.
 
@@ -48,7 +48,7 @@ uber tools
 
 Each login command prints instructions for approval on another device. `uber auth complete` accepts the final browser URL even if the callback page says it cannot be found. Keep that URL private.
 
-For Instagram, run `instagram login` for browser approval and session-import instructions. Its runtime uses ordinary HTTP; see its guide for initial desktop approval and private session import.
+For Instagram, run `instagram login` on Linux, send its `approvalUrl` to the user, then run `instagram auth wait`. The user signs in and confirms the code on Instagram’s own website. The host receives and saves the session automatically; see its [login guide](instagram/README.md).
 
 Read the app-specific guides for commands, installation on macOS, and protocol details. Uber booking and cancellation use preview-and-confirm plans; models must show the route, car, fare, payment method and cancellation terms before performing those actions.
 
