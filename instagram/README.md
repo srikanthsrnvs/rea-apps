@@ -14,6 +14,12 @@ instagram login --browser
 
 Finish Instagram login and any security checks in the dedicated Chrome window. The helper validates the account, saves its session privately, and closes the window. `instagram login` prints instructions. Initial login is not entirely terminal-only; there is no pairing code or developer API key.
 
+An agent on a separate headless host cannot authenticate itself merely by sending
+you the normal Instagram login URL. Signing in there saves the session in your
+browser, so the current helper and private session transfer are still required.
+An automatic link-to-session handoff has not been verified; see the
+[pairing investigation and current limits](docs/auth-handoff.md).
+
 ## Headless Linux
 
 The installer supports Linux x86_64 and ARM64 with glibc 2.28 or newer. It reuses a compatible Node runtime or downloads a checksummed Node 24 archive. Git, curl, tar, xz, and sha256sum are required when downloading Node. It leaves system Node unchanged.
