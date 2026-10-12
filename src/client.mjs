@@ -10,17 +10,19 @@ export class UberError extends Error {
   }
 }
 
-export async function request(config, endpoint, body, token, { retry = false, integrityToken } = {}) {
+export async function request(config, endpoint, body, token, { retry = false, integrityToken, callUuid, method='POST', extraHeaders={} } = {}) {
+  if (!['GET','POST'].includes(method)) throw new Error('Unsupported HTTP method');
   const attempts = retry ? 3 : 1;
-  const headers = requestHeaders(config, token);
+  const headers = {...requestHeaders(config, token),...extraHeaders};
   if (integrityToken) headers['x-uber-cit'] = integrityToken;
+  if (callUuid) headers['x-uber-call-uuid'] = callUuid;
   for (let attempt = 0; attempt < attempts; attempt++) {
     let response, raw;
     try {
       let target = new URL(endpoint, config.apiHost);
       for (let redirects = 0; ; redirects++) {
         response = await fetch(target, {
-          method: 'POST', headers, body: JSON.stringify(body),
+          method, headers, ...(method==='GET' ? {} : {body:JSON.stringify(body)}),
           signal: AbortSignal.timeout(30000), redirect: 'manual',
         });
         if (![307, 308].includes(response.status)) break;
@@ -96,18 +98,27 @@ async function integrity(session, force = false) {
   return next;
 }
 
-export async function authenticatedRequest(endpoint, body) {
+// Keep token refresh, journal writes and a mutation in one local transaction.
+// Mutations never retry: a network failure can occur after Uber accepted a ride.
+export async function authenticatedOperation(operation) {
   return withStateLock(async () => {
     let session = await readState('session');
     if (!session?.accessToken || !session?.context) throw new Error('Login is required; run uber login');
     if (session.expiresAt && session.expiresAt <= Date.now() + 60000) session = await refreshUnlocked(session);
-    let credential = await integrity(session);
-    try {
-      return await request(session.context, endpoint, body, session.accessToken, { retry: true, integrityToken: credential.token });
-    } catch (error) {
-      if (error.code !== 'integrity_required') throw error;
-      credential = await integrity(session, true);
-      return request(session.context, endpoint, body, session.accessToken, { retry:true, integrityToken:credential.token });
-    }
+    const send = async (endpoint, body, { readOnly = true, callUuid,method='POST',extraHeaders } = {}) => {
+      let credential = await integrity(session);
+      try {
+        return await request(session.context, endpoint, body, session.accessToken, { retry: readOnly, integrityToken: credential.token, callUuid,method,extraHeaders });
+      } catch (error) {
+        if (!readOnly || error.code !== 'integrity_required') throw error;
+        credential = await integrity(session, true);
+        return request(session.context, endpoint, body, session.accessToken, { retry:true, integrityToken:credential.token, callUuid,method,extraHeaders });
+      }
+    };
+    return operation({session, send});
   });
+}
+
+export async function authenticatedRequest(endpoint, body, options) {
+  return authenticatedOperation(({send}) => send(endpoint, body, options));
 }

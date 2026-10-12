@@ -67,3 +67,27 @@ test('network failures and temporary read errors retry within bounds; refresh ne
   calls=0;globalThis.fetch=async()=>{calls++;throw new TypeError('network');};
   await assert.rejects(request(context,'/rt/identity/oauth2/token',{},undefined),{code:'network_error'});assert.equal(calls,1);
 });
+
+test('mutations send only once on network, server and integrity failures',async()=>{
+  for(const failure of ['network','server','integrity']){
+    let calls=0;
+    globalThis.fetch=async(url,options)=>{
+      calls++;
+      assert.equal(options.headers['x-uber-call-uuid'],'operation-test-id');
+      if(failure==='network')throw new TypeError('connection lost after transmission');
+      return failure==='server' ? json({},503) : json({},401,{'www-authenticate':'Uber-CIT-Sig'});
+    };
+    await assert.rejects(authenticatedRequest('/rt/test-create',{request:{}},{readOnly:false,callUuid:'operation-test-id'}));
+    assert.equal(calls,1,`${failure} must not trigger a second mutation`);
+  }
+});
+
+test('payment profile reads use GET without a JSON body',async()=>{
+  globalThis.fetch=async(url,options)=>{
+    assert.equal(new URL(url).pathname,'/rt/payment/v3/payment-profiles');
+    assert.equal(options.method,'GET');assert.equal(options.body,undefined);
+    assert.equal(options.headers['x-uber-uuid'],'test-rider');
+    return json({paymentProfiles:[]});
+  };
+  await authenticatedRequest('/rt/payment/v3/payment-profiles',undefined,{method:'GET',extraHeaders:{'x-uber-uuid':'test-rider'}});
+});

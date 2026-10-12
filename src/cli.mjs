@@ -7,6 +7,11 @@ import { request as api, refresh, authenticatedRequest } from './client.mjs';
 import { normalizeQuotes, legacyFareRequest } from './quotes.mjs';
 import { toolManifest } from './tools.mjs';
 import { searchRequest, normalizeSearch, resolveRequest, normalizeResolved } from './locations.mjs';
+import { prepareCancellation,confirmCancellation } from './cancellation.mjs';
+import { inspectOperation } from './mutations.mjs';
+import { requireUUID } from './plans.mjs';
+import { riderCancelRequest,normalizeTripStatus } from './cancellation-protocol.mjs';
+import { listPaymentProfiles } from './payments.mjs';
 
 let values;
 const print = value => console.log(JSON.stringify(value, null, 2));
@@ -65,6 +70,17 @@ try {
   context: { type: 'string' },
   id: { type: 'string' },
   provider: { type: 'string' },
+  'trip-id': { type: 'string' },
+  'plan-id': { type: 'string' },
+  'fulfillment-order-id': { type: 'string' },
+  reason: { type: 'string' },
+  'refund-strategy': { type: 'string' },
+  comment: { type: 'string' },
+  confirm: { type: 'boolean' },
+  product: { type: 'string' },
+  'vehicle-view-id': { type: 'string' },
+  'variant-id': { type: 'string' },
+  'payment-profile-id': { type: 'string' },
   } });
   values = parsed.values;
   const command = parsed.positionals.join(' ') || 'help';
@@ -81,10 +97,16 @@ uber auth logout                   Delete local credentials and private response
 uber resolve --id ID --provider PROVIDER  Resolve a place to coordinates
 uber search --query TEXT --near LAT,LON  Find places by name or address
 uber status                        Query current account trip state
+uber payments                      List saved payment method IDs and display names
 uber products --from LAT,LON --to LAT,LON  List current ride products
 uber quote --from LAT,LON --to LAT,LON     Get current ride products and fare estimates
 uber quote --from LAT,LON --to LAT,LON --dry-run  Inspect the request without sending it
 uber shopping --request request.json  Send a modern order-selection request
+uber book --from LAT,LON --to LAT,LON --product UberX  Prepare a signed quote for booking
+uber book --plan-id UUID --confirm   Dispatch the reviewed ride and charge its selected payment
+uber cancel --trip-id UUID         Preview cancellation terms without cancelling
+uber cancel --plan-id UUID --confirm  Execute the reviewed cancellation plan
+uber operation --id UUID           Inspect a saved booking/cancellation outcome
 
 Optional flags: --raw, --device-data FILE, --callback-url URL, --via LAT,LON
 State: ${stateDirectory}`);
@@ -104,7 +126,7 @@ State: ${stateDirectory}`);
     const integrity = await readState('integrity');
     print({ loggedIn: Boolean(session?.accessToken), accessTokenExpired: Boolean(session?.expiresAt && session.expiresAt <= Date.now()), refreshTokenAvailable: Boolean(session?.refreshToken), receivedAt: session?.receivedAt ?? null, expiresAt: session?.expiresAt ?? null, integrityExpiresAt: integrity?.expiresAt ?? null });
   } else if (command === 'auth refresh') {
-    await refresh(await readState('session'));
+    await refresh();
     print({ refreshed: true });
   } else if (command === 'auth logout') {
     await withStateLock(async () => {
@@ -127,8 +149,48 @@ State: ${stateDirectory}`);
     }
   } else if (command === 'status') {
     const response = await authenticatedRequest('/rt/riders/me/status', {});
-    if (!response.clientStatus || !Array.isArray(response.fulfillmentStateData?.orders)) throw new Error('Unrecognized trip status response');
-    print(values.raw ? response : {clientStatus: response.clientStatus, activeOrderCount: response.fulfillmentStateData.orders.length, orders: response.fulfillmentStateData.orders, pollingIntervalMs: response.metadata?.pollingIntervalMs ?? null});
+    print(values.raw ? response : normalizeTripStatus(response));
+  } else if (command === 'operation') {
+    print(await inspectOperation(values.id));
+  } else if (command === 'payments') {
+    print(await listPaymentProfiles());
+  } else if (command === 'book') {
+    if (values['plan-id']) {
+      requireUUID(values['plan-id'],'Plan ID');
+      if (['from','to','via','product','vehicle-view-id','variant-id','payment-profile-id'].some(key=>values[key]!==undefined)) throw new Error('A confirmed plan cannot be changed; prepare a new booking instead');
+      if (values['dry-run']) {
+        if (values.confirm) throw new Error('Choose --dry-run or --confirm');
+        const plan=await readState(`plan-${values['plan-id']}`);
+        if (!plan || plan.kind!=='booking') throw new Error('Booking plan was not found');
+        print({endpoint:`/rt/riders/${plan.userUUID}/v2/pickup`,body:plan.body,preview:plan.preview,expiresAt:plan.expiresAt,willBook:false});
+      } else {
+        if (!values.confirm) throw new Error('Run book --plan-id UUID --confirm to dispatch the reviewed ride');
+        const {confirmBooking}=await import('./booking.mjs');
+        print(await confirmBooking(values['plan-id']));
+      }
+    } else {
+      if (values.confirm) throw new Error('Prepare a priced booking plan first, then confirm its plan ID');
+      const vehicleViewId=values['vehicle-view-id']===undefined?undefined:Number(values['vehicle-view-id']);
+      if (vehicleViewId!==undefined && (!/^\d+$/.test(values['vehicle-view-id']) || !Number.isSafeInteger(vehicleViewId))) throw new Error('Vehicle view ID must be a nonnegative safe integer');
+      if ((values.product===undefined)===(vehicleViewId===undefined)) throw new Error('Choose exactly one of --product or --vehicle-view-id');
+      shoppingRequest(values.from,values.to,values.via);
+      if (values['dry-run']) print({route:{from:values.from,to:values.to,via:values.via??[]},product:values.product??null,vehicleViewId:vehicleViewId??null,paymentProfileId:values['payment-profile-id']??null,willBook:false});
+      else {
+        const {prepareBooking}=await import('./booking.mjs');
+        print(await prepareBooking({from:values.from,to:values.to,via:values.via,product:values.product,vehicleViewId,variantId:values['variant-id'],paymentProfileId:values['payment-profile-id']}));
+      }
+    }
+  } else if (command === 'cancel') {
+    if (values['plan-id']) {
+      if (!values.confirm || values['dry-run']) throw new Error('Run cancel --plan-id UUID --confirm to execute the reviewed plan');
+      if (['trip-id','reason','refund-strategy','fulfillment-order-id','comment'].some(key=>values[key]!==undefined)) throw new Error('A confirmed plan cannot be changed; prepare a new cancellation instead');
+      print(await confirmCancellation(values['plan-id'],{raw:values.raw}));
+    } else {
+      if (values.confirm) throw new Error('Prepare cancellation terms first, then confirm its plan ID');
+      const options={tripId:requireUUID(values['trip-id'],'Trip ID'),reason:values.reason,refundStrategy:values['refund-strategy'],fulfillmentOrderId:values['fulfillment-order-id'],comment:values.comment};
+      if (values['dry-run']) print({previewEndpoint:`/rt/trips/${options.tripId}/cancellation-info`,previewBody:{},cancellationEndpoint:`/rt/trips/${options.tripId}/rider-cancel`,cancellationBody:riderCancelRequest(options),willCancel:false});
+      else print(await prepareCancellation(options));
+    }
   } else if (['products', 'quote', 'shopping'].includes(command)) {
     let body;
     if (values.request) {
@@ -159,6 +221,6 @@ State: ${stateDirectory}`);
     }
   } else throw new Error(`Unknown command: ${command}`);
 } catch (error) {
-  console.error(JSON.stringify({error:{message:error.message,code:error.code ?? 'cli_error',...(error.status ? {status:error.status} : {})}}));
+  console.error(JSON.stringify({error:{message:error.message,code:error.code ?? 'cli_error',...(error.status ? {status:error.status} : {}),...(error.operationId ? {operationId:error.operationId} : {})}}));
   process.exitCode = 1;
 }

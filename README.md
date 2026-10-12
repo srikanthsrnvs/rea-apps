@@ -1,6 +1,6 @@
 # Uber standalone CLI
 
-A Node.js CLI reconstructed from Uber's Android app. It performs login exchange, OAuth refresh and ride shopping using HTTP. After one browser approval, it runs on a headless Linux machine without an Android device, display server, browser process or API key.
+A Node.js CLI reconstructed from Uber's Android app. It performs login exchange, OAuth refresh, ride shopping, booking and cancellation using HTTP. After one browser approval, it runs on a headless Linux machine without an Android device, display server, browser process or API key.
 
 Requires Node.js 22.19 or later. No npm dependencies, Java, ADB or REA are needed to run it.
 
@@ -45,11 +45,44 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 | `search --query TEXT --near LAT,LON` | Find places and their Uber location IDs |
 | `resolve --id ID --provider PROVIDER` | Resolve a search result to coordinates |
 | `status` | Query current trip state and active orders |
+| `payments` | List payment method IDs, masked labels and expiry state |
 | `products --from LAT,LON --to LAT,LON` | List ride options for a route |
 | `quote --from LAT,LON --to LAT,LON` | Get server-issued fare estimates and product options |
 | `shopping --request FILE` | Send a supplied modern shopping request |
+| `book --from LAT,LON --to LAT,LON --product UberX` | Prepare an immediate Personal ride with a signed quote and selected payment |
+| `book --plan-id UUID --confirm` | Dispatch the reviewed ride using its unchanged signed fare |
+| `cancel --trip-id UUID` | Preview current cancellation terms and save a short-lived plan |
+| `cancel --plan-id UUID --confirm` | Execute a reviewed cancellation plan after rechecking its terms |
+| `operation --id UUID` | Inspect a saved booking or cancellation outcome |
 
 Use `--via LAT,LON` repeatedly for intermediate stops, `--dry-run` to inspect a request, and `--raw` to retain the full shopping response in stdout. `shopping` outputs the full response by default. Coordinates are latitude followed by longitude.
+
+Booking has two steps:
+
+```sh
+uber quote --from 37.7749,-122.4194 --to 37.7849,-122.4094
+uber payments
+uber book --from 37.7749,-122.4194 --to 37.7849,-122.4094 --product UberX
+# Review the route, car, signed fare, expiry and masked payment name.
+uber book --plan-id PLAN_UUID --confirm
+uber status
+```
+
+Preparation defaults to the active Personal profile's RIDER payment method. Select another saved method using `--payment-profile-id UUID`. Choose a car by exact name with `--product`, or by numeric ID with `--vehicle-view-id`; ambiguous names fail. Use `--variant-id UUID` for an alternate fare variant shown by `quote`. The complete signed upfront fare is retained privately and sent unchanged. Expired quotes require a new plan and approval. Confirmation refuses to create another ride while an order is active.
+
+`--confirm` dispatches a real ride and may charge the selected payment method. For a model, show the complete preview and obtain approval before running it. `requiresCheckout: true` means Uber returned an additional payment step; it does not establish completed payment or a matched driver. Inspect the saved operation and status before taking further action.
+
+Cancellation has two steps. Read the trip and fulfillment order IDs from `uber status`, then:
+
+```sh
+uber cancel --trip-id TRIP_UUID --fulfillment-order-id ORDER_UUID
+# Review the fee decision and server messages printed above.
+uber cancel --plan-id PLAN_UUID --confirm
+```
+
+Optional cancellation flags are `--reason`, `--refund-strategy ORIGINAL_PAYMENT_METHOD|UBER_CASH`, and `--comment`. Reasons should come from the server cancellation survey, rather than invented identifiers. Plans expire after one minute. Confirmation fetches the fee terms again and refuses changed terms. If Uber does not identify whether a fee applies, the CLI refuses to cancel.
+
+Paid actions are never automatically retried. If an error reports `outcome_unknown`, Uber may have accepted the request. Run `uber status` and `uber operation --id OPERATION_UUID`; do not prepare another booking or repeat the cancellation until the outcome is resolved. A persisted operation journal also prevents repetition after a process crash.
 
 ## Headless authentication
 
@@ -78,8 +111,10 @@ This image includes Node, the CLI and the base image’s `flock` utility. APKs, 
 
 ## Validation and current scope
 
-`npm test` verifies PKCE, callback validation, coordinate bounds, trusted regional redirects, refresh and integrity renewal, bounded retries, response normalization and concurrent/crashed-process state handling. All 25 checks pass on macOS and Linux ARM64 using Node 22.
+`npm test` verifies PKCE, callback validation, coordinate bounds, trusted regional redirects, refresh and integrity renewal, bounded read retries, mutation journals, payment selection, signed fare binding and expiry, cancellation fee changes, response normalization and concurrent/crashed-process state handling. All 51 checks pass on macOS and Linux ARM64 using Node 22.
 
-Live Linux ARM64 HTTP shopping returned 22 ride options for a sample city route. A complete search → resolution → quote → status test for an airport route returned 19 products and 23 price variants using persisted credentials. The quote command combines the catalog with fare estimates, preserving price variants and quote expiry. Pickup ETA is unavailable in these responses and remains null. Address search, coordinate resolution and current trip status are supported. Booking and cancellation commands are not implemented. No ride has been booked or cancelled by this project.
+Live Linux ARM64 HTTP shopping returned 22 ride options for a sample city route. A complete search → resolution → quote → status test for an airport route returned 19 products and 23 price variants using persisted credentials. Live booking preparation resolves the current Personal profile and payment method and binds a selected car to its signed fare. Pickup ETA is unavailable in these responses and remains null.
+
+An authorized live test completed the entire search → resolve → select UberX → prepare → book → cancellation preview → cancel → status flow inside the headless Linux container. The returned trip fare exactly matched its signed quote. Uber confirmed the ride was cancelled, no ride charge applied, and the temporary authorization hold was removed. The final account state reported `ClientCanceled` and zero active orders. No Android device or browser process was used for this test. Private addresses, payment identifiers, trip identifiers and receipts are excluded from the repository and package.
 
 The recovered protocol is based on Uber Android 4.651.10003. Internal endpoints can change. Runtime use does not require that app to be installed.
