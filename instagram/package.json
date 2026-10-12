@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Headless Instagram search, Explore and inbox HTTP CLI",
+  "description": "Headless Instagram search, Explore, inbox, relationships and saved-post HTTP CLI",
   "bin": { "instagram": "bin/instagram" },
   "scripts": { "test": "node --test test/*.test.mjs" },
   "engines": { "node": ">=22.19" },

@@ -1,6 +1,7 @@
 import { queries } from './queries.mjs';
 import { InstagramError } from './errors.mjs';
 import { instagramOrigin, requestHeaders, updateResponseCookies } from './session.mjs';
+import { tvUserAgent } from './profiles.mjs';
 
 export function parseInstagramJson(text) {
   return JSON.parse(text, (key, value, context) => {
@@ -19,7 +20,8 @@ export class InstagramClient {
     this.saveSession = saveSession;
   }
 
-  async get(endpoint, parameters = {}) {
+  async get(endpoint, parameters = {}, { profile = 'web' } = {}) {
+    if (!['web', 'tv'].includes(profile)) throw new InstagramError('INVALID_ARGUMENT', 'Unknown HTTP client profile.');
     if (!/^\/[A-Za-z0-9_/%.-]+\/$/.test(endpoint)
       || endpoint.includes('..') || endpoint.includes('//')) {
       throw new InstagramError('INVALID_ENDPOINT', 'Invalid Instagram API endpoint.');
@@ -29,9 +31,11 @@ export class InstagramClient {
       if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
     }
     let response;
+    const headers = requestHeaders(this.session, url.pathname);
+    if (profile === 'tv') headers['user-agent'] = tvUserAgent;
     try {
       response = await this.fetch(url, {
-        method: 'GET', headers: requestHeaders(this.session, url.pathname),
+        method: 'GET', headers,
         redirect: 'manual', signal: AbortSignal.timeout(25_000),
       });
     } catch {

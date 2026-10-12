@@ -8,7 +8,7 @@ const inboxFlags = {
   __relay_internal__pv__IGDMaxUnreadMessagesCountrelayprovider: 5,
   __relay_internal__pv__IGDThreadListActionsEnabledGKrelayprovider: true,
 };
-function connection(value) {
+export function connection(value) {
   if (!value || !Array.isArray(value.edges) || typeof value.page_info?.has_next_page !== 'boolean') throw new InstagramError('PROTOCOL_CHANGED', 'Instagram returned an unfamiliar list. Update the CLI.');
   if (value.page_info.has_next_page && !value.page_info.end_cursor) throw new InstagramError('PROTOCOL_CHANGED', 'Instagram omitted the continuation cursor.');
   return value;
@@ -16,7 +16,7 @@ function connection(value) {
 function page(value, kind, account, extra = {}) {
   return { hasMore: value.page_info.has_next_page, nextCursor: value.page_info.has_next_page ? encodeCursor(kind, account, { after: value.page_info.end_cursor, ...extra }) : null };
 }
-function advancing(list, previous) {
+export function advancing(list, previous) {
   if (previous && list.page_info.has_next_page && list.page_info.end_cursor === previous) throw new InstagramError('PAGINATION_STALLED', 'Instagram repeated its continuation cursor. Start a fresh list.');
 }
 function timestamp(value) {

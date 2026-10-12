@@ -5,4 +5,5 @@ export const queries = Object.freeze({
   users: { name: 'PolarisSearchBoxRefetchableQuery', id: '27706427925724183' },
   content: { name: 'PolarisKeywordSearchExplorePageRelayQuery', id: '37324993597144881' },
   contentPage: { name: 'PolarisKeywordSearchExplorePageRelayPaginationQuery', id: '28656899673911396' },
+  collections: { name: 'PolarisProfileSavedTabContentQuery_connection', id: '27959320833754327' },
 });

@@ -1,6 +1,6 @@
 # Instagram standalone CLI
 
-A headless Node.js HTTP CLI for account search, content search, the Explore grid, and inbox summaries. Login returns an approval link that the user opens on Instagram’s own website in their own browser. The host receives and saves the approved session automatically. No Android, display, browser, developer API key, or cookie transfer is required on the host.
+A headless Node.js HTTP CLI for search, Explore, inbox summaries, followers, following, and saved-post collections. Login returns an approval link that the user opens on Instagram’s own website in their own browser. The host receives and saves the approved session automatically. No Android, display, browser, developer API key, or cookie transfer is required on the host.
 
 ## First login
 
@@ -56,12 +56,27 @@ instagram explore --pretty
 instagram explore --cursor 'RETURNED_CURSOR' --pretty
 instagram inbox --pretty
 instagram inbox --cursor 'RETURNED_CURSOR' --pretty
+instagram followers --count 50 --pretty
+instagram followers --cursor 'RETURNED_CURSOR' --pretty
+instagram following --username 'ACCOUNT_NAME' --count 50 --pretty
+instagram following --cursor 'RETURNED_CURSOR' --pretty
+instagram bookmarks --pretty
+instagram bookmarks collections --pretty
+instagram bookmarks collections --cursor 'RETURNED_CURSOR' --pretty
+instagram bookmarks items --collection-id 'COLLECTION_ID' --pretty
+instagram bookmarks items --cursor 'RETURNED_CURSOR' --pretty
 instagram tools
 ```
 
 Content search and Explore flatten posts and Reels into `items`, including authors, captions, media types, URLs, and carousel items when returned by Instagram. Each page includes `hasMore` and `nextCursor`. Reuse the cursor to continue scrolling, stopping when `hasMore` is false. Pagination cursors belong to the command, account, and original query. Page size follows the website's defaults; cursors contain continuation metadata, not authentication credentials. Repeated pages can overlap as recommendations change, so consumers can deduplicate by item ID.
 
 Account search returns the website's account suggestions, not a complete paginated directory. Inbox returns conversation titles, participants, latest previews, and available unread/mute/pin flags. It does not open individual threads, fetch message history, mark messages read, or send messages. Posting and the home feed are outside this CLI's scope.
+
+`followers` and `following` default to the signed-in account. Use either `--user-id` or `--username` for another accessible account. Username lookup requires an exact account-search match. The result contains `users`, `userId`, `hasMore`, `nextCursor`, and a server `limited` flag when available. Follow `nextCursor` with the same command; it retains the target, so repeating the username or ID is optional. `--count` accepts 1–100 and is a requested page size. Instagram can return fewer users or restrict a list; pagination does not override account permissions. Consumers can deduplicate IDs across pages as lists change.
+
+`bookmarks` returns a structured tree: a root with `children` collections, each containing projected media `items` and its own `hasMore` and `nextCursor`. A post can appear in several collections, so membership is preserved. This command loads at most 12 collections and one media page per collection; `--count` (1–12) bounds both page sizes. Check `complete`, and each child's `loaded` flag. A child read error is recorded on that child and stops further child requests, preserving the partial tree.
+
+Use the root cursor with `bookmarks` or `bookmarks collections` to continue collections. Use a child's cursor with `bookmarks items` to continue its media. `bookmarks collections` reads metadata and covers only; `bookmarks items` defaults to All posts when neither a collection ID nor cursor is supplied. Collection listing accepts `--count` 1–50, and media listing accepts 1–100. Posts, Reels, and carousel children retain their own structure. The supported hierarchy is collections → media → carousel items; deeper folder nesting has not been observed. Audio-only, shopping, and playlist collections are outside these saved-post tools. See [list and bookmark protocol details](docs/lists-and-bookmarks.md).
 
 Commands output JSON. Errors output JSON to stderr and exit with status 1. `instagram tools` provides command schemas for models. `me --raw` exposes the validated account object; request tokens and cookies are excluded. Other commands always return projected lists. Integer IDs retain their original precision.
 
@@ -79,6 +94,6 @@ The web operations are private, versioned Instagram protocols and can change. Er
 npm test
 ```
 
-The 27 automated tests cover the exact pairing request contract, RSA nonce decryption, optional second nonce, pending approval and polling, expiry/cancellation, validation recovery, uncertain exchange handling, identity checks, credential scope, cookie rotation, safe errors, large IDs, pagination binding, inbox projection, CLI schemas, and logout. They pass on macOS and Linux ARM64. On 2026-10-12 a fresh request generated on the headless Orin was approved in a separate user browser, exchanged on Linux, and validated against account access, search, Explore continuation, and inbox. Packaged CLI checks also cover new code generation, polling and cancellation. See [verification details](docs/auth-handoff.md).
+The 37 automated tests cover pairing, RSA nonce decryption, polling, recovery, credential scope, cookie rotation, safe errors, large IDs, pagination binding, inbox projection, CLI schemas, and logout, plus relationship targets, collection membership, carousel structure, partial trees, and saved-media transport. They pass on macOS and Linux ARM64. On 2026-10-12 a fresh request generated on the headless Orin was approved in a separate user browser, exchanged on Linux, and validated against account access, search, Explore continuation, and inbox. Packaged CLI checks also cover new code generation, polling and cancellation. See [login verification](docs/auth-handoff.md) and [list verification](docs/lists-and-bookmarks.md).
 
 APKs, decompiled code, response captures, private account data, and credentials are kept outside this public checkout and package.

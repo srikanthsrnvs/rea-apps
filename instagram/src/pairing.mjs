@@ -3,6 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { InstagramError } from './errors.mjs';
 import { InstagramClient, parseInstagramJson, readResponse } from './http.mjs';
 import { sessionFromExport, sessionStatus } from './session.mjs';
+import { tvUserAgent } from './profiles.mjs';
 
 const operations = {
   generate: ['useAirwaveGenerateLoginCodeMutation', '24426392696979234', 'airwave_login_generate_code'],
@@ -25,7 +26,7 @@ export class PairingClient {
       response = await this.fetch('https://i.instagram.com/graphql_www/', {
         method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(25_000),
         headers: {
-          'user-agent': 'InstagramAirwave 39.0.0.7.108 Android (32/12; 320dpi; 1920x1080; Google; Chromecast; sabrina; amlogic; en_US; 304000944)',
+          'user-agent': tvUserAgent,
           'x-ig-app-id': '1281876400241826', 'x-instagram-app-id': '1281876400241826',
           'x-build-number': '304000944', 'x-ig-device-id': this.deviceId,
           'x-os-build-version': 'unknown', accept: '*/*',

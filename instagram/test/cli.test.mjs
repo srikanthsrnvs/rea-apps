@@ -16,6 +16,10 @@ test('CLI exposes required and optional model inputs without a login', () => {
   assert.equal(result.authentication.browserRequiredOnHost, false);
   assert.equal(result.tools.some(tool => tool.command === 'auth poll'), true);
   assert.equal(result.authentication.startCommand, 'instagram login');
+  assert.equal(result.tools.find(tool => tool.command === 'followers').inputSchema.properties.count.default, 50);
+  assert.equal(result.tools.some(tool => tool.command === 'following'), true);
+  assert.equal(result.tools.find(tool => tool.command === 'bookmarks').inputSchema.properties.count.maximum, 12);
+  assert.equal(result.tools.some(tool => tool.command === 'bookmarks items'), true);
 });
 
 test('invalid routes, duplicate and command-incompatible flags fail before network access', () => {
@@ -24,6 +28,9 @@ test('invalid routes, duplicate and command-incompatible flags fail before netwo
     ['me', '--browser'], ['search', 'users', '--query', 'x', '--count', '0'],
     ['auth', 'poll', '--timeout', '30'], ['auth', 'wait', '--timeout', '0'],
     ['login', '--browser', '--replace'], ['login', '--browser-path', '/missing'],
+    ['followers', '--count', '0'], ['following', '--user-id', '../logout'],
+    ['followers', '--user-id', '123', '--username', 'fixture'],
+    ['bookmarks', '--count', '13'], ['bookmarks', 'items', '--collection-id', '../logout'],
   ]) {
     const result = spawnSync(process.execPath, [bin.pathname, ...args], { encoding: 'utf8' });
     assert.equal(result.status, 1);
