@@ -6,3 +6,7 @@ rea/
 .env
 .env.*
 *.log
+.tools/
+evidence/
+sessions/
+*.tgz
