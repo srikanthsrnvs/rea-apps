@@ -1,0 +1,11 @@
+{
+  "name": "resy-standalone-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless Resy restaurant search, availability and reservation CLI",
+  "bin": { "resy": "bin/resy" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=22.19" },
+  "files": ["bin/", "src/", "scripts/", "docs/", "README.md"]
+}

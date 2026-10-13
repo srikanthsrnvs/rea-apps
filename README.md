@@ -1,12 +1,13 @@
 # REA apps
 
-Standalone tools reconstructed from installed apps, with separate Spotify, Uber, and Instagram CLIs.
+Standalone tools reconstructed from installed apps, with separate Spotify, Uber, Instagram, and Resy CLIs.
 
 | App | Commands | Runtime |
 | --- | --- | --- |
 | [Spotify](spotify/README.md) | Login, search, playback, library, playlists, speakers, MCP | macOS Spotify or the maintained headless Linux container |
 | [Uber](uber/README.md) | Login, address search, ride options, fares, payment selection, booking, cancellation | Native Node.js HTTP client; no Android device or display server required |
-| [Instagram](instagram/README.md) | Account and content search, Explore with pagination, inbox summaries | Headless HTTP login with an Instagram approval link; Android used for protocol investigation |
+| [Instagram](instagram/README.md) | Search, Explore, inbox summaries, followers, following, saved collections | Headless HTTP login with an Instagram approval link; Android used for protocol investigation |
+| [Resy](resy/README.md) | Restaurant search, tables, calendars, prices, payment methods, reservations, booking, cancellation | Headless Node HTTP; official Resy widget login in a separate client browser |
 
 The CLIs output JSON and expose tool definitions for models. First login uses approval in a browser on another phone or computer. Subsequent use is headless; no developer API key is required.
 
@@ -18,9 +19,9 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's container and native Node runtime, then installs `spotify`, `uber`, and `instagram` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify needs Docker Engine with Compose v2; see its [Linux prerequisites](spotify/docs/headless-linux.md). On ARM64, its emulator setup requires systemd and sudo. Uber and Instagram reuse the native Node runtime. Neither needs Android or emulation at runtime. Instagram returns an approval link that the user opens in their own browser; the Linux host needs no browser, display, or developer API key.
+The installer sets up Spotify's container and native Node runtime, then installs `spotify`, `uber`, `instagram`, and `resy` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify needs Docker Engine with Compose v2; see its [Linux prerequisites](spotify/docs/headless-linux.md). On ARM64, its emulator setup requires systemd and sudo. The other apps reuse the native Node runtime and need no Android or emulation at runtime. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy also installs cloudflared for its temporary login relay.
 
-For one native app, use `./scripts/setup-linux.sh --uber-only` or `./scripts/setup-linux.sh --instagram-only`.
+For one native app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, or `--resy-only`.
 
 For an existing Spotify installation, preserve its saved container volume and use:
 
@@ -50,7 +51,9 @@ Each login command prints instructions for approval on another device. `uber aut
 
 For Instagram, run `instagram login` on Linux, send its `approvalUrl` to the user, then run `instagram auth wait`. The user signs in and confirms the code on Instagram’s own website. The host receives and saves the session automatically; see its [login guide](instagram/README.md).
 
-Read the app-specific guides for commands, installation on macOS, and protocol details. Uber booking and cancellation use preview-and-confirm plans; models must show the route, car, fare, payment method and cancellation terms before performing those actions.
+For Resy, run `resy login`, send its `approvalUrl` to the user, and run `resy auth wait`. The user signs in through the official Resy widget in their own browser; the host validates and saves the session. See its [login and reservation guide](resy/README.md).
+
+Read the app-specific guides for commands, installation on macOS, and protocol details. Uber and Resy booking/cancellation use reviewed plans. Models must show the current terms and obtain user approval before confirming a real booking or cancellation.
 
 ## Development
 
@@ -60,6 +63,7 @@ npm --prefix spotify test
 npm --prefix uber test
 npm --prefix instagram ci
 npm --prefix instagram test
+npm --prefix resy test
 ```
 
-The apps have separate dependency trees and private session storage. Spotify and Uber have separate Docker build contexts. Spotify's profile stays in its existing Docker volume. Instagram stores its session under `~/.config/instagram-cli`. Uber stores credentials under `~/.config/uber-cli` (or `$XDG_CONFIG_HOME/uber-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.
+The apps have separate dependency trees and private session storage. Spotify and Uber have separate Docker build contexts. Spotify's profile stays in its existing Docker volume. Instagram stores its session under `~/.config/instagram-cli`, Uber under `~/.config/uber-cli`, and Resy under `~/.config/resy-cli` (or `$XDG_CONFIG_HOME/APP-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.
