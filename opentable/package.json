@@ -1,0 +1,11 @@
+{
+  "name": "opentable-standalone-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless OpenTable restaurant search and reservation CLI",
+  "bin": { "opentable": "bin/opentable" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=22.19" },
+  "files": ["bin/", "src/", "scripts/", "docs/", "README.md"]
+}
