@@ -1,0 +1,23 @@
+{
+  "name": "erewhon-standalone-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless Erewhon login, membership, search, pickup and delivery ordering CLI",
+  "bin": {
+    "erewhon": "bin/erewhon"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scripts/",
+    "docs/",
+    "README.md"
+  ]
+}
