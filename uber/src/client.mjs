@@ -57,8 +57,11 @@ export async function request(config, endpoint, body, token, { retry = false, in
           status: response.status, code: 'integrity_required', endpoint,
         });
       }
-      throw new UberError(`Uber returned HTTP ${response.status}${payload.code ? ` (${payload.code})` : ''}; response saved privately in ${stateDirectory}/last-response.json`, {
-        status: response.status, code: payload.code, endpoint,
+      const fieldErrors = endpoint.includes('silk-screen') && Array.isArray(payload.screenErrors)
+        ? payload.screenErrors.flatMap(screen => Object.values(screen.errors ?? {}).map(error => error?.errorType)) : [];
+      const code = payload.code ?? fieldErrors.find(value => ['SMS_OTP_INCORRECT', 'EMAIL_OTP_INCORRECT', 'FRAUD_LOGIN_DENIED'].includes(value));
+      throw new UberError(`Uber returned HTTP ${response.status}${code ? ` (${code})` : ''}; response saved privately in ${stateDirectory}/last-response.json`, {
+        status: response.status, code, endpoint,
       });
     }
     if (!contentType.includes('json')) throw new UberError(`Unsupported response Content-Type ${contentType}`, { code:'unexpected_response', endpoint });

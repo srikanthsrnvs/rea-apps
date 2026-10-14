@@ -1,6 +1,6 @@
 # Uber standalone CLI
 
-A Node.js CLI reconstructed from Uber's Android app. It performs login exchange, OAuth refresh, ride shopping, booking and cancellation using HTTP. After one browser approval, it runs on a headless Linux machine without an Android device, display server, browser process or API key.
+A Node.js CLI reconstructed from Uber's Android app and official login frontend. It signs in using Uber verification codes, refreshes OAuth credentials, and performs ride shopping, booking and cancellation using HTTP. Login runs on a headless Linux machine without an Android device, display server, browser process, tunnel or developer API key.
 
 Requires Node.js 22.19 or later. No npm dependencies, Java, ADB or REA are needed to run it.
 
@@ -10,7 +10,7 @@ From this repository's `uber/` directory on macOS, or with an existing supported
 
 ```sh
 npm install --global .
-uber login
+uber login --phone +15555550123
 ```
 
 On Linux, the native installer reuses a compatible Node runtime or downloads a checksummed Node 24 release. It supports x86_64 and ARM64 with glibc 2.28 or newer and requires Git, curl, tar, xz and sha256sum if Node must be downloaded. It leaves system Node unchanged:
@@ -20,21 +20,25 @@ git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
 cd rea-apps
 ./scripts/setup-linux.sh --uber-only
 export PATH="$HOME/.local/bin:$PATH"
-uber login
+uber login --phone +15555550123
 ```
 
 For both apps, run `./scripts/setup-linux.sh`; see the [combined installation guide](../README.md). A package archive also includes `scripts/setup-linux.sh` for installing Uber alone. Keep its unpacked directory in place because the command links to it.
 
-Open the printed URL on your phone or computer and finish signing in. The final page may say it cannot be found: copy its **full URL**, containing `session` and `authCode`. On the machine running the CLI:
+Start login with your phone number. Use `--country-code 1` to specify its dialing code when needed. The JSON response includes `loginId`, `status: "waiting_for_code"`, and a `challenge` with its `id`, delivery `channel`, masked `contact`, and `codeLength`. Enter the code Uber sends using the returned IDs:
 
 ```sh
-uber auth complete
-# Paste the completed URL when prompted.
+uber auth complete --login-id LOGIN_ID --challenge-id CHALLENGE_ID --code CODE
+uber auth poll --login-id LOGIN_ID
 uber auth status
 uber products --from 37.7749,-122.4194 --to 37.7849,-122.4094
 ```
 
-Over a noninteractive connection, use `uber auth complete --callback-url 'FULL_URL'`. Keep this URL private. The CLI machine needs no display, but the first sign-in currently requires approval in a browser on another device. It does not automate passkeys or verification codes.
+Uber may require another verification code, such as an email code after SMS. Show the returned challenge and call `auth complete` again with the same `loginId`, the new `challenge.id`, and the new code. An agent must forward the current returned challenge ID; the user only supplies the code. A completed challenge ID cannot be reused for a later step. `auth poll` inspects the pending login; `auth status` also includes its `login` summary. Stop a pending login with `uber auth cancel --login-id LOGIN_ID`.
+
+Instead of `--code CODE`, use `--code-file /path/to/code.txt` to read the code from a file. In an interactive terminal, omit both options to enter the code at a prompt. Keep `--login-id` and `--challenge-id` bound to the current response.
+
+Each code delivery is requested once. If the result is uncertain, inspect the saved login before taking further action; do not automatically repeat `login` or request another message. This flow needs no browser approval or copied callback URL.
 
 Find destinations by name before quoting a route:
 
@@ -53,9 +57,14 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 | Command | Behavior |
 | --- | --- |
 | `tools` | Print tool definitions for models |
-| `login` | Start a sign-in and print its approval URL |
-| `auth complete` | Exchange the completed URL using the retained PKCE verifier |
-| `auth status` | Inspect local token timestamps without exposing credentials |
+| `login --phone NUMBER [--country-code CODE]` | Start login and return its verification-code challenge |
+| `auth complete --login-id ID --challenge-id ID --code CODE` | Submit the current challenge's code; return the next challenge or complete login |
+| `auth poll --login-id ID` | Inspect the pending login |
+| `auth validate --login-id ID` | Validate an already exchanged session after an interrupted validation |
+| `auth cancel --login-id ID` | Stop the pending local login |
+| `login-url` | Print a legacy browser approval URL for manual recovery |
+| `auth complete --callback-url URL` | Exchange a completed supported browser callback using the retained PKCE verifier |
+| `auth status` | Inspect token timestamps and pending login without exposing credentials |
 | `auth refresh` | Refresh stored OAuth credentials |
 | `auth logout` | Remove local credentials and private response files |
 | `search --query TEXT --near LAT,LON` | Find places and their Uber location IDs |
@@ -102,7 +111,13 @@ Paid actions are never automatically retried. If an error reports `outcome_unkno
 
 ## Headless authentication
 
-The implementation uses the app's PKCE login flow and refresh-token endpoint. Ride endpoints additionally require a short-lived client integrity credential. The CLI requests a **server-issued exemption** through the app's `/rt/devices/exemption` flow and passes it in `x-uber-cit`. It automatically renews expired credentials and retries an integrity challenge once. It does not fabricate device attestation or certificates.
+The CLI starts an authentication session through `/rt/silk-screen/submit-form` and selects a server-returned verification challenge. `/rt/silk-screen/prepare-field` requests its code. Successful verification can return another challenge; after the final challenge, the CLI exchanges the session with its retained PKCE verifier and saves OAuth credentials. It uses Uber's current official login JavaScript and native API contracts; see [protocol details](docs/protocol.md).
+
+Code delivery and code submission are recorded before sending and are not automatically replayed after an uncertain outcome. Login state, the PKCE verifier and responses remain private. A successful login replaces the pending state with the authenticated session; later commands refresh OAuth credentials as needed.
+
+If login reports `validation_pending`, run `uber auth validate --login-id LOGIN_ID`. It validates the already exchanged session without submitting a code again or requesting another message. Existing authenticated credentials remain in place until candidate validation succeeds.
+
+Ride endpoints additionally require a short-lived client integrity credential. The CLI requests a **server-issued exemption** through the app's `/rt/devices/exemption` flow and passes it in `x-uber-cit`. It automatically renews expired credentials and retries an integrity challenge once. It does not fabricate device attestation or certificates.
 
 The server granted this credential and accepted ride shopping for the tested account. Eligibility is controlled by Uber; this is not a guarantee for every account or future app version. No API key is required.
 
@@ -110,13 +125,26 @@ State defaults to `$XDG_CONFIG_HOME/uber-cli`, or `~/.config/uber-cli`. Override
 
 OAuth tokens, refresh tokens, integrity credentials and raw server responses remain in this private state directory. `auth logout` removes the local copies; it does not revoke the account's server sessions.
 
+### Manual browser recovery
+
+The previous browser flow remains explicit recovery:
+
+```sh
+uber login-url
+# Finish the printed approval link in your own browser.
+# If it exposes a completed supported callback URL, supply it manually:
+uber auth complete --callback-url 'FULL_CALLBACK_URL'
+```
+
+This route requires the full callback containing `session` and `authCode`, bound to the saved PKCE verifier. Keep it private. It does not automatically deliver browser approval to the CLI. Uber's callback allowlists discard arbitrary return URLs, and Safari may fail to expose the native return link. Use verification-code login for the normal headless workflow.
+
 ## Linux container
 
 ```sh
 docker build -t uber-cli .
 docker volume create uber-cli-state
-docker run --rm -v uber-cli-state:/state uber-cli login
-docker run --rm -it -v uber-cli-state:/state uber-cli auth complete
+docker run --rm -v uber-cli-state:/state uber-cli login --phone +15555550123
+docker run --rm -v uber-cli-state:/state uber-cli auth complete --login-id LOGIN_ID --challenge-id CHALLENGE_ID --code CODE
 docker run --rm -v uber-cli-state:/state uber-cli quote \
   --from 37.7749,-122.4194 --to 37.7849,-122.4094
 ```
@@ -127,7 +155,9 @@ This image includes Node, the CLI and the base image’s `flock` utility. APKs, 
 
 ## Validation and current scope
 
-`npm test` verifies PKCE, callback validation, coordinate bounds, trusted regional redirects, refresh and integrity renewal, bounded read retries, mutation journals, payment selection, signed fare binding and expiry, cancellation fee changes, response normalization and concurrent/crashed-process state handling. All 51 checks pass on macOS and Linux ARM64 using Node 22 and Node 24. Native deployment on ARM64 Ubuntu 22.04 also verified installer reruns, persisted login with automatic OAuth refresh, account status, place search and resolution, and signed quotes returning 22 car options. This native run used no Android device, Docker container, browser process or display server.
+On 2026-10-14, a live HTTP protocol pilot on native ARM64 Linux completed SMS verification, a subsequent email challenge, session verification, PKCE exchange, OAuth refresh, and authenticated trip status. The returned account matched the existing signed-in account. These login steps used no Android device, browser, display server or tunnel. The production authentication module replayed captured responses, and `uber auth validate` validated the already exchanged live candidate through the CLI.
+
+All 89 automated tests passed on macOS and Linux ARM64; 49 focused checks also passed in a Node 22 Linux container. Coverage includes verification-code challenges, stale and concurrent completion, recovery after a process crash, PKCE, callback validation, coordinate bounds, trusted regional redirects, refresh and integrity renewal, bounded read retries, mutation journals, payment selection, signed fare binding and expiry, cancellation fee changes, response normalization and state locking. Previous native deployment on ARM64 Ubuntu 22.04 also verified installer reruns, persisted login with automatic OAuth refresh, account status, place search and resolution, and signed quotes returning 22 car options. This native run used no Android device, Docker container, browser process or display server.
 
 Live Linux ARM64 HTTP shopping returned 22 ride options for a sample city route. A complete search → resolution → quote → status test for an airport route returned 19 products and 23 price variants using persisted credentials. Live booking preparation resolves the current Personal profile and payment method and binds a selected car to its signed fare. Pickup ETA is unavailable in these responses and remains null.
 

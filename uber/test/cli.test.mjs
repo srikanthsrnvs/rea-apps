@@ -20,10 +20,15 @@ test('CLI describes model tools and validates routes without login/network',()=>
     const result=run(...args);assert.equal(result.status,1);assert.equal(result.stdout,'');assert.ok(JSON.parse(result.stderr).error.message);assert.ok(!result.stderr.includes('at Module'));
   }
 });
-test('login prints another-device approval URL and logout deletes local credentials',async()=>{
-  const login=run('login');assert.equal(login.status,0);const p=JSON.parse(login.stdout);assert.equal(new URL(p.url).hostname,'auth.uber.com');
+test('default login requests a phone, manual recovery is explicit, and logout preserves journals',async()=>{
+  const missing=run('login');assert.equal(missing.status,0);assert.equal(JSON.parse(missing.stdout).status,'phone_required');
+  assert.equal(run('login','--phone','invalid').status,1);
+  const tools=JSON.parse(run('tools').stdout).tools;for(const name of ['auth_login','auth_complete','auth_poll','auth_cancel','auth_validate'])assert.ok(tools.some(t=>t.name===name));
+  const login=run('login-url');assert.equal(login.status,0);const p=JSON.parse(login.stdout);assert.equal(new URL(p.url).hostname,'auth.uber.com');
   assert.ok(await fs.stat(path.join(directory,'pending-login.json')));
+  await fs.writeFile(path.join(directory,'operation-journal.json'),'{"status":"outcome_unknown"}');
   const logout=run('auth','logout');assert.equal(logout.status,0);assert.deepEqual(JSON.parse(logout.stdout),{loggedOut:true});
   await assert.rejects(fs.stat(path.join(directory,'pending-login.json')),{code:'ENOENT'});
   assert.equal(JSON.parse(run('auth','status').stdout).loggedIn,false);
+  assert.equal(JSON.parse(await fs.readFile(path.join(directory,'operation-journal.json'))).status,'outcome_unknown');
 });

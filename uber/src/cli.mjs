@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { createInterface } from 'node:readline/promises';
-import { defaults, createContext, createLogin, parseCallback, sessionExchange, extractLoginSession, withExpiry, shoppingRequest } from './protocol.mjs';
+import { parseCallback, sessionExchange, extractLoginSession, withExpiry, shoppingRequest } from './protocol.mjs';
 import { readState, saveState, removeState, stateDirectory, withStateLock } from './state.mjs';
 import { request as api, refresh, authenticatedRequest } from './client.mjs';
 import { normalizeQuotes, legacyFareRequest } from './quotes.mjs';
@@ -12,17 +12,10 @@ import { inspectOperation } from './mutations.mjs';
 import { requireUUID } from './plans.mjs';
 import { riderCancelRequest,normalizeTripStatus } from './cancellation-protocol.mjs';
 import { listPaymentProfiles } from './payments.mjs';
+import { startLogin, completeLogin, validateLogin, pollLogin, cancelLogin, logout, authStatus, startBrowserRecovery } from './auth.mjs';
 
 let values;
 const print = value => console.log(JSON.stringify(value, null, 2));
-
-async function context() {
-  const existing = await readState('context');
-  const value = existing ?? createContext();
-  if (values['client-id']) value.firstPartyClientID = values['client-id'];
-  await saveState('context', value);
-  return value;
-}
 
 async function deviceData() {
   return values['device-data'] ? JSON.parse(await fs.readFile(values['device-data'], 'utf8')) : {};
@@ -45,12 +38,21 @@ async function exchange(callbackURL) {
   print({ loggedIn: true, refreshTokenAvailable: Boolean(oauth.refreshToken) });
 }
 
-async function login() {
-  const pending = createLogin(await context(), values['callback-url'] ?? defaults.callback);
-  await saveState('pending-login', pending);
-  print({ url: pending.url, expiresInMinutes: 15,
-    next: 'Open this URL in a browser, sign in, then copy its final URL (even if the page says not found) and run: uber auth complete --callback-url URL',
-    status: 'waiting_for_login' });
+async function browserLogin() {
+  print(await startBrowserRecovery({callback:values['callback-url'],clientId:values['client-id']}));
+}
+
+async function codeInput() {
+  if (values.code && values['code-file']) throw new Error('Use --code or --code-file, not both');
+  if (values.code) return values.code.trim();
+  if (values['code-file']) {
+    const file = await fs.open(values['code-file'], 'r');
+    try { const buffer = Buffer.alloc(128); const { bytesRead } = await file.read(buffer); if (bytesRead === 128) throw new Error('Code file is too large'); return buffer.subarray(0, bytesRead).toString().trim(); }
+    finally { await file.close(); }
+  }
+  if (!process.stdin.isTTY) throw new Error('--code or --code-file is required outside an interactive terminal');
+  const prompt = createInterface({ input: process.stdin, output: process.stderr });
+  try { return (await prompt.question('Verification code: ')).trim(); } finally { prompt.close(); }
 }
 
 try {
@@ -59,6 +61,13 @@ try {
     'callback-url': { type: 'string' },
     'client-id': { type: 'string' },
     'device-data': { type: 'string' },
+    phone: { type: 'string' },
+    'country-code': { type: 'string' },
+    'login-id': { type: 'string' },
+    'challenge-id': { type: 'string' },
+    code: { type: 'string' },
+    'code-file': { type: 'string' },
+    replace: { type: 'boolean' },
     request: { type: 'string' },
     from: { type: 'string' },
     to: { type: 'string' },
@@ -86,11 +95,16 @@ try {
   const command = parsed.positionals.join(' ') || 'help';
   
   if (values.help || command === 'help') {
-    console.log(`Standalone Uber CLI — browser approval once, then headless HTTP access.
+    console.log(`Standalone Uber CLI — verification-code login and headless HTTP access.
 
 uber tools                         Print tool definitions for models
-uber login                         Generate a browser approval URL; works over SSH
-uber auth complete --callback-url URL  Exchange the completed browser URL
+uber login --phone +15555550123     Send a login verification code; works over SSH
+uber auth complete --login-id ID --challenge-id ID --code CODE  Submit the current code; may request a second code
+uber auth poll --login-id ID        Inspect the pending login without sending another code
+uber auth validate --login-id ID    Retry validation of an already exchanged session
+uber auth cancel --login-id ID      Cancel a pending login; keep the existing session
+uber login-url                     Explicit manual browser recovery flow
+uber auth complete --callback-url URL  Complete manual browser recovery
 uber auth status                   Report local session state without printing tokens
 uber auth refresh                  Exchange the stored refresh token
 uber auth logout                   Delete local credentials and private responses
@@ -108,31 +122,32 @@ uber cancel --trip-id UUID         Preview cancellation terms without cancelling
 uber cancel --plan-id UUID --confirm  Execute the reviewed cancellation plan
 uber operation --id UUID           Inspect a saved booking/cancellation outcome
 
-Optional flags: --raw, --device-data FILE, --callback-url URL, --via LAT,LON
+Optional flags: --raw, --country-code 1, --replace, --code-file FILE, --device-data FILE, --callback-url URL, --via LAT,LON
 State: ${stateDirectory}`);
   } else if (command === 'tools') print(toolManifest);
-  else if (command === 'login') await login();
-  else if (command === 'login-url') await login();
+  else if (command === 'login') {
+    if (values['callback-url'] || values['client-id'] || values['device-data']) throw new Error('Custom browser settings belong to the explicit login-url recovery command');
+    if (!values.phone) print({status:'phone_required',next:'Run uber login --phone +COUNTRYCODEPHONENUMBER to receive a verification code.'});
+    else print(await startLogin({phone:values.phone,countryCode:values['country-code']??'1',replace:values.replace}));
+  }
+  else if (command === 'login-url') await browserLogin();
+  else if (command === 'auth poll') print(await pollLogin({loginId:values['login-id']}));
+  else if (command === 'auth cancel') print(await cancelLogin({loginId:values['login-id']}));
+  else if (command === 'auth validate') print(await validateLogin({loginId:values['login-id']}));
   else if (command === 'auth complete') {
-    let callbackURL = values['callback-url'];
-    if (!callbackURL) {
-      if (!process.stdin.isTTY) throw new Error('--callback-url is required outside an interactive terminal');
-      const prompt = createInterface({ input: process.stdin, output: process.stderr });
-      try { callbackURL = await prompt.question('Completed browser URL: '); } finally { prompt.close(); }
+    if (values['callback-url']) {
+      if (values.code || values['code-file'] || values['login-id'] || values['challenge-id']) throw new Error('Do not mix browser recovery and verification-code arguments');
+      await withStateLock(() => exchange(values['callback-url'].trim()));
+    } else {
+      print(await completeLogin({code:await codeInput(),loginId:values['login-id'],challengeId:values['challenge-id']}));
     }
-    await withStateLock(() => exchange(callbackURL.trim()));
   } else if (command === 'auth status') {
-    const session = await readState('session');
-    const integrity = await readState('integrity');
-    print({ loggedIn: Boolean(session?.accessToken), accessTokenExpired: Boolean(session?.expiresAt && session.expiresAt <= Date.now()), refreshTokenAvailable: Boolean(session?.refreshToken), receivedAt: session?.receivedAt ?? null, expiresAt: session?.expiresAt ?? null, integrityExpiresAt: integrity?.expiresAt ?? null });
+    print(await authStatus());
   } else if (command === 'auth refresh') {
     await refresh();
     print({ refreshed: true });
   } else if (command === 'auth logout') {
-    await withStateLock(async () => {
-      for (const name of (await fs.readdir(stateDirectory)).filter(name => name.endsWith('.json') && name !== 'context.json')) await removeState(name.slice(0, -5));
-    });
-    print({loggedOut:true});
+    print(await logout());
   } else if (command === 'search') {
     const body = searchRequest(values.query, values.near, values.context);
     if (values['dry-run']) print({endpoint:'/rt/pudo-presentation-helix/text-search',body:{request:body}});

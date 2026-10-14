@@ -5,12 +5,12 @@ Standalone tools reconstructed from installed apps, with separate Spotify, Uber,
 | App | Commands | Runtime |
 | --- | --- | --- |
 | [Spotify](spotify/README.md) | Login, search, playback, library, playlists, speakers, MCP | macOS Spotify or the maintained headless Linux container |
-| [Uber](uber/README.md) | Login, address search, ride options, fares, payment selection, booking, cancellation | Native Node.js HTTP client; no Android device or display server required |
+| [Uber](uber/README.md) | Verification-code login, address search, ride options, fares, payment selection, booking, cancellation | Native Node.js HTTP; no Android device, browser, display server or tunnel required |
 | [Instagram](instagram/README.md) | Search, Explore, inbox summaries, followers, following, saved collections | Headless HTTP login with an Instagram approval link; Android used for protocol investigation |
 | [OpenTable](opentable/README.md) | Verification-code login, paginated restaurant search, tables, payments, reservations, reviewed booking and cancellation | Headless Node HTTP; no Android, browser or display required on the host |
 | [Resy](resy/README.md) | Restaurant search, tables, calendars, prices, payment methods, reservations, booking, cancellation | Headless Node HTTP; official Resy widget login in a separate client browser |
 
-The CLIs output JSON and expose tool definitions for models. First login uses approval in a browser on another phone or computer, or a verification code for OpenTable. Subsequent use is headless; no developer API key is required.
+The CLIs output JSON and expose tool definitions for models. Uber and OpenTable accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Subsequent use is headless; no developer API key is required.
 
 ## Install on Linux
 
@@ -42,13 +42,16 @@ spotify login-status
 spotify devices --pretty
 spotify tools
 
-uber login
-uber auth complete
+uber login --phone +15555550123
+uber auth complete --login-id LOGIN_ID --challenge-id CHALLENGE_ID --code CODE
+uber auth poll --login-id LOGIN_ID
 uber auth status
 uber tools
 ```
 
-Spotify and Uber login commands print instructions for approval on another device. `uber auth complete` accepts the final browser URL even if the callback page says it cannot be found. Keep that URL private.
+Spotify prints instructions for approval on another device. Uber returns a `loginId` and verification challenge describing its ID, channel, masked contact and code length. Enter each code through `uber auth complete` with the current returned `challenge.id`; Uber may request an email code after SMS with a new challenge ID. The agent forwards the IDs while the user supplies the code. `uber auth cancel --login-id LOGIN_ID` stops a pending login. This flow uses HTTP without a browser or tunnel. The previous `uber login-url` and `auth complete --callback-url URL` commands remain manual recovery; see the [Uber login guide](uber/README.md#headless-authentication).
+
+Uber also accepts `--code-file FILE` or an interactive code prompt. If the exchanged session needs validation, run `uber auth validate --login-id LOGIN_ID` without requesting another code.
 
 For Instagram, run `instagram login` on Linux, send its `approvalUrl` to the user, then run `instagram auth wait`. The user signs in and confirms the code on Instagram’s own website. The host receives and saves the session automatically; see its [login guide](instagram/README.md).
 

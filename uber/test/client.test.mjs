@@ -91,3 +91,14 @@ test('payment profile reads use GET without a JSON body',async()=>{
   };
   await authenticatedRequest('/rt/payment/v3/payment-profiles',undefined,{method:'GET',extraHeaders:{'x-uber-uuid':'test-rider'}});
 });
+
+test('wrong verification codes are recognized without exposing response or request secrets',async()=>{
+  for(const code of ['SMS_OTP_INCORRECT','EMAIL_OTP_INCORRECT']){
+    let calls=0;
+    globalThis.fetch=async()=>{calls++;return json({screenErrors:[{screenType:'PHONE_OTP',errors:{PHONE_SMS_OTP:{errorType:code,message:'private server details'}}}]},400);};
+    await assert.rejects(request(context,'/rt/silk-screen/submit-form',{privateCode:'9173620485'}),error=>{
+      assert.equal(error.code,code);assert.equal(error.status,400);assert.ok(!error.message.includes('private server details'));assert.ok(!error.message.includes('9173620485'));return true;
+    });
+    assert.equal(calls,1);
+  }
+});

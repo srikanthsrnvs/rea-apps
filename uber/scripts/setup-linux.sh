@@ -55,4 +55,4 @@ if [ -e "$destination" ] || [ -L "$destination" ]; then
 fi
 ln -sfn "$workspace/bin/uber-linux" "$destination"
 "$destination" tools >/dev/null
-printf '%s\n' "Installed Uber using $node_binary" 'CLI: ~/.local/bin/uber' 'First login: uber login, then uber auth complete'
+printf '%s\n' "Installed Uber using $node_binary" 'CLI: ~/.local/bin/uber' 'First login: uber login --phone +COUNTRYCODEPHONENUMBER, then uber auth complete --login-id ID --challenge-id ID --code CODE'
