@@ -1,4 +1,17 @@
 #!/bin/sh
 set -eu
-workspace=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-exec "$workspace/.runtime/node" "$workspace/bin/erewhon" "$@"
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+erewhon_node=${EREWHON_NODE:-$workspace/.runtime/node}
+if [ ! -x "$erewhon_node" ]; then
+  printf '%s\n' 'Run erewhon/scripts/setup-linux.sh first, or set EREWHON_NODE to a compatible Node executable.' >&2
+  exit 1
+fi
+exec "$erewhon_node" "$workspace/bin/erewhon" "$@"
