@@ -4,6 +4,9 @@ export const apiBase = 'https://ordersapi.enfmkt.com';
 export class ApiError extends Error {
   constructor(code, message, status) { super(message); this.name = 'ApiError'; this.code = code; if (status !== undefined) this.status = status; }
 }
+// Match the website's qs.stringify RFC3986 encoding, including %20 for spaces
+// inside JSON-valued form fields rather than URLSearchParams' plus signs.
+function encodeField(value){return encodeURIComponent(String(value)).replace(/[!'()*]/g,character=>`%${character.charCodeAt(0).toString(16).toUpperCase()}`);}
 
 function apiURL(endpoint) {
   if (typeof endpoint !== 'string' || !endpoint.startsWith('/') || endpoint.startsWith('//')) throw new ApiError('INVALID_ENDPOINT', 'Supply a first-party API endpoint.');
@@ -33,7 +36,7 @@ export async function request(endpoint, { method = 'POST', form, token, readOnly
     if (method === 'DELETE') {
       for (const [key, value] of params) url.searchParams.set(key, value);
     } else {
-      body = params.toString(); headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      body = [...params].map(([key,value])=>`${encodeField(key)}=${encodeField(value)}`).join('&'); headers['Content-Type'] = 'application/x-www-form-urlencoded';
     }
   }
   for (let attempt = 0; ; attempt++) {

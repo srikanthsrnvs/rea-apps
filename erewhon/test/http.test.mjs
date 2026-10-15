@@ -71,3 +71,10 @@ test('PUT uses a form body while DELETE encodes fields in the URL and omits a bo
  const url=new URL(f.calls[1].url);assert.equal(url.searchParams.get('existing'),'yes');assert.equal(url.searchParams.get('address_id'),'address & test');
  assert.equal(Object.hasOwn(f.calls[1].args,'body'),false);assert.equal(f.calls[1].args.headers['Content-Type'],undefined);
 });
+
+test('JSON-valued checkout fields match the website RFC3986 body rather than plus-for-space encoding',async()=>{
+ const f=fixture();const time=JSON.stringify({date:'Wed, Oct 14',time:'30 - 45 minutes'});
+ await request('/v1/place_order',{form:{delivery_time:time,instruction:'A+B !() café'}},f.options);
+ assert.equal(f.calls[0].args.body,'delivery_time=%7B%22date%22%3A%22Wed%2C%20Oct%2014%22%2C%22time%22%3A%2230%20-%2045%20minutes%22%7D&instruction=A%2BB%20%21%28%29%20caf%C3%A9');
+ assert.equal(new URLSearchParams(f.calls[0].args.body).get('delivery_time'),time);
+});
