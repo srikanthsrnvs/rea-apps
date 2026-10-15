@@ -47,5 +47,5 @@ export async function fetchSharedTrip(tripId, { send = authenticatedRequest, fet
     }
   }
   // ShareClient.a -> ks3.i.apply wraps the native FetchRequest under request.
-  return send('/rt/sharetrip/fetch', { request: { shareToken: token, usePolylines: true } }, { readOnly: true });
+  return send('/rt/sharetrip/fetch', { request: { shareToken: token, usePolylines: false } }, { readOnly: true });
 }

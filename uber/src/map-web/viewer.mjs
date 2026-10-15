@@ -3,6 +3,9 @@ import { adaptNativeMapStyle, nativeStyles } from './map-style.mjs';
 import { mapAssetUrl, spriteFrame, vehicleSpriteScale } from './vehicle-style.mjs';
 
 const key = new URLSearchParams(location.hash.slice(1)).get('key');
+// A renewed viewer lease can change only the fragment in an existing browser tab.
+// Reload so its requests use the new key and an expired poller can restart.
+addEventListener('hashchange', () => location.reload());
 const status = document.querySelector('#status');
 const night = matchMedia('(prefers-color-scheme: dark)');
 let map, latest, markers = [], follow = true, stopped = false, timer;
@@ -85,7 +88,7 @@ function render(scene) {
   const routes = { type: 'FeatureCollection', features: (scene.routes ?? []).filter(r => r.points?.length > 1).map(route => ({ type: 'Feature', properties: { kind: route.kind }, geometry: { type: 'LineString', coordinates: route.points.map(coordinate) } })) };
   if (!map.getSource('ride-routes')) {
     map.addSource('ride-routes', { type: 'geojson', data: routes });
-    map.addLayer({ id: 'ride-route', type: 'line', source: 'ride-routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': night.matches ? '#fff' : '#000', 'line-width': 4 } });
+    map.addLayer({ id: 'ride-route', type: 'line', source: 'ride-routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['case', ['==', ['get', 'kind'], 'trip_recommended'], night.matches ? '#aaa' : '#777', night.matches ? '#fff' : '#000'], 'line-width': 4 } });
   } else map.getSource('ride-routes').setData(routes);
   const hasCoordinates = points(scene).length > 0;
   document.querySelector('#map').hidden = !hasCoordinates;

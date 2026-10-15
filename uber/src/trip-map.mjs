@@ -1,6 +1,7 @@
 import { authenticatedRequest } from './client.mjs';
 import { loadTripMapIcons } from './map-vehicle.mjs';
 import { fetchSharedTrip } from './trip-share.mjs';
+import { fetchRouteline } from './routing.mjs';
 
 const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -216,13 +217,37 @@ export function normalizeSharedTripMap(payload, options = {}) {
     vehicle: { vehiclePath: observed }, legs,
   } }, options);
   scene.source = 'native_trip_share';
+  scene.routeDisplayAllowed = body.hideRouteline !== true;
   scene.driver.source = observed.length ? 'native_share_locations' : null;
   scene.pollingIntervalMs = 8000;
   if (locations.length !== observed.length) scene.warnings.push('Some shared location timestamps could not be verified as recent milliseconds.');
   return scene;
 }
 
-export async function getTripMap(options = {}, { send = authenticatedRequest, loadIcons = loadTripMapIcons, loadSharedTrip = fetchSharedTrip } = {}) {
+export async function enrichTripRoutes(scene, { send = authenticatedRequest, loadRoute = fetchRouteline } = {}) {
+  if (!['active', 'dispatching'].includes(scene.state) || scene.routes.length || scene.routeDisplayAllowed === false
+      || scene.waypoints.some(point => point.kind === 'via')) return scene;
+  const pickup = scene.waypoints.find(point => point.kind === 'pickup');
+  const dropoff = scene.waypoints.find(point => point.kind === 'dropoff');
+  const routes = [];
+  async function add(from, to, kind) {
+    if (!from || !to) return;
+    try {
+      const result = await loadRoute(`${from.lat},${from.lon}`, `${to.lat},${to.lon}`, { send });
+      const points = decodePolyline(result.encodedPolyline);
+      const near = (a, b) => Math.abs(a.lat - b.lat) < 0.005 && Math.abs(a.lon - b.lon) < 0.005;
+      if (points.length < 2 || !near(points[0], from) || !near(points.at(-1), to)) throw new Error('Route endpoints do not match');
+      routes.push({ kind, source: 'uber_routing_recommendation', encodedPolyline: result.encodedPolyline, points });
+    } catch { scene.warnings.push('An Uber road-route recommendation is unavailable; current positions remain usable.'); }
+  }
+  if (['EnRoute', 'Accepted', 'Arriving', 'Arrived'].includes(scene.status)) await add(scene.driver.position, pickup, 'provider_recommended');
+  if (['OnTrip', 'InProgress'].includes(scene.status)) await add(scene.driver.position, dropoff, 'provider_recommended');
+  else await add(pickup, dropoff, 'trip_recommended');
+  if (routes.length) scene.warnings.push('Road routes are Uber recommendations; the driver-selected navigation route is unverified.');
+  return { ...scene, routes };
+}
+
+export async function getTripMap(options = {}, { send = authenticatedRequest, loadIcons = loadTripMapIcons, loadSharedTrip = fetchSharedTrip, loadRoute = fetchRouteline } = {}) {
   const status = await send('/rt/riders/me/status', {}, { readOnly: true });
   let scene;
   try { scene = normalizeTripMap(status, options); }
@@ -231,6 +256,7 @@ export async function getTripMap(options = {}, { send = authenticatedRequest, lo
     scene = normalizeSharedTripMap(await loadSharedTrip(options.tripId, { send }), options);
     scene.warnings.push('Account status omitted this trip; using the native trip-sharing data source.');
   }
+  scene = await enrichTripRoutes(scene, { send, loadRoute });
   let icons = null;
   try { icons = scene.tripId ? await loadIcons(scene.tripId) : null; }
   catch { scene.warnings.push('Saved vehicle artwork is unavailable; position data remains usable.'); }

@@ -30,7 +30,7 @@ test('native sharing follows only first-party redirects without bearer credentia
     },
   });
   assert.equal(result, body);
-  assert.deepEqual(calls[1], ['/rt/sharetrip/fetch', { request: { shareToken: 'fixture-token', usePolylines: true } }, { readOnly: true }]);
+  assert.deepEqual(calls[1], ['/rt/sharetrip/fetch', { request: { shareToken: 'fixture-token', usePolylines: false } }, { readOnly: true }]);
   await assert.rejects(fetchSharedTrip(tripId, { readOwner: async () => null,
     send: async () => ({ shareUrl: 'https://trip.uber.com/fixture' }),
     fetcher: async () => new Response(null, { status: 302, headers: { location: 'https://evil.example/leak' } }),

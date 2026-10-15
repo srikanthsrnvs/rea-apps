@@ -169,7 +169,7 @@ is bypassed for explicitly selected rides using the native sharing data API.
 `GET /rt/trips/{tripUUID}/share-yo-ride?shareTripType=RIDER_SHARE`.
 Following first-party redirects without account credentials yields its tracking
 token. `ShareClient.a` / `ks3.i.apply` establish
-`POST /rt/sharetrip/fetch` with `{request:{shareToken,usePolylines:true}}`.
+`POST /rt/sharetrip/fetch` with `{request:{shareToken,usePolylines:false}}`.
 The token stays on the CLI host; only the closed map projection reaches the
 iframe. Resolution is cached in memory for one minute, scoped to rider and trip.
 Neither retrieving a link nor fetching its data sends messages to contacts.
@@ -181,5 +181,29 @@ still active. The official share page itself returned HTTP 404 after redirecting
 to m.uber.com and declared SAMEORIGIN; it is not used as an embedded map.
 Driver coordinates, when present, require plausible recent millisecond
 observations. Unknown timestamp units are omitted instead of guessed. The source
-also honors `hideRouteline`. A successful assigned-driver comparison remains
-unverified.
+also honors `hideRouteline`. A later live test verified fresh timestamped car coordinates and movement in the
+browser; exact native animation and pixel parity remain unverified.
+
+
+A second explicitly authorized live test established a native response switch:
+`usePolylines:true` returns an encoded car position under `routeLines[id=car]`
+and null `locations`. Requesting `false` returns timestamped `locations` with
+latitude, longitude, course, and millisecond epoch. The map now requests raw
+locations rather than treating the encoded car track as a passenger routeline.
+
+
+The live test also confirmed that raw tracking locations do not include the
+approach road geometry. Native `RoutingApi.fetchRouteline` exposes
+`POST /rt/routing/fetch-routelines` with direct `{origin,destination,type:"DRIVING"}`
+(RoutelineRequest and rtapi.models.location.Location writers). The CLI now uses
+that native endpoint when an active selected ride lacks routelines. It requests
+separate driver-to-pickup and pickup-to-destination recommendations, or
+current-position-to-destination after the trip begins. It checks decoded endpoints,
+respects hidden routes, skips unsupported via routes, and preserves positions if
+routing fails. These lines are explicitly tagged as Uber routing recommendations;
+they are not claimed to reveal the driver's selected navigation path.
+
+The second live test was cancelled on request. Uber's final receipt reported no
+charge and removal of its $7.95 authorization hold. No further ride was booked.
+The viewer also reloads when a renewed URL changes its fragment, preventing an
+old tab from continuing to use the previous access key.
