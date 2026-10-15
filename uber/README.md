@@ -93,6 +93,13 @@ camera behavior and pixel parity are not yet reproduced. For remote embedding,
 use a reachable `--public-url` and HTTPS reverse proxy, with optional
 `--frame-origin` restrictions. See the [map reconstruction findings and embedding guide](docs/map-reconstruction.md).
 
+The viewer now includes the recovered native route reveal/pulse timing, a
+solid base line, persistent car sprites, queued road-following animation and
+remaining-route clipping at the animated car. A native Android recording
+corroborates the 2.5-second pulse and dark route color. Full visual parity is
+still unverified; source evidence, browser adapter boundaries and the remaining
+comparison work are tracked in the [map parity ledger](docs/map-parity.md).
+
 Booking has two steps:
 
 ```sh
@@ -166,13 +173,34 @@ This image includes Node, the CLI and the base image’s `flock` utility. APKs, 
 
 ## Validation and current scope
 
-On 2026-10-15, all 128 tests passed on native Linux ARM64 and in a Node 22
-Linux container. macOS passed 127 tests and skipped the Linux-only kernel-lock
-test. The iframe prototype was rendered in a separate browser origin with
-original Uber map resources and car sprites, synthetic route data, interactive
-zoom and recentering. A separate client-browser iframe also loaded a live Orin-served map and correctly reported idle state. A Docker integration probe confirmed another CLI command completes while the viewer remains open. Assigned-driver
-and native animation parity remain unverified. Map serving uses short state
-transactions so the long-lived viewer does not block other CLI commands.
+The animation kernels and adapter have automated coverage for timing, route
+merging, road corners, clipping, teleport thresholds, freeze behavior and Android
+geodesy. An optional networked browser smoke check verifies route layers, pulse
+frames, marker reuse, animated trimming, real font loading and theme changes:
+
+```sh
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs \
+  PLAYWRIGHT_CHANNEL=chrome node scripts/check-map-browser.mjs
+```
+
+This check uses synthetic coordinates and does not access an account or book a
+ride. It requires a separately installed Playwright browser. Normal CLI use has
+no Playwright dependency.
+
+
+On 2026-10-15, all 163 automated checks passed in a Node 22 Linux
+container. Browser checks verified that route layers are accepted by the
+renderer, pulse gradients advance, the vehicle marker survives updates, road
+geometry clips at the animated position, and light/dark themes load without
+renderer errors. A private replay of two recorded tracking observations produced
+303 distinct intermediate positions with the same sprite marker; this was a
+recorded cancelled ride, not a new live booking.
+
+Earlier authorized headless Linux ride tests verified actual driver coordinates
+and moving original car artwork. A native Android prebooking video corroborated
+the 2.5-second pulse and its legacy fade branch. Full active-trip pixel and timing
+parity remain unverified. Map serving uses short state transactions so the
+long-lived viewer does not block other CLI commands.
 
 On 2026-10-14, a live HTTP protocol pilot on native ARM64 Linux completed SMS verification, a subsequent email challenge, session verification, PKCE exchange, OAuth refresh, and authenticated trip status. The returned account matched the existing signed-in account. These login steps used no Android device, browser, display server or tunnel. The production authentication module replayed captured responses, and `uber auth validate` validated the already exchanged live candidate through the CLI.
 

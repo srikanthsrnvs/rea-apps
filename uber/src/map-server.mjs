@@ -24,7 +24,13 @@ const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/viewer.mjs', ['viewer.mjs', 'text/javascript; charset=utf-8']],
   ['/viewer.css', ['viewer.css', 'text/css; charset=utf-8']],
+  ['/waypoint.mjs', [new URL('./waypoint.mjs', directory), 'text/javascript; charset=utf-8']],
   ['/map-style.mjs', [new URL('./map-style.mjs', import.meta.url), 'text/javascript; charset=utf-8']],
+  ['/map-motion.mjs', [new URL('./map-motion.mjs', import.meta.url), 'text/javascript; charset=utf-8']],
+  ['/native-path-interpolator.mjs', [new URL('./native-path-interpolator.mjs', import.meta.url), 'text/javascript; charset=utf-8']],
+  ['/native-motion.mjs', [new URL('./native-motion.mjs', import.meta.url), 'text/javascript; charset=utf-8']],
+  ['/native-geodesy.mjs', [new URL('./native-geodesy.mjs', import.meta.url), 'text/javascript; charset=utf-8']],
+  ['/route-animation.mjs', [new URL('./route-animation.mjs', import.meta.url), 'text/javascript; charset=utf-8']],
   ['/vehicle-style.mjs', [new URL('./map-vehicle-style.mjs', import.meta.url), 'text/javascript; charset=utf-8']],
 ]);
 
@@ -93,7 +99,7 @@ export async function startMapServer(options = {}, { getScene, now = Date.now, i
   }
   const prefix = config.base?.pathname.replace(/\/$/, '') ?? '';
   const frameAncestors = config.origins.length ? ["'self'", ...config.origins].join(' ') : '*';
-  const csp = `default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' https://tc2.uber.com https://unpkg.com; img-src 'self' data: blob: https://*.uber.com https://d1a3f4spazzrp4.cloudfront.net; worker-src blob: https://unpkg.com; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors ${frameAncestors}`;
+  const csp = `default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' https://tc2.uber.com https://unpkg.com; img-src 'self' data: blob: https://*.uber.com https://d1a3f4spazzrp4.cloudfront.net; worker-src blob: https://unpkg.com; font-src 'self' https://tb-static.uber.com; base-uri 'none'; form-action 'none'; frame-ancestors ${frameAncestors}`;
   const server = http.createServer(async (req, res) => {
     const send = (status, body, type = 'application/json; charset=utf-8') => {
       res.writeHead(status, { 'content-type': type, 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-content-type-options': 'nosniff', 'content-security-policy': csp });
