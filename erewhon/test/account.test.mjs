@@ -97,7 +97,7 @@ test('in-store history encodes exact filters and returns receipt keys with filte
   const f = fixture({ error: 0, message: 'OK', data: [{ TRN_CPK: 'cpk-test', TRN_PK: 17, TRN_DATE1: '2030-03-04', STO_Name: 'Test Store', TRN_NetSales: '0012.80', points_earned: 1.28 }], date_range: [{ key: 'month' }], order_method: [{ key: 'pos' }] });
   const result = await purchaseHistory({ page: 3, dateKey: 'this month', methodKeys: ['pos', 'pickup'] }, f.dependencies);
   assert.equal(f.calls[0].url, 'https://ordersapi.enfmkt.com/v1/myorders');
-  assert.equal(f.calls[0].options.body, 'type=instore&pageno=3&date_key=this+month&order_method_key=pos%2Cpickup');
+  assert.equal(f.calls[0].options.body, 'type=instore&pageno=3&date_key=this%20month&order_method_key=pos%2Cpickup');
   assert.equal(new URLSearchParams(f.calls[0].options.body).has('client_id'), false);
   assert.equal(result.nextPage, 4);
   assert.deepEqual(result.items[0], { trnCpk: 'cpk-test', trnPk: 17, date: '2030-03-04', store: 'Test Store', amount: '0012.80', pointsEarned: 1.28 });
