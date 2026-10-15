@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http2 from 'node:http2';
-import { once } from 'node:events';
+import { once, EventEmitter } from 'node:events';
 import {
   GrpcFrameDecoder,
   encodeGrpcFrame,
@@ -10,7 +10,6 @@ import {
 } from '../src/ramen-transport.mjs';
 const encode = (value) => Buffer.from(JSON.stringify(value)),
   decode = (buffer) => JSON.parse(buffer.toString());
-const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 async function serverHarness(handler) {
   const server = http2.createServer(),
     sessions = new Set();
@@ -337,7 +336,6 @@ test('bounded idle timeout exhausts configured reconnect limit', async () => {
     await h.close();
   }
 });
-import { EventEmitter } from 'node:events';
 test('backpressured writes have a bounded deadline and cancel cleanly', async () => {
   class Stream extends EventEmitter {
     write() {

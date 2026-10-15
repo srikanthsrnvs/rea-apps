@@ -2,11 +2,20 @@ import { once } from 'node:events';
 import { mapSessionGuard, mapServerOptions } from './map-server.mjs';
 import { createSelectedTripFeed } from './map-live-feed.mjs';
 
-export async function runMapStream({ tripId, duration }) {
+export async function runMapStream(
+  { tripId, duration },
+  {
+    createFeed = createSelectedTripFeed,
+    createGuard = mapSessionGuard,
+    output = process.stdout,
+    signals = process,
+    setDeadline = setTimeout,
+  } = {},
+) {
   const seconds = mapServerOptions({
     durationSeconds: duration ?? 30,
   }).durationSeconds;
-  const isAuthorized = await mapSessionGuard(),
+  const isAuthorized = await createGuard(),
     abort = new AbortController();
   let closed = false,
     feed,
@@ -25,8 +34,8 @@ export async function runMapStream({ tripId, duration }) {
       while (queued && !closed) {
         const value = queued;
         queued = null;
-        if (!process.stdout.write(JSON.stringify(value) + '\n'))
-          await once(process.stdout, 'drain', { signal: abort.signal });
+        if (!output.write(JSON.stringify(value) + '\n'))
+          await once(output, 'drain', { signal: abort.signal });
       }
     })()
       .catch(() => stop())
@@ -36,19 +45,22 @@ export async function runMapStream({ tripId, duration }) {
     return writing;
   }
   function stop() {
+    feed?.close();
     if (closed) return;
     closed = true;
     clearTimeout(timer);
     clearInterval(polling);
     abort.abort();
-    feed?.close();
   }
   const listener = () => stop();
-  process.once('SIGINT', listener);
-  process.once('SIGTERM', listener);
-  process.stdout.once('error', listener);
+  signals.once('SIGINT', listener);
+  signals.once('SIGTERM', listener);
+  output.once('error', listener);
   try {
-    feed = await createSelectedTripFeed({
+    // Start the deadline before the first write: even a stalled consumer must
+    // release the native stream and its listeners without waiting for drain.
+    timer = setDeadline(stop, seconds * 1000);
+    feed = await createFeed({
       tripId,
       isAuthorized,
       durationMs: seconds * 1000,
@@ -61,8 +73,7 @@ export async function runMapStream({ tripId, duration }) {
     feed.subscribe((scene) => emit({ event: 'scene', scene }));
     const initial = await feed.read();
     await emit({ event: 'scene', scene: initial });
-    if (!['active', 'dispatching'].includes(initial.state)) return;
-    timer = setTimeout(stop, seconds * 1000);
+    if (closed || !['active', 'dispatching'].includes(initial.state)) return;
     polling = setInterval(async () => {
       if (closed || reading) return;
       reading = true;
@@ -83,8 +94,8 @@ export async function runMapStream({ tripId, duration }) {
     if (!abort.signal.aborted) await once(abort.signal, 'abort');
   } finally {
     stop();
-    process.off('SIGINT', listener);
-    process.off('SIGTERM', listener);
-    process.stdout.off('error', listener);
+    signals.off('SIGINT', listener);
+    signals.off('SIGTERM', listener);
+    output.off('error', listener);
   }
 }

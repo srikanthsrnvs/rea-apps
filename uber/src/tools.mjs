@@ -1,30 +1,347 @@
-const coordinate = {type:'string',description:'Latitude,longitude, for example 37.7749,-122.4194'};
+const coordinate = {
+  type: 'string',
+  description: 'Latitude,longitude, for example 37.7749,-122.4194',
+};
 export const toolManifest = {
-  name:'uber', version:5, transport:'CLI', output:'JSON on stdout; JSON errors on stderr and nonzero exit status',
-  authentication:'Run uber login --phone NUMBER. Ask the user for each SMS/email code and submit it with the returned loginId using auth complete. Continue until authenticated. No browser or Android is required. Runtime refresh is automatic.',
-  tools:[
-    {name:'auth_login',command:'uber login --phone <phone> [--country-code <countryCode>] [--replace]',description:'Start headless verification-code login. Returns a loginId and server-issued SMS or email challenge. Reuses a pending attempt for the same phone without resending. Replacing explicitly requests a fresh attempt.',inputSchema:{type:'object',properties:{phone:{type:'string',minLength:4},countryCode:{type:'string',pattern:'^\\+?[1-9][0-9]{0,2}$',default:'1'},replace:{type:'boolean'}},required:['phone'],additionalProperties:false}},
-    {name:'auth_complete',command:'uber auth complete --login-id <loginId> --challenge-id <challengeId> --code <code>',description:'Submit the current user-supplied verification code once, bound to its returned challenge.id. A second challenge has a new ID; ask for its new code. Never repeat a request whose outcome is unknown. Authentication is complete only after status authenticated.',inputSchema:{type:'object',properties:{loginId:{type:'string',format:'uuid'},challengeId:{type:'string',format:'uuid'},code:{type:'string',pattern:'^[0-9]{4,10}$'}},required:['loginId','challengeId','code'],additionalProperties:false}},
-    {name:'auth_poll',command:'uber auth poll --login-id <loginId>',description:'Read a pending login state without sending or resending codes. Does not reveal tokens.',inputSchema:{type:'object',properties:{loginId:{type:'string',format:'uuid'}},required:['loginId'],additionalProperties:false}},
-    {name:'auth_cancel',command:'uber auth cancel --login-id <loginId>',description:'Cancel a pending login and discard its unvalidated credentials. Keeps the existing authenticated session and ride journals.',inputSchema:{type:'object',properties:{loginId:{type:'string',format:'uuid'}},required:['loginId'],additionalProperties:false}},
-    {name:'auth_validate',command:'uber auth validate --login-id <loginId>',description:'Validate an already exchanged candidate session after a read failure. Does not send codes or repeat the OAuth exchange.',inputSchema:{type:'object',properties:{loginId:{type:'string',format:'uuid'}},required:['loginId'],additionalProperties:false}},
-    {name:'auth_logout',command:'uber auth logout',description:'Delete local credentials and pending login state. Preserves durable booking and cancellation journals.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
-    {name:'payments',command:'uber payments',description:'List saved payment IDs, masked display names and expiry state for explicit selection. Does not choose or charge a payment method.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
-    {name:'resolve',command:'uber resolve --id <id> --provider <provider> [--context PICKUP|DROPOFF]',description:'Resolve a place identifier returned by search to coordinates and addresses.',inputSchema:{type:'object',properties:{id:{type:'string',minLength:1},provider:{type:'string',minLength:1},context:{type:'string',enum:['PICKUP','DROPOFF']}},required:['id','provider'],additionalProperties:false}},
-    {name:'search',command:'uber search --query <query> --near <near> [--context PICKUP|DROPOFF]',description:'Find Uber places by name or address. Use a nearby coordinate to rank results.',inputSchema:{type:'object',properties:{query:{type:'string',minLength:1},near:coordinate,context:{type:'string',enum:['PICKUP','DROPOFF']}},required:['query','near'],additionalProperties:false}},
-    {name:'status',command:'uber status',description:'Read current trip state and active orders without booking or cancelling.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
-    {name:'route',command:'uber route --from <from> --to <to>',description:'Read an Uber driving-road route recommendation between coordinates. Does not book or change a ride, and is not proof of a driver-selected navigation route.',inputSchema:{type:'object',properties:{from:coordinate,to:coordinate},required:['from','to'],additionalProperties:false}},
-    {name:'map_link',command:'uber map link --trip-id <tripId>',description:'Retrieve the official Uber trip-sharing URL via the native API. Does not send it to contacts. Anyone with the link may view trip details. Iframe support and Android visual parity remain unverified.',inputSchema:{type:'object',properties:{tripId:{type:'string',format:'uuid'}},required:['tripId'],additionalProperties:false}},
-    {name:'map_snapshot',command:'uber map [--trip-id <tripId>]',description:'Read the selected ride’s routes, waypoints, ETA fields and driver position/path from native status, with native sharing-data fallback for an exact trip ID. Read only; no Android or browser. Driver positions use status snapshots; native realtime animation parity is unverified. Multiple active trips require an explicit trip ID.',inputSchema:{type:'object',properties:{tripId:{type:'string',format:'uuid'}},additionalProperties:false}},
-    {name:'map_stream',command:'uber map stream --trip-id <tripId> [--duration <duration>]',description:'Read native driver pushes, routing, ETA and server predictions as NDJSON scene/transport events for one trip. Defaults to 30 seconds. Uses existing headless login; no Android or browser. Native driver/ETA delivery was verified on a controlled ride; full Android visual parity remains experimental. No paid actions.',inputSchema:{type:'object',properties:{tripId:{type:'string',format:'uuid'},duration:{type:'integer',minimum:10,maximum:86400,default:30}},required:['tripId'],additionalProperties:false}},
-    {name:'map_serve',command:'uber map serve [--trip-id <tripId>] [--host <host>] [--port <port>] [--public-url <publicUrl>] [--frame-origin <frameOrigin>] [--duration <duration>]',description:'Start a foreground read-only iframe map server and return an expiring mapUrl. Keep the process running. Defaults to loopback; a remote client needs a reachable publicUrl and listening host/reverse proxy. The server receives native driver pushes and streams scenes to the browser. The browser renders Uber’s actual cartography; native 3D cars, camera behavior and pixel parity remain experimental. No Uber credentials are sent to the client. Never hail a ride to test this tool without explicit ride approval.',inputSchema:{type:'object',properties:{tripId:{type:'string',format:'uuid'},host:{type:'string',default:'127.0.0.1'},port:{type:'integer',minimum:0,maximum:65535,default:0},publicUrl:{type:'string',format:'uri'},frameOrigin:{type:'string',format:'uri'},duration:{type:'integer',minimum:10,maximum:86400,default:3600}},additionalProperties:false}},
-    {name:'products',command:'uber products --from <from> --to <to> [--via <coordinate>]',description:'List ride products for a route without booking.',inputSchema:{type:'object',properties:{from:coordinate,to:coordinate,via:{type:'array',items:coordinate}},required:['from','to'],additionalProperties:false}},
-    {name:'quote',command:'uber quote --from <from> --to <to> [--via <coordinate>]',description:'Get server-issued fare estimates and product options. Quote prices expire; this does not book a ride.',inputSchema:{type:'object',properties:{from:coordinate,to:coordinate,via:{type:'array',items:coordinate}},required:['from','to'],additionalProperties:false}},
-    {name:'book_prepare',command:'uber book --from <from> --to <to> --product <product> [--payment-profile-id <paymentProfileId>] [--via <coordinate>]',description:'Prepare an immediate Personal ride with a fresh signed fare and selected payment method. Defaults to the account Personal RIDER payment method. Does not dispatch or charge. Show the entire route, car, price and payment preview to the user for approval.',inputSchema:{type:'object',properties:{from:coordinate,to:coordinate,product:{type:'string',minLength:1},paymentProfileId:{type:'string',format:'uuid'},via:{type:'array',items:coordinate}},required:['from','to','product'],additionalProperties:false}},
-    {name:'book_confirm',command:'uber book --plan-id <planId> --confirm',description:'Dispatch and pay for the explicitly approved ride using its unchanged signed quote. Rejects expired quotes and active rides. Never repeat on outcome_unknown; inspect the operation and query status.',inputSchema:{type:'object',properties:{planId:{type:'string',format:'uuid'}},required:['planId'],additionalProperties:false}},
-    {name:'auth_status',command:'uber auth status',description:'Inspect local login state without revealing tokens.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
-    {name:'cancel_preview',command:'uber cancel --trip-id <tripId> [--fulfillment-order-id <orderId>] [--reason <reason>]',description:'Read cancellation fee terms and save a short-lived plan. This does not cancel the trip. Show the full preview to the user before confirmation.',inputSchema:{type:'object',properties:{tripId:{type:'string',format:'uuid'},orderId:{type:'string',format:'uuid'},reason:{type:'string',minLength:1}},required:['tripId'],additionalProperties:false}},
-    {name:'cancel_confirm',command:'uber cancel --plan-id <planId> --confirm',description:'Cancel a trip using an explicitly approved cancellation plan. Rechecks fees first. May charge the fee shown in the preview. Never repeat on outcome_unknown; inspect the operation and query status.',inputSchema:{type:'object',properties:{planId:{type:'string',format:'uuid'}},required:['planId'],additionalProperties:false}},
-    {name:'operation',command:'uber operation --id <id>',description:'Inspect a saved mutation outcome after success, rejection, timeout or crash. Unknown means the request might have been accepted; check status and do not resend.',inputSchema:{type:'object',properties:{id:{type:'string',format:'uuid'}},required:['id'],additionalProperties:false}},
+  name: 'uber',
+  version: 5,
+  transport: 'CLI',
+  output: 'JSON on stdout; JSON errors on stderr and nonzero exit status',
+  authentication:
+    'Run uber login --phone NUMBER. Ask the user for each SMS/email code and submit it with the returned loginId using auth complete. Continue until authenticated. No browser or Android is required. Runtime refresh is automatic.',
+  tools: [
+    {
+      name: 'auth_login',
+      command:
+        'uber login --phone <phone> [--country-code <countryCode>] [--replace]',
+      description:
+        'Start headless verification-code login. Returns a loginId and server-issued SMS or email challenge. Reuses a pending attempt for the same phone without resending. Replacing explicitly requests a fresh attempt.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          phone: { type: 'string', minLength: 4 },
+          countryCode: {
+            type: 'string',
+            pattern: '^\\+?[1-9][0-9]{0,2}$',
+            default: '1',
+          },
+          replace: { type: 'boolean' },
+        },
+        required: ['phone'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'auth_complete',
+      command:
+        'uber auth complete --login-id <loginId> --challenge-id <challengeId> --code <code>',
+      description:
+        'Submit the current user-supplied verification code once, bound to its returned challenge.id. A second challenge has a new ID; ask for its new code. Never repeat a request whose outcome is unknown. Authentication is complete only after status authenticated.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          loginId: { type: 'string', format: 'uuid' },
+          challengeId: { type: 'string', format: 'uuid' },
+          code: { type: 'string', pattern: '^[0-9]{4,10}$' },
+        },
+        required: ['loginId', 'challengeId', 'code'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'auth_poll',
+      command: 'uber auth poll --login-id <loginId>',
+      description:
+        'Read a pending login state without sending or resending codes. Does not reveal tokens.',
+      inputSchema: {
+        type: 'object',
+        properties: { loginId: { type: 'string', format: 'uuid' } },
+        required: ['loginId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'auth_cancel',
+      command: 'uber auth cancel --login-id <loginId>',
+      description:
+        'Cancel a pending login and discard its unvalidated credentials. Keeps the existing authenticated session and ride journals.',
+      inputSchema: {
+        type: 'object',
+        properties: { loginId: { type: 'string', format: 'uuid' } },
+        required: ['loginId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'auth_validate',
+      command: 'uber auth validate --login-id <loginId>',
+      description:
+        'Validate an already exchanged candidate session after a read failure. Does not send codes or repeat the OAuth exchange.',
+      inputSchema: {
+        type: 'object',
+        properties: { loginId: { type: 'string', format: 'uuid' } },
+        required: ['loginId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'auth_logout',
+      command: 'uber auth logout',
+      description:
+        'Delete local credentials and pending login state. Preserves durable booking and cancellation journals.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'payments',
+      command: 'uber payments',
+      description:
+        'List saved payment IDs, masked display names and expiry state for explicit selection. Does not choose or charge a payment method.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'resolve',
+      command:
+        'uber resolve --id <id> --provider <provider> [--context PICKUP|DROPOFF]',
+      description:
+        'Resolve a place identifier returned by search to coordinates and addresses.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', minLength: 1 },
+          provider: { type: 'string', minLength: 1 },
+          context: { type: 'string', enum: ['PICKUP', 'DROPOFF'] },
+        },
+        required: ['id', 'provider'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'search',
+      command:
+        'uber search --query <query> --near <near> [--context PICKUP|DROPOFF]',
+      description:
+        'Find Uber places by name or address. Use a nearby coordinate to rank results.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', minLength: 1 },
+          near: coordinate,
+          context: { type: 'string', enum: ['PICKUP', 'DROPOFF'] },
+        },
+        required: ['query', 'near'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'status',
+      command: 'uber status',
+      description:
+        'Read current trip state and active orders without booking or cancelling.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'route',
+      command: 'uber route --from <from> --to <to>',
+      description:
+        'Read an Uber driving-road route recommendation between coordinates. Does not book or change a ride, and is not proof of a driver-selected navigation route.',
+      inputSchema: {
+        type: 'object',
+        properties: { from: coordinate, to: coordinate },
+        required: ['from', 'to'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'map_link',
+      command: 'uber map link --trip-id <tripId>',
+      description:
+        'Retrieve the official Uber trip-sharing URL via the native API. Does not send it to contacts. Anyone with the link may view trip details. Iframe support and Android visual parity remain unverified.',
+      inputSchema: {
+        type: 'object',
+        properties: { tripId: { type: 'string', format: 'uuid' } },
+        required: ['tripId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'map_snapshot',
+      command: 'uber map [--trip-id <tripId>]',
+      description:
+        'Read the selected ride’s routes, waypoints, ETA fields and driver position/path from native status, with native sharing-data fallback for an exact trip ID. Read only; no Android or browser. Driver positions use status snapshots; native realtime animation parity is unverified. Multiple active trips require an explicit trip ID.',
+      inputSchema: {
+        type: 'object',
+        properties: { tripId: { type: 'string', format: 'uuid' } },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'map_stream',
+      command: 'uber map stream --trip-id <tripId> [--duration <duration>]',
+      description:
+        'Read native driver pushes, routing, ETA and server predictions as NDJSON scene/transport events for one trip. Defaults to 30 seconds. Uses existing headless login; no Android or browser. Native driver/ETA delivery was verified on a controlled ride; full Android visual parity remains experimental. No paid actions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: { type: 'string', format: 'uuid' },
+          duration: {
+            type: 'integer',
+            minimum: 10,
+            maximum: 86400,
+            default: 30,
+          },
+        },
+        required: ['tripId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'map_serve',
+      command:
+        'uber map serve [--trip-id <tripId>] [--host <host>] [--port <port>] [--public-url <publicUrl>] [--frame-origin <frameOrigin>] [--duration <duration>]',
+      description:
+        'Start a foreground read-only iframe map server and return an expiring mapUrl. Keep the process running. Defaults to loopback; a remote client needs a reachable publicUrl and listening host/reverse proxy. The server receives native driver pushes and streams scenes to the browser. The browser renders Uber’s actual cartography; native 3D cars, camera behavior and pixel parity remain experimental. No Uber credentials are sent to the client. Never hail a ride to test this tool without explicit ride approval.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: { type: 'string', format: 'uuid' },
+          host: { type: 'string', default: '127.0.0.1' },
+          port: { type: 'integer', minimum: 0, maximum: 65535, default: 0 },
+          publicUrl: { type: 'string', format: 'uri' },
+          frameOrigin: { type: 'string', format: 'uri' },
+          duration: {
+            type: 'integer',
+            minimum: 10,
+            maximum: 86400,
+            default: 3600,
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'products',
+      command: 'uber products --from <from> --to <to> [--via <coordinate>]',
+      description: 'List ride products for a route without booking.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          from: coordinate,
+          to: coordinate,
+          via: { type: 'array', items: coordinate },
+        },
+        required: ['from', 'to'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'quote',
+      command: 'uber quote --from <from> --to <to> [--via <coordinate>]',
+      description:
+        'Get server-issued fare estimates and product options. Quote prices expire; this does not book a ride.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          from: coordinate,
+          to: coordinate,
+          via: { type: 'array', items: coordinate },
+        },
+        required: ['from', 'to'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'book_prepare',
+      command:
+        'uber book --from <from> --to <to> --product <product> [--payment-profile-id <paymentProfileId>] [--via <coordinate>]',
+      description:
+        'Prepare an immediate Personal ride with a fresh signed fare and selected payment method. Defaults to the account Personal RIDER payment method. Does not dispatch or charge. Show the entire route, car, price and payment preview to the user for approval.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          from: coordinate,
+          to: coordinate,
+          product: { type: 'string', minLength: 1 },
+          paymentProfileId: { type: 'string', format: 'uuid' },
+          via: { type: 'array', items: coordinate },
+        },
+        required: ['from', 'to', 'product'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'book_confirm',
+      command: 'uber book --plan-id <planId> --confirm',
+      description:
+        'Dispatch and pay for the explicitly approved ride using its unchanged signed quote. Rejects expired quotes and active rides. Never repeat on outcome_unknown; inspect the operation and query status.',
+      inputSchema: {
+        type: 'object',
+        properties: { planId: { type: 'string', format: 'uuid' } },
+        required: ['planId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'auth_status',
+      command: 'uber auth status',
+      description: 'Inspect local login state without revealing tokens.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'cancel_preview',
+      command:
+        'uber cancel --trip-id <tripId> [--fulfillment-order-id <orderId>] [--reason <reason>]',
+      description:
+        'Read cancellation fee terms and save a short-lived plan. This does not cancel the trip. Show the full preview to the user before confirmation.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: { type: 'string', format: 'uuid' },
+          orderId: { type: 'string', format: 'uuid' },
+          reason: { type: 'string', minLength: 1 },
+        },
+        required: ['tripId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'cancel_confirm',
+      command: 'uber cancel --plan-id <planId> --confirm',
+      description:
+        'Cancel a trip using an explicitly approved cancellation plan. Rechecks fees first. May charge the fee shown in the preview. Never repeat on outcome_unknown; inspect the operation and query status.',
+      inputSchema: {
+        type: 'object',
+        properties: { planId: { type: 'string', format: 'uuid' } },
+        required: ['planId'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'operation',
+      command: 'uber operation --id <id>',
+      description:
+        'Inspect a saved mutation outcome after success, rejection, timeout or crash. Unknown means the request might have been accepted; check status and do not resend.',
+      inputSchema: {
+        type: 'object',
+        properties: { id: { type: 'string', format: 'uuid' } },
+        required: ['id'],
+        additionalProperties: false,
+      },
+    },
   ],
 };

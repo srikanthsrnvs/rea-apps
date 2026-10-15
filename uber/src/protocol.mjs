@@ -18,13 +18,21 @@ export function pkceChallenge(verifier) {
 }
 
 export function createContext(overrides = {}) {
-  return { ...defaults, deviceId: randomUUID(), appDeviceId: randomUUID(), clientSession: randomUUID(), ...overrides };
+  return {
+    ...defaults,
+    deviceId: randomUUID(),
+    appDeviceId: randomUUID(),
+    clientSession: randomUUID(),
+    ...overrides,
+  };
 }
 
 export function createLogin(context, callback) {
   const redirect = new URL(callback);
   if (redirect.protocol === 'http:') {
-    throw new Error('Uber does not allow the localhost HTTP callback. Use its native HTTPS callback and paste the completed URL into uber auth complete.');
+    throw new Error(
+      'Uber does not allow the localhost HTTP callback. Use its native HTTPS callback and paste the completed URL into uber auth complete.',
+    );
   }
   const verifier = randomBytes(32).toString('base64url');
   const url = new URL(context.authHost);
@@ -45,14 +53,27 @@ export function createLogin(context, callback) {
     'x-uber-app-device-id': context.appDeviceId,
     'x-uber-cold-launch-id': randomUUID(),
   };
-  for (const [name, value] of Object.entries(query)) url.searchParams.set(name, value);
-  return { url: url.href, callback, verifier, context: { ...context }, createdAt: new Date().toISOString() };
+  for (const [name, value] of Object.entries(query))
+    url.searchParams.set(name, value);
+  return {
+    url: url.href,
+    callback,
+    verifier,
+    context: { ...context },
+    createdAt: new Date().toISOString(),
+  };
 }
 
 export function parseCallback(value, expectedCallback) {
   const url = new URL(value);
   const expected = new URL(expectedCallback);
-  if (url.protocol !== expected.protocol || url.host !== expected.host || url.pathname !== expected.pathname || url.username || url.password) {
+  if (
+    url.protocol !== expected.protocol ||
+    url.host !== expected.host ||
+    url.pathname !== expected.pathname ||
+    url.username ||
+    url.password
+  ) {
     throw new Error('Callback does not match the pending login');
   }
   const session = url.searchParams.get('session');
@@ -66,14 +87,19 @@ export function sessionExchange(context, pending, callback, deviceData = {}) {
       inAuthSessionID: callback.session,
       formAnswer: {
         flowType: 'SIGN_IN',
-        screenAnswers: [{
-          screenType: 'SESSION_VERIFICATION',
-          eventType: 'TypeVerifySession',
-          fieldAnswers: [
-            { fieldType: 'SESSION_VERIFICATION_CODE', sessionVerificationCode: callback.authCode },
-            { fieldType: 'CODE_VERIFIER', codeVerifier: pending.verifier },
-          ],
-        }],
+        screenAnswers: [
+          {
+            screenType: 'SESSION_VERIFICATION',
+            eventType: 'TypeVerifySession',
+            fieldAnswers: [
+              {
+                fieldType: 'SESSION_VERIFICATION_CODE',
+                sessionVerificationCode: callback.authCode,
+              },
+              { fieldType: 'CODE_VERIFIER', codeVerifier: pending.verifier },
+            ],
+          },
+        ],
         deviceData: JSON.stringify(deviceData),
         firstPartyClientID: context.firstPartyClientID,
         standardFlow: true,
@@ -98,7 +124,8 @@ export function requestHeaders(context, token) {
     'x-uber-request-uuid': randomUUID(),
     'x-uber-device-epoch': String(Date.now()),
   };
-  if (context.clientSession) headers['x-uber-client-session'] = context.clientSession;
+  if (context.clientSession)
+    headers['x-uber-client-session'] = context.clientSession;
   if (token) headers.authorization = `Bearer ${token}`;
   return headers;
 }
@@ -115,10 +142,17 @@ export function extractOAuth(body, depth = 0) {
 
 export function extractLoginSession(body, depth = 0) {
   if (!body || typeof body !== 'object' || depth > 5) return null;
-  const oauth = body.oAuthInfo ?? (typeof body.accessToken === 'string' ? body : null);
+  const oauth =
+    body.oAuthInfo ?? (typeof body.accessToken === 'string' ? body : null);
   if (oauth?.accessToken) {
-    return { ...oauth, ...Object.fromEntries(['apiToken', 'userUUID', 'authSessionID', 'inAuthSessionID']
-      .filter(key => typeof body[key] === 'string').map(key => [key, body[key]])) };
+    return {
+      ...oauth,
+      ...Object.fromEntries(
+        ['apiToken', 'userUUID', 'authSessionID', 'inAuthSessionID']
+          .filter((key) => typeof body[key] === 'string')
+          .map((key) => [key, body[key]]),
+      ),
+    };
   }
   for (const key of ['response', 'data', 'result']) {
     const found = extractLoginSession(body[key], depth + 1);
@@ -128,11 +162,18 @@ export function extractLoginSession(body, depth = 0) {
 }
 
 export function coordinate(value) {
-  if (typeof value !== 'string') throw new Error('Coordinates are required as latitude,longitude');
+  if (typeof value !== 'string')
+    throw new Error('Coordinates are required as latitude,longitude');
   const parts = value.split(',');
-  if (parts.length !== 2 || parts.some(part => !part.trim())) throw new Error('Coordinates must be latitude,longitude');
+  if (parts.length !== 2 || parts.some((part) => !part.trim()))
+    throw new Error('Coordinates must be latitude,longitude');
   const [latitude, longitude] = parts.map(Number);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
     throw new Error('Coordinates are outside the latitude/longitude range');
   }
   return { latitude, longitude };
@@ -140,17 +181,26 @@ export function coordinate(value) {
 
 export function shoppingRequest(from, to, via = []) {
   const waypoint = (point, taskType) => ({
-    taskTypes: [taskType], locationSpec: { provider: 'unset', point, backwardsCompatibleInfo: {} },
+    taskTypes: [taskType],
+    locationSpec: { provider: 'unset', point, backwardsCompatibleInfo: {} },
   });
   return {
     orderSelectionExperience: 'RIDES',
     pickupWaypoint: waypoint(coordinate(from), 'PICKUP'),
-    waypointSpecs: [...via.map(point => waypoint(coordinate(point), 'VIA')), waypoint(coordinate(to), 'DROP_OFF')],
+    waypointSpecs: [
+      ...via.map((point) => waypoint(coordinate(point), 'VIA')),
+      waypoint(coordinate(to), 'DROP_OFF'),
+    ],
   };
 }
 
 export function decodeLong(value) {
-  if (typeof value !== 'object' || value === null || !Number.isInteger(value.high) || !Number.isInteger(value.low)) {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !Number.isInteger(value.high) ||
+    !Number.isInteger(value.low)
+  ) {
     throw new Error('Expected a high/low duration object');
   }
   const bits = (BigInt(value.high >>> 0) << 32n) | BigInt(value.low >>> 0);
@@ -158,13 +208,19 @@ export function decodeLong(value) {
 }
 
 export function withExpiry(oauth, now = Date.now()) {
-  const expiry = value => {
+  const expiry = (value) => {
     if (value === undefined || value === null) return null;
     const seconds = decodeLong(value);
     if (seconds <= 0n) return null;
     const milliseconds = BigInt(now) + seconds * 1000n;
-    if (milliseconds > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Token expiry exceeds the supported timestamp range');
+    if (milliseconds > BigInt(Number.MAX_SAFE_INTEGER))
+      throw new Error('Token expiry exceeds the supported timestamp range');
     return Number(milliseconds);
   };
-  return { ...oauth, receivedAt: new Date(now).toISOString(), expiresAt: expiry(oauth.expiresIn), refreshExpiresAt: expiry(oauth.refreshTokenExpiresIn) };
+  return {
+    ...oauth,
+    receivedAt: new Date(now).toISOString(),
+    expiresAt: expiry(oauth.expiresIn),
+    refreshExpiresAt: expiry(oauth.refreshTokenExpiresIn),
+  };
 }

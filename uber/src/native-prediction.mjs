@@ -2,7 +2,7 @@
 // kub.g.F/a, c66.o.accept, WaypointRoute.a/d in APK com.ubercab 4.651.10003.
 import { pointAt } from './native-motion.mjs';
 
-export const predictionDebounceMs = 6000;
+const predictionDebounceMs = 6000;
 
 // WaypointRoute.d: strict ordering, including identical-agent equality=false.
 export function agentAhead(a, b) {

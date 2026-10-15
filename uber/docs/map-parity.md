@@ -5,19 +5,19 @@ Reference: Uber Android 4.651.10003, base APK SHA256
 The current iframe is experimental. A correct live location, public map assets,
 or a visually similar screenshot does not establish full Android parity.
 
-| Behavior | Evidence established | Browser state | Verification remaining |
-| --- | --- | --- | --- |
-| Real trip data | Native tracking API, raw epoch-ms observations; live movement captured | Working with explicit trip ID | Native push transport/cadence |
-| Road routes | Native driving-route API | Uber recommendation lines | Actual driver-selected routeline |
-| Route pulse | Both native branches recovered; native video confirms2.5s and favors legacy linear-alpha fade | Legacy reveal1s, delay1s, pulse2.5s, material distance curve; migrated profile also tested | Active-trip flag; screen-distance/raster equivalence |
-| Native route edge | Quartic native GL edge alpha, divider mask, palette | MapLibre line rasterization | Native GL tessellation/AA comparison |
-| Vehicle motion | Future RoutelineAnimation timeline → spherical playback; target heading; marker reused | Planner, overlap retention, queue, WGS84 projection and frame sampler ported | Push transport, server prediction/flag selection and active-trip video comparison |
-| Remaining route | Project animated location onto nearest segment, trim to endpoint | Clipped at animated car location each changing frame | Native driver navigation stream and phase binding |
-| Car artwork | Original product-specific sprite atlas, 64 frames, original sizing/zoom math | Working | 3D-vs-sprite flags, full bearing behavior |
-| Camera | Native default300ms; legacy follow500ms,16dp padding | Legacy fit500ms,16CSSpx | Camera director/state-specific framing and display-density match |
-| Waypoints | Captured20dp pickup/16dp dropoff,4dp centers; source8dp callout radius/padding and24dp corner arrow | Reference circle/square and conditional real-ETA callout; official Uber Move Text font | Active-trip model binding, font scale/size, RTL, transitions |
-| Native palette/style | Driver default style URL, cached rider override mechanism; original assets/fonts | Default stylesheet adapted | Active override; theme/density/collision |
-| Session lifecycle | Expiry, exact trip/account binding, reload on viewer key change | Tested | Visual loading/error parity |
+| Behavior             | Evidence established                                                                                | Browser state                                                                              | Verification remaining                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Real trip data       | Native tracking API, raw epoch-ms observations; live movement captured                              | Working with explicit trip ID                                                              | Native push transport/cadence                                                     |
+| Road routes          | Native driving-route API                                                                            | Uber recommendation lines                                                                  | Actual driver-selected routeline                                                  |
+| Route pulse          | Both native branches recovered; native video confirms2.5s and favors legacy linear-alpha fade       | Legacy reveal1s, delay1s, pulse2.5s, material distance curve; migrated profile also tested | Active-trip flag; screen-distance/raster equivalence                              |
+| Native route edge    | Quartic native GL edge alpha, divider mask, palette                                                 | MapLibre line rasterization                                                                | Native GL tessellation/AA comparison                                              |
+| Vehicle motion       | Future RoutelineAnimation timeline → spherical playback; target heading; marker reused              | Planner, overlap retention, queue, WGS84 projection and frame sampler ported               | Push transport, server prediction/flag selection and active-trip video comparison |
+| Remaining route      | Project animated location onto nearest segment, trim to endpoint                                    | Clipped at animated car location each changing frame                                       | Native driver navigation stream and phase binding                                 |
+| Car artwork          | Original product-specific sprite atlas, 64 frames, original sizing/zoom math                        | Working                                                                                    | 3D-vs-sprite flags, full bearing behavior                                         |
+| Camera               | Native default300ms; legacy follow500ms,16dp padding                                                | Legacy fit500ms,16CSSpx                                                                    | Camera director/state-specific framing and display-density match                  |
+| Waypoints            | Captured20dp pickup/16dp dropoff,4dp centers; source8dp callout radius/padding and24dp corner arrow | Reference circle/square and conditional real-ETA callout; official Uber Move Text font     | Active-trip model binding, font scale/size, RTL, transitions                      |
+| Native palette/style | Driver default style URL, cached rider override mechanism; original assets/fonts                    | Default stylesheet adapted                                                                 | Active override; theme/density/collision                                          |
+| Session lifecycle    | Expiry, exact trip/account binding, reload on viewer key change                                     | Tested                                                                                     | Visual loading/error parity                                                       |
 
 Acceptance requires fixed viewport, density, theme, route and timestamped telemetry;
 frame captures of each phase (dispatching, approach, arrival, riding, cancellation);
@@ -96,7 +96,6 @@ override and active-trip reference frames are still required for an exact-clone
 claim. The CLI remains fully headless; native captures are investigation inputs,
 not a runtime Android dependency.
 
-
 ## Annotation reference profile
 
 The native LTR bottom-start callout uses a rounded body with8dp radius,
@@ -123,7 +122,6 @@ The legacy pulse's opacity is additionally quantized through Android
 float addition and truncation. The browser matches that8bit evaluator.
 REA `ev_ce2b41b384d76e4d92956ece7eaa4f2164e630ada982c83bed48b988b88a4d89`.
 
-
 ## Device framework interpolation
 
 A temporary standalone DEX invoked public Android framework methods through
@@ -143,7 +141,6 @@ its availability is not a claim that every cancellation transition is implemente
 The platform table is tied to this reference framework version. Other Android
 versions can sample a path differently. The migrated profile's analytic curve
 and native GL rasterization are separate, still unverified implementation paths.
-
 
 ## Native live transport and predictions
 
@@ -203,7 +200,6 @@ intermediate positions, route trimming and pulse frames in both themes. Its
 coordinates are synthetic. The subsequent real-trip validation below verifies delivered ETA/currentRoute/
 prediction data; frame-by-frame visual parity with Android remains unverified.
 
-
 Retained REA evidence for the new wire and playback contract includes:
 `ev_56df2dda860cd18200fc7992ac3953803136d6ca4c2c08034a41bf5f358aa443`
 (content decoding),
@@ -225,7 +221,6 @@ The browser smoke test delivered a changed ETA over SSE within3ms on loopback,
 retained the car node and sampled144distinct clipped route starts with348pulse
 frames; these are synthetic test results, not live-trip smoothness measurements.
 
-
 ## Assigned-driver validation
 
 On2026-10-15 an explicitly approved test ride was booked and then cancelled
@@ -241,9 +236,10 @@ native stream sequences, with11–16prediction points per observation. Replaying
 those actual scenes through the motion kernel produced309distinct positions
 and cleared the car on terminal state without errors. These measurements do
 not prove an identical native frame rate or every route/camera transition.
-The browser QA probe's wait on the empty `.driver` container was unsuitable for
-original artwork (its positioned child is the visible element); that probe timed
-out even while the ETA and motion model were updating. It is not counted as a
+The browser QA probe waited for the fallback `.driver` class, which is replaced
+by `.vehicle-artwork` when original artwork loads; that probe timed out even
+while the ETA and motion model were updating. The maintained browser smoke
+test now waits for the original artwork and tracks the stable driver ARIA label. It is not counted as a
 passing automated live-browser check. The separate synthetic browser check and
 user's direct observation remain the visual evidence.
 

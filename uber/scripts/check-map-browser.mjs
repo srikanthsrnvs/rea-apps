@@ -29,6 +29,13 @@ const scene = () => ({
   ],
   waypoints: [{ ...d, kind: 'pickup' }],
   eta: { pickupDisplay: next ? '2 min' : '1 min' },
+  vehicleMapIcons: {
+    spritesheetMapIcon: {
+      dayImageURL:
+        'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloMapIconsSpritesheet/v1/uberX_Spritesheet_v1.png',
+    },
+    spriteDivisionCount: 64,
+  },
 });
 const viewer = await startMapServer(
   { durationSeconds: 120 },
@@ -76,7 +83,7 @@ try {
     await route.fulfill({ response, body });
   });
   await page.goto(viewer.mapUrl);
-  await page.waitForSelector('.driver');
+  await page.waitForSelector('.vehicle-artwork');
   await page.waitForFunction(() =>
     window.testMap?.getLayer('ride-route-pulse'),
   );
@@ -86,7 +93,7 @@ try {
     const paint = map.setPaintProperty.bind(map),
       setData = source.setData.bind(source);
     window.proof = {
-      node: document.querySelector('.driver'),
+      node: document.querySelector('[aria-label="Driver position"]'),
       pulse: [],
       starts: [],
     };
@@ -120,7 +127,9 @@ try {
   const etaDeliveryMs = Date.now() - sentAt;
   await page.waitForTimeout(7000);
   const result = await page.evaluate(() => ({
-    markerReused: window.proof.node === document.querySelector('.driver'),
+    markerReused:
+      window.proof.node ===
+      document.querySelector('[aria-label="Driver position"]'),
     pulseFrames: new Set(window.proof.pulse).size,
     trimmedPositions: new Set(window.proof.starts).size,
     errors: window.testErrors ?? [],
@@ -138,6 +147,10 @@ try {
     );
   }
   assert.deepEqual(await page.evaluate(() => window.testErrors ?? []), []);
+  await viewer.close();
+  await page.waitForFunction(() => document.querySelector('#map').hidden);
+  assert.equal(await page.locator('[aria-label="Driver position"]').count(), 0);
+  assert.equal(await page.locator('.waypoint-container').count(), 0);
   assert.deepEqual(errors, []);
   console.log(
     JSON.stringify({ passed: true, synthetic: true, etaDeliveryMs, ...result }),

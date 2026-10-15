@@ -8,7 +8,10 @@ import {
   sphericalInterpolate,
   NativeRoutePlanner,
   edge,
+  normalizeNativeRouteObservation,
+  overlapEdge,
 } from '../src/native-motion.mjs';
+import { nativeGeodesy } from '../src/native-geodesy.mjs';
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
 // Deterministic TEST geodesy; explicit fake, never production/native geodesy claim.
 const geo = {
@@ -113,12 +116,6 @@ test('spherical fallback follows native close-point linear math', () => {
 });
 test('geodesy dependencies are mandatory to avoid hidden haversine approximation', () =>
   assert.throws(() => new NativeRoutePlanner({}), /Missing native geodesy/));
-import { nativeGeodesy } from '../src/native-geodesy.mjs';
-import {
-  normalizeNativeRouteObservation,
-  mergeOverlappingRoutes,
-  overlapEdge,
-} from '../src/native-motion.mjs';
 test('native route observation retains travelled prefix across shrinking route', () => {
   const p1 = { lat: 33.99, lon: -118.46 },
     p2 = { lat: 33.9901, lon: -118.4601 },

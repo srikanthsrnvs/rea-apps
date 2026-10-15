@@ -106,12 +106,10 @@ export function createLiveMapFeed(
       return () => listeners.delete(listener);
     },
     close() {
+      if (closed) return;
       closed = true;
       listeners.clear();
       transport?.stop();
-    },
-    get projection() {
-      return projection;
     },
   };
 }

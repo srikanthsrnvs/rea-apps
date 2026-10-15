@@ -17,8 +17,7 @@
  * geo.distance(a,b), geo.heading(a,b), geo.onSegment(point,a,b,toleranceMeters).
  * geo.onSegment must implement shipped yt.a.a(...,false,.1) boundary behavior.
  */
-export const sourceVersion = 'com.ubercab:4.651.10003:2a92686a421d1d37';
-export const defaults = Object.freeze({
+const defaults = Object.freeze({
   catchUp: false,
   initialSeconds: 5,
   catchUpFraction: 0.5,
@@ -121,14 +120,14 @@ export function edge(a, b, geo) {
     heading: length > 0 ? geo.heading(a, b) : null,
   };
 }
-export function routeLength(route) {
+function routeLength(route) {
   return route.reduce((n, e) => n + e.length, 0);
 }
 export function pointAt(route, agent) {
   const e = route[agent.index];
   return e ? sphericalInterpolate(e.start, e.end, agent.fraction) : null;
 }
-export function positionOnRoute(route, p, geo) {
+function positionOnRoute(route, p, geo) {
   let best = null,
     distance = Number.MAX_VALUE;
   for (let i = 0; i < route.length; i++) {
@@ -157,7 +156,7 @@ export function positionOnRoute(route, p, geo) {
     heading: geo.heading(e.start, e.end),
   };
 }
-export function subroute(route, a, b, geo) {
+function subroute(route, a, b, geo) {
   const forward =
     a.index < b.index || (a.index === b.index && a.fraction <= b.fraction);
   if (!forward)
@@ -178,7 +177,7 @@ export function subroute(route, a, b, geo) {
   }
   return result;
 }
-export function remaining(route, agent, geo) {
+function remaining(route, agent, geo) {
   return agent
     ? subroute(route, agent, { index: route.length - 1, fraction: 1 }, geo)
     : route;
@@ -445,12 +444,7 @@ export function overlapEdge(a, b) {
     (nativePointApprox(a.start, b.start) || nativePointApprox(a.end, b.end))
   );
 }
-export function mergeOverlappingRoutes(
-  previous,
-  incoming,
-  currentFirstPoint,
-  geo,
-) {
+function mergeOverlappingRoutes(previous, incoming, currentFirstPoint, geo) {
   for (let i = 0; i < previous.length; i++) {
     const j = incoming.findIndex((e) => overlapEdge(previous[i], e));
     if (j < 0) continue;

@@ -2,7 +2,7 @@ import { nativePathAt } from './native-path-interpolator.mjs';
 
 // Uber Android 4.651.10003 UMDFPolylineNativeAdapter / PolylineViewV2.
 // Source: uber/docs/map-parity.md. Active account renderer/style flags remain unverified.
-export const routePulseProfiles = Object.freeze({
+const routePulseProfiles = Object.freeze({
   migrated: Object.freeze({
     periodMs: 2500,
     revealMs: 0,

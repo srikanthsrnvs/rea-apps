@@ -49,7 +49,7 @@ destination="$HOME/.local/bin/uber"
 if [ -e "$destination" ] || [ -L "$destination" ]; then
   [ -L "$destination" ] || fail "An existing file occupies $destination; use $workspace/bin/uber-linux directly."
   case "$(readlink "$destination")" in
-    */uber/bin/uber-linux|*/uber-cli/bin/uber-linux) ;;
+    "$workspace/bin/uber-linux"|*/uber/bin/uber-linux|*/uber-cli/bin/uber-linux) ;;
     *) fail "An unrelated symlink occupies $destination; use $workspace/bin/uber-linux directly." ;;
   esac
 fi

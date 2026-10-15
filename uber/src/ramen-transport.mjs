@@ -9,7 +9,7 @@ import http2 from 'node:http2';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-export const RAMEN_ORIGIN = 'https://cn-geo1.uber.com';
+const RAMEN_ORIGIN = 'https://cn-geo1.uber.com';
 export const RAMEN_PATH = '/uber.streaming.ramen.RamenService/RamenStreaming';
 const MAX_FRAME = 8 * 1024 * 1024;
 const safeError = (code, retryable = false, status) =>

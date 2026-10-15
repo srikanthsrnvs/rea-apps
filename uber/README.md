@@ -54,36 +54,36 @@ uber tools
 
 Commands output JSON; errors output JSON to stderr and exit with status 1.
 
-| Command | Behavior |
-| --- | --- |
-| `tools` | Print tool definitions for models |
-| `login --phone NUMBER [--country-code CODE]` | Start login and return its verification-code challenge |
+| Command                                                     | Behavior                                                                         |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `tools`                                                     | Print tool definitions for models                                                |
+| `login --phone NUMBER [--country-code CODE]`                | Start login and return its verification-code challenge                           |
 | `auth complete --login-id ID --challenge-id ID --code CODE` | Submit the current challenge's code; return the next challenge or complete login |
-| `auth poll --login-id ID` | Inspect the pending login |
-| `auth validate --login-id ID` | Validate an already exchanged session after an interrupted validation |
-| `auth cancel --login-id ID` | Stop the pending local login |
-| `login-url` | Print a legacy browser approval URL for manual recovery |
-| `auth complete --callback-url URL` | Exchange a completed supported browser callback using the retained PKCE verifier |
-| `auth status` | Inspect token timestamps and pending login without exposing credentials |
-| `auth refresh` | Refresh stored OAuth credentials |
-| `auth logout` | Remove local credentials and private response files |
-| `search --query TEXT --near LAT,LON` | Find places and their Uber location IDs |
-| `resolve --id ID --provider PROVIDER` | Resolve a search result to coordinates |
-| `status` | Query current trip state and active orders |
-| `map [--trip-id UUID]` | Read the selected ride's route, waypoints and driver-position snapshots |
-| `route --from LAT,LON --to LAT,LON` | Read an Uber driving-road route recommendation |
-| `map link --trip-id UUID` | Retrieve the official trip-sharing URL without sending it to anyone |
-| `map stream --trip-id UUID [--duration 30]` | Read native driver and ETA events as NDJSON; no browser |
-| `map serve [--trip-id UUID]` | Return an expiring iframe map URL and keep its foreground server running |
-| `payments` | List payment method IDs, masked labels and expiry state |
-| `products --from LAT,LON --to LAT,LON` | List ride options for a route |
-| `quote --from LAT,LON --to LAT,LON` | Get server-issued fare estimates and product options |
-| `shopping --request FILE` | Send a supplied modern shopping request |
-| `book --from LAT,LON --to LAT,LON --product UberX` | Prepare an immediate Personal ride with a signed quote and selected payment |
-| `book --plan-id UUID --confirm` | Dispatch the reviewed ride using its unchanged signed fare |
-| `cancel --trip-id UUID` | Preview current cancellation terms and save a short-lived plan |
-| `cancel --plan-id UUID --confirm` | Execute a reviewed cancellation plan after rechecking its terms |
-| `operation --id UUID` | Inspect a saved booking or cancellation outcome |
+| `auth poll --login-id ID`                                   | Inspect the pending login                                                        |
+| `auth validate --login-id ID`                               | Validate an already exchanged session after an interrupted validation            |
+| `auth cancel --login-id ID`                                 | Stop the pending local login                                                     |
+| `login-url`                                                 | Print a legacy browser approval URL for manual recovery                          |
+| `auth complete --callback-url URL`                          | Exchange a completed supported browser callback using the retained PKCE verifier |
+| `auth status`                                               | Inspect token timestamps and pending login without exposing credentials          |
+| `auth refresh`                                              | Refresh stored OAuth credentials                                                 |
+| `auth logout`                                               | Remove local credentials and private response files                              |
+| `search --query TEXT --near LAT,LON`                        | Find places and their Uber location IDs                                          |
+| `resolve --id ID --provider PROVIDER`                       | Resolve a search result to coordinates                                           |
+| `status`                                                    | Query current trip state and active orders                                       |
+| `map [--trip-id UUID]`                                      | Read the selected ride's route, waypoints and driver-position snapshots          |
+| `route --from LAT,LON --to LAT,LON`                         | Read an Uber driving-road route recommendation                                   |
+| `map link --trip-id UUID`                                   | Retrieve the official trip-sharing URL without sending it to anyone              |
+| `map stream --trip-id UUID [--duration 30]`                 | Read native driver and ETA events as NDJSON; no browser                          |
+| `map serve [--trip-id UUID]`                                | Return an expiring iframe map URL and keep its foreground server running         |
+| `payments`                                                  | List payment method IDs, masked labels and expiry state                          |
+| `products --from LAT,LON --to LAT,LON`                      | List ride options for a route                                                    |
+| `quote --from LAT,LON --to LAT,LON`                         | Get server-issued fare estimates and product options                             |
+| `shopping --request FILE`                                   | Send a supplied modern shopping request                                          |
+| `book --from LAT,LON --to LAT,LON --product UberX`          | Prepare an immediate Personal ride with a signed quote and selected payment      |
+| `book --plan-id UUID --confirm`                             | Dispatch the reviewed ride using its unchanged signed fare                       |
+| `cancel --trip-id UUID`                                     | Preview current cancellation terms and save a short-lived plan                   |
+| `cancel --plan-id UUID --confirm`                           | Execute a reviewed cancellation plan after rechecking its terms                  |
+| `operation --id UUID`                                       | Inspect a saved booking or cancellation outcome                                  |
 
 Use `--via LAT,LON` repeatedly for intermediate stops, `--dry-run` to inspect a request, and `--raw` to retain the full shopping response in stdout. `shopping` outputs the full response by default. Coordinates are latitude followed by longitude.
 
@@ -189,7 +189,6 @@ This check uses synthetic coordinates and does not access an account or book a
 ride. It requires a separately installed Playwright browser. Normal CLI use has
 no Playwright dependency.
 
-
 On 2026-10-15, all 163 automated checks passed in a Node 22 Linux
 container. Browser checks verified that route layers are accepted by the
 renderer, pulse gradients advance, the vehicle marker survives updates, road
@@ -213,3 +212,28 @@ Live Linux ARM64 HTTP shopping returned 22 ride options for a sample city route.
 An authorized live test completed the entire search → resolve → select UberX → prepare → book → cancellation preview → cancel → status flow inside the headless Linux container. The returned trip fare exactly matched its signed quote. Uber confirmed the ride was cancelled, no ride charge applied, and the temporary authorization hold was removed. The final account state reported `ClientCanceled` and zero active orders. No Android device or browser process was used for this test. Private addresses, payment identifiers, trip identifiers and receipts are excluded from the repository and package.
 
 The recovered protocol is based on Uber Android 4.651.10003. Internal endpoints can change. Runtime use does not require that app to be installed.
+
+## Development layout and checks
+
+- `src/cli.mjs` parses command arguments and prints JSON. `map-cli.mjs` owns the map command lifecycle.
+- `auth.mjs` and `auth-protocol.mjs` own verification-code login and explicit manual browser recovery.
+- `shopping.mjs`, `booking.mjs`, `cancellation.mjs`, `plans.mjs` and `mutations.mjs` keep quote selection, reviewed actions and the operation journal separate.
+- `map-live-feed.mjs`, `ramen-transport.mjs` and `ramen-codec.mjs` receive authenticated native updates; `map-live.mjs` projects selected-trip data.
+- `native-*.mjs`, `map-motion.mjs` and `route-animation.mjs` contain the recovered motion and timing kernels. `map-web/` contains the client renderer.
+- `test/` contains offline tests. Reference fixtures are retained separately from source formatting; investigation captures and credentials stay outside the repository.
+
+From a repository checkout:
+
+```sh
+npm test
+npx --yes prettier@3.6.2 --check .
+```
+
+The optional browser check requires an existing Playwright installation and a browser on the development computer, plus network access to public Uber map assets:
+
+```sh
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs \
+PLAYWRIGHT_CHANNEL=chrome node scripts/check-map-browser.mjs
+```
+
+It uses synthetic coordinates and cannot book a ride. Runtime packages and the Linux host require no Playwright, browser, Android device or npm runtime dependencies. Packaging includes only the command wrappers, runtime source, documentation and scripts.

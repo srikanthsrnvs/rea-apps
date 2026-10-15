@@ -26,7 +26,6 @@ const status = document.querySelector('#status');
 const night = matchMedia('(prefers-color-scheme: dark)');
 let map,
   latest,
-  markers = [],
   follow = true,
   stopped = false,
   timer;
@@ -254,7 +253,6 @@ function render(scene) {
       decorateVehicle(vehicleNode, scene, ++vehicleGeneration);
     }
   } else removeVehicle();
-  markers = [...waypoints.values(), ...(vehicleMarker ? [vehicleMarker] : [])];
   const routes = routeData(scene, renderedPosition);
   if (!map.getSource('ride-routes')) {
     map.addSource('ride-routes', {
@@ -345,11 +343,18 @@ function unavailable(code) {
   document.querySelector('#map').hidden = true;
   document.querySelector('#recenter').hidden = true;
   stopped = true;
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  motion.reset();
+  removeVehicle();
+  for (const marker of waypoints.values()) marker.remove();
+  waypoints.clear();
   clearTimeout(timer);
   clearTimeout(liveRetryTimer);
   liveController?.abort();
   show(code === 410 ? 'Map viewer expired' : 'Map access is unavailable');
-  markers.forEach((marker) => marker.remove());
   map
     ?.getSource('ride-routes')
     ?.setData({ type: 'FeatureCollection', features: [] });

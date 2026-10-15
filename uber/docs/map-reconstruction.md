@@ -16,16 +16,16 @@ Private APKs, account responses, screenshots, fonts, and evidence are excluded
 from the repository. Evidence IDs below refer to retained REA observations;
 decompiled code is static evidence, rather than an observed execution trace.
 
-| Question | Evidence and result | Remaining boundary |
-| --- | --- | --- |
-| Can the Android view itself run in an iframe? | `UberMapView` initializes `NativeMapView` and `UBMMap`; packaged ARM64 libraries depend on Android EGL/GLES/JNI. REA `ev_5c877cfc6af1ce00db777ef3b86a4d68f928952e537a39dcfd538760129d6431`. | It is a native renderer. Reusing data/assets is separate from executing that binary in a browser. |
-| Can we obtain the actual cartography? | `UberMapView.setDefaultStyle` declares `https://tc2.uber.com/style/default/native?o=DEFAULT`, REA `ev_a4bc38c4a12c501e716c595ee8716b7d8d0e07aa2fcef9e2c9ef3cc16de2ca6f`. Live GET returned the style plus vector-source manifests, sprites and glyph templates. Sample vector tile, glyph range, sprite JSON and sprite PNG returned 200. | Public responses were accessible for these probes. Future availability and the active rider's dynamic style override are not guaranteed. |
-| Is there a separate auto style? | `in9.a` defines both default and `https://tc2.uber.com/style/auto/native?o=DEFAULT`; REA `ev_229692aff0cb6ef7321f1f366f5453ffd2619d62115f6c27d55b492db151614a`. Both URLs returned styles. | The default currently names itself `uber-stylesheet-driver`. The prototype deliberately names its source; it does not infer active rider configuration from that name. |
-| How is dark mode applied? | `UberMapView.setNightModeEnabled` adds/removes the `night` style class. The style has `paint.night` and `layout.night` overrides. | The adapter merges this class; other native class combinations are not reproduced. |
-| What draws the car? | `bn9.c.a` selects optional glTF or 2D renderers (`ev_5c05f1f4c4fa03b6366b8032c943b0a77aacbf439c8b7ba92f4ed73fb7eed2fb`). Saved shopping responses supply `productContext.presentation.standardMapIcon`, `spritesheetMapIcon`, and `spriteDivisionCount`. | Runtime feature flags decide the branch. A 3D-looking car is not by itself proof of the glTF branch. |
-| Can we reuse vehicle artwork? | A returned UberX sprite URL downloaded as a 7168×112 PNG with 64 square frames; the response explicitly supplies 64 divisions. Standard icon is 112×112. | The CLI saves the exact selected product's artwork during a new booking. Older or externally booked trips may only expose a standard trip icon, or no icon. It never substitutes UberX for another product. |
-| What is the frame selection? | `bn9.s.onDraw`: `floor(normalizedRotation / 360 * (numSprites - 1))`, REA `ev_e045323afaab9d2c6733b76aa1c0ef6217d76808fb9cd49cbce79e71fc471c2f`. `setRotation` subtracts the controller offset (`ev_7bf5b0406801bf5cc88a611917692c844f5971f2cfd38165b939e4d8b8350ee2`). | Legacy projection binds the offset to camera bearing. The complete rotated-camera update sequence and MMDF behavior need parity testing. |
-| What is the vehicle size? | Compiled resources specify 56dp base; standard fallback scale is 5/7, or 40dp. Legacy `bn9.l.a` clamps sprite scale to `0.25 + (zoom-10)/6 * 0.75`, between 0.25 and 1 (`ev_82d2917b4f3892620bb326c4587022704096038a99c23f8e9a852778150ab581`). | Show/hide animation, alternate renderer scaling and device-density rasterization are not yet matched. |
+| Question                                      | Evidence and result                                                                                                                                                                                                                                                                                                                       | Remaining boundary                                                                                                                                                                                          |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Can the Android view itself run in an iframe? | `UberMapView` initializes `NativeMapView` and `UBMMap`; packaged ARM64 libraries depend on Android EGL/GLES/JNI. REA `ev_5c877cfc6af1ce00db777ef3b86a4d68f928952e537a39dcfd538760129d6431`.                                                                                                                                               | It is a native renderer. Reusing data/assets is separate from executing that binary in a browser.                                                                                                           |
+| Can we obtain the actual cartography?         | `UberMapView.setDefaultStyle` declares `https://tc2.uber.com/style/default/native?o=DEFAULT`, REA `ev_a4bc38c4a12c501e716c595ee8716b7d8d0e07aa2fcef9e2c9ef3cc16de2ca6f`. Live GET returned the style plus vector-source manifests, sprites and glyph templates. Sample vector tile, glyph range, sprite JSON and sprite PNG returned 200. | Public responses were accessible for these probes. Future availability and the active rider's dynamic style override are not guaranteed.                                                                    |
+| Is there a separate auto style?               | `in9.a` defines both default and `https://tc2.uber.com/style/auto/native?o=DEFAULT`; REA `ev_229692aff0cb6ef7321f1f366f5453ffd2619d62115f6c27d55b492db151614a`. Both URLs returned styles.                                                                                                                                                | The default currently names itself `uber-stylesheet-driver`. The prototype deliberately names its source; it does not infer active rider configuration from that name.                                      |
+| How is dark mode applied?                     | `UberMapView.setNightModeEnabled` adds/removes the `night` style class. The style has `paint.night` and `layout.night` overrides.                                                                                                                                                                                                         | The adapter merges this class; other native class combinations are not reproduced.                                                                                                                          |
+| What draws the car?                           | `bn9.c.a` selects optional glTF or 2D renderers (`ev_5c05f1f4c4fa03b6366b8032c943b0a77aacbf439c8b7ba92f4ed73fb7eed2fb`). Saved shopping responses supply `productContext.presentation.standardMapIcon`, `spritesheetMapIcon`, and `spriteDivisionCount`.                                                                                  | Runtime feature flags decide the branch. A 3D-looking car is not by itself proof of the glTF branch.                                                                                                        |
+| Can we reuse vehicle artwork?                 | A returned UberX sprite URL downloaded as a 7168×112 PNG with 64 square frames; the response explicitly supplies 64 divisions. Standard icon is 112×112.                                                                                                                                                                                  | The CLI saves the exact selected product's artwork during a new booking. Older or externally booked trips may only expose a standard trip icon, or no icon. It never substitutes UberX for another product. |
+| What is the frame selection?                  | `bn9.s.onDraw`: `floor(normalizedRotation / 360 * (numSprites - 1))`, REA `ev_e045323afaab9d2c6733b76aa1c0ef6217d76808fb9cd49cbce79e71fc471c2f`. `setRotation` subtracts the controller offset (`ev_7bf5b0406801bf5cc88a611917692c844f5971f2cfd38165b939e4d8b8350ee2`).                                                                   | Legacy projection binds the offset to camera bearing. The complete rotated-camera update sequence and MMDF behavior need parity testing.                                                                    |
+| What is the vehicle size?                     | Compiled resources specify 56dp base; standard fallback scale is 5/7, or 40dp. Legacy `bn9.l.a` clamps sprite scale to `0.25 + (zoom-10)/6 * 0.75`, between 0.25 and 1 (`ev_82d2917b4f3892620bb326c4587022704096038a99c23f8e9a852778150ab581`).                                                                                           | Show/hide animation, alternate renderer scaling and device-density rasterization are not yet matched.                                                                                                       |
 
 The cartography uses Uber's `8_u1` extension of a version-8 style. The browser
 adapter expands legacy `ref` layers, applies the night class, and preserves
@@ -116,8 +116,11 @@ uber map serve --trip-id TRIP_UUID --port 8765 \
 Embed the exact returned URL:
 
 ```html
-<iframe src="RETURNED_MAP_URL" title="Ride map"
-        style="border:0;width:100%;height:600px"></iframe>
+<iframe
+  src="RETURNED_MAP_URL"
+  title="Ride map"
+  style="border:0;width:100%;height:600px"
+></iframe>
 ```
 
 `--host 0.0.0.0` permits direct network listening and requires `--public-url`.
@@ -193,13 +196,11 @@ observations. Unknown timestamp units are omitted instead of guessed. The source
 also honors `hideRouteline`. A later live test verified fresh timestamped car coordinates and movement in the
 browser; exact native animation and pixel parity remain unverified.
 
-
 A second explicitly authorized live test established a native response switch:
 `usePolylines:true` returns an encoded car position under `routeLines[id=car]`
 and null `locations`. Requesting `false` returns timestamped `locations` with
 latitude, longitude, course, and millisecond epoch. The map now requests raw
 locations rather than treating the encoded car track as a passenger routeline.
-
 
 The live test also confirmed that raw tracking locations do not include the
 approach road geometry. Native `RoutingApi.fetchRouteline` exposes
