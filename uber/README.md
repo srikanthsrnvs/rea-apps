@@ -87,6 +87,8 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 
 Use `--via LAT,LON` repeatedly for intermediate stops, `--dry-run` to inspect a request, and `--raw` to retain the full shopping response in stdout. `shopping` outputs the full response by default. Coordinates are latitude followed by longitude.
 
+Booking returns a `tripId` and `map.command`; run that command to get the expiring `mapUrl`. Use that exact trip ID for the viewer: if Uber's account-status response omits its order list, the CLI recovers the selected ride through the native trip-sharing API. A call without a trip ID fails with instructions instead of assuming the account is idle.
+
 The experimental map viewer renders in the **client's** browser. For an explicitly selected trip, it can recover missing account-status details through Uber's native trip-sharing data API. The CLI keeps tracking tokens on the server. A ride without usable coordinates cannot produce a viewer link. The headless
 host uses Node HTTP/2 for the native Ramen stream, with status snapshots as a fallback, and sends changes to the iframe immediately over authenticated SSE. It reuses
 Uber's real cartography and selected product artwork. Native route pulse, queued motion and server-prediction timing are reconstructed; camera behavior and pixel parity remain unverified. For remote embedding,

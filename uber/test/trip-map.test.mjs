@@ -539,3 +539,24 @@ test('native sharing fallback recovers exact selected ride when account order fe
   assert.equal(cancelled.state, 'ended');
   assert.equal(cancelled.driver.position, null);
 });
+
+test('an omitted trip list without a selected ID gives actionable fallback instructions', async () => {
+  await assert.rejects(
+    getTripMap(
+      {},
+      {
+        send: async () => ({
+          clientStatus: { status: 'Looking' },
+          fulfillmentStateData: { orders: [] },
+          isAllRiderAppOrdersEnabled: true,
+          riderAppOrdersFetchResult: { riderAppOrdersFetchSucceeded: false },
+        }),
+      },
+    ),
+    (error) => {
+      assert.equal(error.code, 'MAP_TRIP_FETCH_FAILED');
+      assert.match(error.message, /--trip-id UUID/);
+      return true;
+    },
+  );
+});

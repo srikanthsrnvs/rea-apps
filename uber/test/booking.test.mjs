@@ -203,3 +203,48 @@ test('an expired approval plan cannot dispatch a ride', async () => {
   };
   await assert.rejects(confirmBooking(plan.planId), /expired/);
 });
+
+test('an active client phase blocks duplicate booking even if Uber omits every order', async () => {
+  const { savePlan } = await import('../src/plans.mjs');
+  await saveState('session', {
+    context,
+    accessToken: 'test',
+    userUUID: riderId,
+    expiresAt: Date.now() + 3600000,
+  });
+  await saveState('integrity', {
+    token: 'test',
+    contextDeviceId: context.deviceId,
+    expiresAt: Date.now() + 3600000,
+  });
+  const plan = await savePlan(
+    'booking',
+    { userUUID: riderId },
+    { preview: {} },
+  );
+  for (const phase of ['Dispatching', 'EnRoute', 'OnTrip', undefined]) {
+    let calls = 0;
+    globalThis.fetch = async (url) => {
+      calls++;
+      assert.ok(new URL(url).pathname.endsWith('/status'));
+      return Response.json({
+        clientStatus: phase ? { status: phase } : null,
+        fulfillmentStateData: { orders: [] },
+        riderAppOrdersFetchResult: { riderAppOrdersFetchSucceeded: false },
+      });
+    };
+    await assert.rejects(
+      prepareBooking({ from: '33,-118', to: '34,-119', product: 'UberX' }),
+      /idle state could not be established/,
+    );
+    await assert.rejects(
+      confirmBooking(plan.id),
+      /idle state could not be established/,
+    );
+    assert.equal(
+      calls,
+      2,
+      'only status reads are allowed; no pricing, payment or mutation requests',
+    );
+  }
+});

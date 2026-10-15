@@ -617,6 +617,10 @@ export async function getTripMap(
   try {
     scene = normalizeTripMap(status, options);
   } catch (error) {
+    if (!options.tripId && error.code === 'MAP_TRIP_FETCH_FAILED') {
+      error.message +=
+        ' Supply --trip-id UUID from the booking result to use the native trip-sharing fallback.';
+    }
     if (
       !options.tripId ||
       ![

@@ -20,10 +20,20 @@ import { executeMutation } from './mutations.mjs';
 import { productMapIcons, saveTripMapIcons } from './map-vehicle.mjs';
 
 async function requireNoActiveRide(send) {
-  const status = normalizeTripStatus(await send('/rt/riders/me/status', {}));
-  if (status.activeOrderCount)
+  const payload = await send('/rt/riders/me/status', {});
+  const status = normalizeTripStatus(payload);
+  const phase = status.clientStatus?.status;
+  // An omitted order list must not hide an active primary ride. Looking is the
+  // observed native idle phase; other reported phases require inspection.
+  if (
+    status.activeOrderCount ||
+    (phase && phase !== 'Looking') ||
+    (payload.riderAppOrdersFetchResult?.riderAppOrdersFetchSucceeded ===
+      false &&
+      !phase)
+  )
     throw new Error(
-      'An existing ride is active. Inspect uber status before preparing another booking',
+      'An existing ride is active or its idle state could not be established. Inspect uber status before preparing another booking',
     );
 }
 
