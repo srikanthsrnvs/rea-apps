@@ -39,7 +39,11 @@ export class LinkedInClient {
           ...(payload !== undefined && multipartForm === undefined ? { 'Content-Type': form ? 'application/x-www-form-urlencoded' : 'application/json' } : {}),
           ...headers, Cookie: cookieHeader(this.session, url) }, body: payload });
       receiveCookies(this.session, response.headers, url);
+      // A server rejection invalidates earlier validation even when it keeps
+      // li_at in the cookie jar. Saved credentials alone are not a live session.
+      if (response.status === 401) this.session.validatedAt = null;
       if (response.status >= 300 && response.status < 400 && !allowStatuses.includes(response.status)) {
+        this.session.validatedAt = null;
         const location = new URL(response.headers.get('location') || '/', url);
         throw new LinkedInError('AUTH_REQUIRED', 'LinkedIn redirected this request. Sign in again and complete any account verification.', { status: response.status, verificationUrl: location.origin === ORIGIN ? location.origin + location.pathname : undefined });
       }

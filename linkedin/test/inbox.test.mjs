@@ -95,6 +95,14 @@ test('unexpected successful send response remains uncertain', async () => {
   const plan = prepareMessage({ mailboxUrn: mailbox, recipientUrns: [recipient], text: 'Hello', originToken });
   await assert.rejects(sendMessage({ request: async () => ({ value: {} }) }, plan, { confirm: true }), { code: 'MESSAGE_SEND_UNKNOWN' });
 });
+test('expired authentication is reported explicitly without retrying the message', async () => {
+  const plan = prepareMessage({ mailboxUrn: mailbox, recipientUrns: [recipient], text: 'Hello', originToken });
+  let calls = 0;
+  const client = { request: async () => { calls++; throw Object.assign(new Error('HTTP 401'), { code: 'AUTH_REQUIRED', details: { status: 401 } }); } };
+  await assert.rejects(sendMessage(client, plan, { confirm: true }), error => error.code === 'MESSAGE_REJECTED' && error.details.reauthenticationRequired === true);
+  await assert.rejects(sendMessage(client, plan, { confirm: true }), { code: 'MESSAGE_ALREADY_ATTEMPTED' });
+  assert.equal(calls, 1);
+});
 test('category actions and notification patch use native POST contracts', async () => {
   const requests = [];
   const client = { request: async spec => { requests.push(spec); return null; } };

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newSession, receiveCookies, cookieHeader, csrfToken, sessionFromExport } from '../src/session.mjs';
+import { newSession, receiveCookies, cookieHeader, csrfToken, sessionFromExport, sessionStatus } from '../src/session.mjs';
 import { LinkedInClient, restli } from '../src/http.mjs';
 import { me } from '../src/account.mjs';
 
@@ -55,6 +55,19 @@ test('multipart native challenge polling lets fetch choose its boundary', async 
     return Response.json({ pollingResponseChallengeStateV2: 'SOLVED' });
   } });
   assert.equal((await client.request({ path: '/checkpoint/challengesV2/poll/test', method: 'POST', multipartForm: { recognizedDevice: false } })).pollingResponseChallengeStateV2, 'SOLVED');
+});
+
+test('401 or rejected redirect clears prior authentication validation even when cookies remain', async () => {
+  for (const status of [401, 302]) {
+    const session = newSession();
+    session.validatedAt = new Date().toISOString();
+    session.cookies.push({ name: 'li_at', value: 'opaque', domain: '.linkedin.com', path: '/', secure: true });
+    assert.equal(sessionStatus(session).authenticated, true);
+    const client = new LinkedInClient(session, { fetchImpl: async () => new Response('', { status, headers: status === 302 ? { location: '/login' } : {} }) });
+    await assert.rejects(client.request({ path: '/voyager/api/me' }), { code: 'AUTH_REQUIRED' });
+    assert.equal(sessionStatus(session).authenticated, false);
+    assert.equal(session.cookies.some(cookie => cookie.name === 'li_at'), true);
+  }
 });
 
 test('auth can inspect 401 challenge; errors and mutation network failures expose no body', async () => {
