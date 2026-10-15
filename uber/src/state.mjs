@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
+import { withKernelRequestLock } from './kernel-lock.mjs';
 
 export const stateDirectory = process.env.UBER_CLI_STATE_DIR || path.join(
   process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'uber-cli',
@@ -41,6 +42,7 @@ export async function withStateLock(operation, {
     || !Number.isFinite(pollIntervalMs) || pollIntervalMs <= 0) {
     throw new RangeError('Lock timeout and poll interval must be positive finite numbers');
   }
+  if (process.env.UBER_CLI_KERNEL_LOCK_PER_REQUEST === '1') return withKernelRequestLock(operation, { directory, timeoutMs });
   const lockDirectory = path.join(directory, '.state-lock');
   await fs.mkdir(lockDirectory, { recursive: true, mode: 0o700 });
   await fs.chmod(lockDirectory, 0o700);

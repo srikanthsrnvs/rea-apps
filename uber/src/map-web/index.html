@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ride map</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="./viewer.css">
+</head>
+<body>
+  <main id="map" aria-label="Interactive ride map"></main>
+  <div id="status" role="status">Loading map…</div>
+  <button id="recenter" type="button" aria-label="Show the whole trip" title="Show the whole trip">⌾</button>
+  <script type="module" src="./viewer.mjs"></script>
+</body>
+</html>

@@ -70,6 +70,8 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 | `search --query TEXT --near LAT,LON` | Find places and their Uber location IDs |
 | `resolve --id ID --provider PROVIDER` | Resolve a search result to coordinates |
 | `status` | Query current trip state and active orders |
+| `map [--trip-id UUID]` | Read the selected ride's route, waypoints and driver-position snapshots |
+| `map serve [--trip-id UUID]` | Return an expiring iframe map URL and keep its foreground server running |
 | `payments` | List payment method IDs, masked labels and expiry state |
 | `products --from LAT,LON --to LAT,LON` | List ride options for a route |
 | `quote --from LAT,LON --to LAT,LON` | Get server-issued fare estimates and product options |
@@ -81,6 +83,13 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 | `operation --id UUID` | Inspect a saved booking or cancellation outcome |
 
 Use `--via LAT,LON` repeatedly for intermediate stops, `--dry-run` to inspect a request, and `--raw` to retain the full shopping response in stdout. `shopping` outputs the full response by default. Coordinates are latitude followed by longitude.
+
+The experimental map viewer renders in the **client's** browser. The headless
+host serves HTTP and authenticated trip snapshots using Node only. It reuses
+Uber's real cartography and selected product artwork; native animation,
+camera behavior and pixel parity are not yet reproduced. For remote embedding,
+use a reachable `--public-url` and HTTPS reverse proxy, with optional
+`--frame-origin` restrictions. See the [map reconstruction findings and embedding guide](docs/map-reconstruction.md).
 
 Booking has two steps:
 
@@ -121,7 +130,7 @@ Ride endpoints additionally require a short-lived client integrity credential. T
 
 The server granted this credential and accepted ride shopping for the tested account. Eligibility is controlled by Uber; this is not a guarantee for every account or future app version. No API key is required.
 
-State defaults to `$XDG_CONFIG_HOME/uber-cli`, or `~/.config/uber-cli`. Override it with `UBER_CLI_STATE_DIR`. Directories are mode 0700 and files 0600; writes are atomic. A process lock serializes token changes and requests across local CLI processes. The Docker entrypoint uses a kernel `flock` across the entire command, so container crashes and PID namespaces do not leave stale process locks. Use separate state directories on separate hosts; do not share a live state directory over a network filesystem.
+State defaults to `$XDG_CONFIG_HOME/uber-cli`, or `~/.config/uber-cli`. Override it with `UBER_CLI_STATE_DIR`. Directories are mode 0700 and files 0600; writes are atomic. A process lock serializes token changes and requests across local CLI processes. Docker uses a kernel `flock` across each command. The long-lived map viewer instead acquires that same lock for each state transaction, allowing other commands to proceed. Kernel locks release when their owned processes exit, including across PID namespaces. Use separate state directories on separate hosts; do not share a live state directory over a network filesystem.
 
 OAuth tokens, refresh tokens, integrity credentials and raw server responses remain in this private state directory. `auth logout` removes the local copies; it does not revoke the account's server sessions.
 
@@ -154,6 +163,14 @@ Use a named volume for state, particularly on Docker Desktop: the Mac host file-
 This image includes Node, the CLI and the base image’s `flock` utility. APKs, private sessions, analysis tools and evidence are excluded from its build context.
 
 ## Validation and current scope
+
+On 2026-10-15, all 128 tests passed on native Linux ARM64 and in a Node 22
+Linux container. macOS passed 127 tests and skipped the Linux-only kernel-lock
+test. The iframe prototype was rendered in a separate browser origin with
+original Uber map resources and car sprites, synthetic route data, interactive
+zoom and recentering. A separate client-browser iframe also loaded a live Orin-served map and correctly reported idle state. A Docker integration probe confirmed another CLI command completes while the viewer remains open. Assigned-driver
+and native animation parity remain unverified. Map serving uses short state
+transactions so the long-lived viewer does not block other CLI commands.
 
 On 2026-10-14, a live HTTP protocol pilot on native ARM64 Linux completed SMS verification, a subsequent email challenge, session verification, PKCE exchange, OAuth refresh, and authenticated trip status. The returned account matched the existing signed-in account. These login steps used no Android device, browser, display server or tunnel. The production authentication module replayed captured responses, and `uber auth validate` validated the already exchanged live candidate through the CLI.
 

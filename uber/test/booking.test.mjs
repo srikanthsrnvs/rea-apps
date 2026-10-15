@@ -20,7 +20,7 @@ test('booking preparation never dispatches; confirmation uses the approved signe
   globalThis.fetch=async(url,options)=>{
     const endpoint=new URL(url).pathname;
     if(endpoint.endsWith('/status'))return Response.json({clientStatus:{status:'Looking'},fulfillmentStateData:{orders:[]}});
-    if(endpoint.endsWith('/order_selection/'))return Response.json({response:{fullResponse:{shoppingOrders:[{id:'catalog',presentation:{displayName:'UberX'},eligibility:{availability:'AVAILABLE'},jobs:{singleTransport:{transportJob:{productContext:{legacy:{vehicleViewID:125},properties:{reservationOnly:false}}}}}}]}}});
+    if(endpoint.endsWith('/order_selection/'))return Response.json({response:{fullResponse:{shoppingOrders:[{id:'catalog',presentation:{displayName:'UberX'},eligibility:{availability:'AVAILABLE'},jobs:{singleTransport:{transportJob:{productContext:{legacy:{vehicleViewID:125},properties:{reservationOnly:false},presentation:{spritesheetMapIcon:{dayImageURL:'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloMapIconsSpritesheet/v1/uberX_Spritesheet_v1.png'},spriteDivisionCount:64}}}}}}]}}});
     if(endpoint.endsWith('/fare-estimate'))return Response.json({packageVariants:[{vehicleViewId:125,isDefault:true,pricingInfo:{packageVariantUuid:variantId,fareInfo:{upfrontFare:{vehicleViewId:125,fare:'31.94',currencyCode:'USD',originLat:33,originLng:-118,destinationLat:34,destinationLng:-119,viaLocations:[],signature:{signature:'signed-test',expiresAt:Math.floor(Date.now()/1000)+180}}}}}]});
     if(endpoint.endsWith('/payment-profiles')) {
       assert.equal(options.method,'GET');
@@ -35,8 +35,18 @@ test('booking preparation never dispatches; confirmation uses the approved signe
   const first=await prepareBooking({from:'33,-118',to:'34,-119',product:'UberX'});
   assert.equal(bookings,0);assert.equal(first.preview.fare.amount,'31.94');assert.equal(first.preview.payment.id,paymentId);
   expired=true;await assert.rejects(confirmBooking(first.planId),/expired/);assert.equal(bookings,0);expired=false;
-  const result=await confirmBooking(first.planId);assert.equal(result.tripId,tripId);assert.equal(result.requiresCheckout,false);assert.equal(bookings,1);
+  const result=await confirmBooking(first.planId);assert.equal(result.tripId,tripId);assert.equal(result.requiresCheckout,false);assert.equal(bookings,1);assert.equal(result.map.artworkSaved,true);assert.equal(result.map.command,`uber map serve --trip-id ${tripId}`);const art=await readState(`map-artwork-${tripId}`);assert.equal(art.userUUID,riderId);assert.equal(art.spriteDivisionCount,64);
   const journal=await readState(`operation-${first.operationId}`);assert.equal(journal.state,'accepted');assert.equal(journal.context.jobId,tripId);
+});
+test('optional artwork persistence failure cannot make an accepted booking look rejected',async()=>{
+  const prepared=await prepareBooking({from:'33,-118',to:'34,-119',product:'UberX'});
+  const plan=await readState(`plan-${prepared.planId}`);
+  const blocked=path.join(directory,`map-artwork-${plan.jobId}.json`);
+  await fs.mkdir(blocked);
+  const fixtureFetch=globalThis.fetch;let bookings=0;
+  globalThis.fetch=async(...args)=>{if(new URL(args[0]).pathname.endsWith('/v2/pickup'))bookings++;return fixtureFetch(...args);};
+  try{const result=await confirmBooking(prepared.planId);assert.equal(result.map.artworkSaved,false);assert.equal(result.tripId,plan.jobId);assert.equal(bookings,1);assert.equal((await readState(`operation-${prepared.operationId}`)).state,'accepted');}
+  finally{globalThis.fetch=fixtureFetch;await fs.rm(blocked,{recursive:true});}
 });
 test('an expired approval plan cannot dispatch a ride',async()=>{
   const plan=await prepareBooking({from:'33,-118',to:'34,-119',product:'UberX'});

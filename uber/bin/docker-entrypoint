@@ -9,6 +9,13 @@ if [ "$(stat -f -c %t "$state_dir")" = "6a656a63" ]; then
   exit 1
 fi
 # Kernel lock survives PID namespace differences and releases on process exit.
+# A viewer is a long-lived read service; lock each token/status transaction so
+# other containers can still book, cancel, refresh credentials, or log out.
+if [ "${1:-}" = "map" ] && [ "${2:-}" = "serve" ]; then
+  unset UBER_CLI_KERNEL_LOCK
+  export UBER_CLI_KERNEL_LOCK_PER_REQUEST=1
+  exec node /app/bin/uber "$@"
+fi
 flock -w 30 -E 75 "$state_dir/.command.lock" sh -c 'export UBER_CLI_KERNEL_LOCK=1; exec node /app/bin/uber "$@"' sh "$@"
 result=$?
 if [ "$result" -eq 75 ]; then

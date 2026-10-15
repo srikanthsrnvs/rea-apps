@@ -7,6 +7,7 @@ import {legacyBookingRequest,normalizeBookingResult} from './booking-protocol.mj
 import {normalizeTripStatus} from './cancellation-protocol.mjs';
 import {savePlan,loadPlan,requireUUID} from './plans.mjs';
 import {executeMutation} from './mutations.mjs';
+import { productMapIcons, saveTripMapIcons } from './map-vehicle.mjs';
 
 async function requireNoActiveRide(send) {
   const status=normalizeTripStatus(await send('/rt/riders/me/status',{}));
@@ -29,7 +30,9 @@ export async function prepareBooking({from,to,via=[],product,vehicleViewId,varia
     const jobId=randomUUID();
     const body=legacyBookingRequest({...route,variant,paymentProfileId:payment.payment.id,userProfile:payment.userProfile,jobId});
     const preview={route:{from,to,via},product:{name:selection.product.name,vehicleViewId:selection.product.vehicleViewId,variantId:selection.fare.variantId},fare:{amount:fare.amount,currencyCode:fare.currencyCode,formattedFare:selection.fare.formattedFare,expiresAt:fare.expiresAt},payment:payment.payment};
-    const plan=await savePlan('booking',session,{body,preview,jobId,variant},{ttlMs:Math.min(300000,fare.expiresAt-Date.now()-5000)});
+    const order = pricing.shopping.response.fullResponse.shoppingOrders.find(order => order.id === selection.product.orderId);
+    const mapIcons = productMapIcons(order?.jobs?.singleTransport?.transportJob?.productContext?.presentation);
+    const plan=await savePlan('booking',session,{body,preview,jobId,variant,mapIcons},{ttlMs:Math.min(300000,fare.expiresAt-Date.now()-5000)});
     return {planId:plan.id,operationId:plan.operationId,expiresAt:plan.expiresAt,preview,next:`uber book --plan-id ${plan.id} --confirm`};
   });
 }
@@ -43,6 +46,11 @@ export async function confirmBooking(planId) {
     if (plan.expiresAt<=Date.now()) throw new Error('Booking plan expired; prepare it again');
     validateSignedFare(plan.variant,{...plan.preview.route,vehicleViewId:plan.preview.product.vehicleViewId});
     const response=await executeMutation({id:plan.operationId,kind:'booking',endpoint:`/rt/riders/${session.userUUID}/v2/pickup`,body:plan.body,context:{jobId:plan.jobId,preview:plan.preview},validate:normalizeBookingResult},send);
-    return {operationId:plan.operationId,...normalizeBookingResult(response)};
+    const result = normalizeBookingResult(response);
+    let artworkSaved = false;
+    // Optional viewer metadata must never turn an accepted paid action into an
+    // apparent booking failure. The durable mutation journal remains authoritative.
+    try { artworkSaved = await saveTripMapIcons(result.tripId, session.userUUID, plan.mapIcons); } catch {}
+    return {operationId:plan.operationId,...result,map:{command:`uber map serve --trip-id ${result.tripId}`,artworkSaved}};
   });
 }

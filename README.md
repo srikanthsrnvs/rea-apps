@@ -5,7 +5,7 @@ Standalone tools reconstructed from installed apps, with separate Spotify, Uber,
 | App | Commands | Runtime |
 | --- | --- | --- |
 | [Spotify](spotify/README.md) | Login, search, playback, library, playlists, speakers, MCP | macOS Spotify or the maintained headless Linux container |
-| [Uber](uber/README.md) | Verification-code login, address search, ride options, fares, payment selection, booking, cancellation | Native Node.js HTTP; no Android device, browser, display server or tunnel required |
+| [Uber](uber/README.md) | Verification-code login, address search, ride options, fares, payment selection, booking, cancellation, experimental iframe map | Native Node.js HTTP; map renders in the client's browser; no Android device or browser on the host |
 | [Instagram](instagram/README.md) | Search, Explore, inbox summaries, followers, following, saved collections | Headless HTTP login with an Instagram approval link; Android used for protocol investigation |
 | [OpenTable](opentable/README.md) | Verification-code login, paginated restaurant search, tables, payments, reservations, reviewed booking and cancellation | Headless Node HTTP; no Android, browser or display required on the host |
 | [Erewhon](erewhon/README.md) | SMS login, membership, rewards, purchase history, catalog, pickup and delivery carts, reviewed order submission | Headless Node HTTP; no Android, browser, display or developer API key input required |
