@@ -2,7 +2,7 @@
 
 Native-HTTP CLI for people search, profiles, and messaging, reconstructed with REA from LinkedIn Android 4.1.1261. Node 22.19+; Linux x64/ARM64 and macOS. No Android, browser, npm packages, or developer API key is needed by API commands.
 
-**Verified:** Google account session import, people search and pagination, profile lookup by identifier and URN, contact-info reads, inbox pagination, conversation lookup, message reads/pagination, and unread filtering. These worked through HTTP with the Android emulator stopped. Message sending is implemented and locally tested; no live message has been sent.
+**Verified:** Google account session import, people search and pagination, profile lookup by identifier and URN, contact-info reads, inbox pagination, conversation lookup, message reads/pagination, and unread filtering. These worked through HTTP with the Android emulator stopped. A connection invitation with its exact note was also accepted through the CLI on the headless Orin. Standard message sending is implemented and locally tested; no live standard message has been accepted.
 
 **Current limit:** a live standard-message attempt to a second-degree profile was explicitly rejected with `RECIPIENT_NOT_FIRST_DEGREE_CONNECTION` (HTTP 422). The CLI reports this permission restriction without retrying. Exported test sessions have also encountered subsequent authentication failures. No message acceptance was confirmed. Session longevity and successful live sending are not yet verified; a successful import does not establish reliable unattended operation.
 
@@ -70,6 +70,16 @@ linkedin message status --operation RETURNED_UUID
 Preparation saves the exact recipients/text locally and sends nothing. Sending records the attempt before making one API request. An uncertain network result is saved as `unknown` and never retried automatically. Use `message.reconcile` with the original operation ID to check its deduplication token before creating any replacement.
 
 Plain-text sending is implemented. Attachment uploads, rich mentions, recalls, reactions, InMail purchases, and group participant editing are not implemented. No home feed, wall, or posting tools are included.
+
+A connection invitation is a separate action requiring its own authorization; a rejected message never silently becomes an invitation:
+
+```sh
+linkedin call connection.prepare --json '{"profile":"PUBLIC_IDENTIFIER","note":"Exact invitation note"}'
+linkedin connection send --operation RETURNED_UUID --confirm
+linkedin connection status --operation RETURNED_UUID
+```
+
+Invitation notes are limited to 200 characters by this CLI. Preparation saves the exact recipient and note. The attempt is journaled before the native HTTP request and is never retried automatically. A returned invitation URN confirms acceptance; it does not mean that the recipient accepted the connection. See [invitation protocol](docs/connections-protocol.md).
 
 Session and operation state lives in `${XDG_CONFIG_HOME:-~/.config}/linkedin-cli`, protected by private directory/file permissions and a process lock. Override with `LINKEDIN_CLI_STATE_DIR`. `logout` removes local session and pending-login credentials; saved message operation records remain available for reconciliation.
 

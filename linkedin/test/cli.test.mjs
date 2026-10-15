@@ -17,8 +17,10 @@ test('tools and status run without a display, browser dependency or saved creden
   const result = run(directory, ['tools']);
   assert.equal(result.status, 0);
   assert.ok(result.json.data.tools.some(x => x.name === 'message.send'));
+  assert.ok(result.json.data.tools.some(x => x.name === 'connection.send'));
   assert.equal(result.json.data.validation.liveAccount, true);
   assert.equal(result.json.data.validation.liveSend, false);
+  assert.equal(result.json.data.validation.liveInvitation, true);
   const status = run(directory, ['auth', 'status']);
   assert.equal(status.json.data.authenticated, false);
   const inbox = run(directory, ['call', 'inbox.list', '--input', '-'], '{}');
@@ -30,6 +32,7 @@ test('tool input validation rejects unknown fields and non-explicit send confirm
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   assert.equal(run(directory, ['call', 'inbox.list', '--json', '{"cookies":"secret"}']).json.error.code, 'INVALID_ARGUMENT');
   assert.equal(run(directory, ['call', 'message.send', '--json', '{"operationId":"id","confirm":false}']).json.error.code, 'INVALID_ARGUMENT');
+  assert.equal(run(directory, ['call', 'connection.send', '--json', '{"operationId":"id","confirm":false}']).json.error.code, 'INVALID_ARGUMENT');
   assert.equal(run(directory, ['call', 'people.search', '--json', '[]']).json.error.code, 'INVALID_ARGUMENT');
   assert.equal(run(directory, ['--version']).json.data.version, '0.1.0');
 });

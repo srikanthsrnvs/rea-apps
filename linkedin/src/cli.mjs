@@ -12,6 +12,7 @@ import { loginWithPassword, loginWithGoogleToken } from './auth-protocol.mjs';
 import { readState, saveState, removeState, withStateLock } from './state.mjs';
 import { tools } from './tools.mjs';
 import { readAndroidSession } from './android-session.mjs';
+import { prepareInvitation, sendInvitation, invitationStatus } from './connections.mjs';
 
 function invalid(message) { throw new LinkedInError('INVALID_ARGUMENT', message); }
 async function stdin() {
@@ -59,6 +60,7 @@ async function call(name, args) {
     });
   }
   if (name === 'message.status') return withStateLock(() => getOperation(args.operationId));
+  if (name === 'connection.status') return withStateLock(() => invitationStatus(args.operationId));
   return authenticated(async client => {
     const mailboxUrn = client.session.account.mailboxUrn;
     switch (name) {
@@ -77,6 +79,12 @@ async function call(name, args) {
       }
       case 'message.send': return sendOperation(client, args.operationId, args);
       case 'message.reconcile': return reconcileOperation(client, args.operationId, args);
+      case 'connection.prepare': {
+        if (Boolean(args.profile) === Boolean(args.recipientUrn)) invalid('Use exactly one of profile or recipientUrn.');
+        const recipientUrn = args.profile ? (await getProfile(client, { identifier: args.profile })).profileUrn : args.recipientUrn;
+        return prepareInvitation({ mailboxUrn, recipientUrn, note: args.note });
+      }
+      case 'connection.send': return sendInvitation(client, args.operationId, args);
       case 'inbox.category': return changeConversationCategory(client, args);
       case 'inbox.notifications': return setNotificationStatus(client, args);
       case 'inbox.read': return setConversationRead(client, args);
@@ -93,10 +101,10 @@ async function main() {
     'contact-info': { type: 'boolean' }, help: { type: 'boolean' }, version: { type: 'boolean' },
   } });
   if (options.version) return { version: '0.1.0' };
-  if (options.help || !parts.length) return { name: 'linkedin', commands: ['tools', 'call TOOL --json JSON', 'call TOOL --input -', 'login', 'auth status', 'auth import-android --serial DEVICE', 'auth import FILE', 'auth export --output FILE', 'logout', 'me', 'search --query TEXT', 'profile URL_OR_URN', 'inbox', 'messages --conversation URN', 'message prepare --to PROFILE_URN --text TEXT', 'message send --operation UUID --confirm'],
+  if (options.help || !parts.length) return { name: 'linkedin', commands: ['tools', 'call TOOL --json JSON', 'call TOOL --input -', 'login', 'auth status', 'auth import-android --serial DEVICE', 'auth import FILE', 'auth export --output FILE', 'logout', 'me', 'search --query TEXT', 'profile URL_OR_URN', 'inbox', 'messages --conversation URN', 'message prepare --to PROFILE_URN --text TEXT', 'message send --operation UUID --confirm', 'connection prepare --to PROFILE_URN --text NOTE', 'connection send --operation UUID --confirm', 'connection status --operation UUID'],
     scope: 'People search, profiles and inbox. No feed or posting.', auth: 'Google-only accounts use a native Android session bootstrap, followed by HTTP-only commands. No browser is launched.' };
   const [command, action, parameter] = parts;
-  if (command === 'tools') return { tools, validation: { localTests: true, liveAccount: true, liveSend: false,
+  if (command === 'tools') return { tools, validation: { localTests: true, liveAccount: true, liveSend: false, liveInvitation: true,
     verifiedReads: ['me', 'people.search', 'profile.get', 'inbox.list', 'inbox.search', 'conversation.get', 'messages.list'],
     authentication: 'Google sign-in bootstrapped from the original Android app; later commands use HTTP. Fresh Google-only login is not host-only.' } };
   if (command === 'call') {
@@ -166,6 +174,13 @@ async function main() {
   if (command === 'message') {
     if (action === 'prepare') return call('message.prepare', { ...(options.conversation ? { conversationUrn: options.conversation } : { recipientUrns: options.to }), text: options.text });
     if (['send', 'status', 'reconcile'].includes(action)) return call(`message.${action}`, { operationId: options.operation ?? parameter, ...(action === 'send' ? { confirm: Boolean(options.confirm) } : {}), ...(action === 'reconcile' && options.conversation ? { conversationUrn: options.conversation } : {}) });
+  }
+  if (command === 'connection') {
+    if (action === 'prepare') {
+      if (options.to?.length !== 1) invalid('Supply one resolved recipient with --to.');
+      return call('connection.prepare', { recipientUrn: options.to[0], note: options.text });
+    }
+    if (['send', 'status'].includes(action)) return call(`connection.${action}`, { operationId: options.operation ?? parameter, ...(action === 'send' ? { confirm: Boolean(options.confirm) } : {}) });
   }
   invalid('Unknown command. Run linkedin --help or linkedin tools.');
 }
