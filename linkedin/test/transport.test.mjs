@@ -69,6 +69,11 @@ test('401 or rejected redirect clears prior authentication validation even when 
     assert.equal(session.cookies.some(cookie => cookie.name === 'li_at'), true);
   }
 });
+test('known recipient restriction exposes only its recognized code, not raw server diagnostics', async () => {
+  const client = new LinkedInClient(newSession(), { fetchImpl: async () => Response.json({ code: 'RECIPIENT_NOT_FIRST_DEGREE_CONNECTION', message: 'private server text', exceptionClass: 'private implementation' }, { status: 422 }) });
+  await assert.rejects(client.request({ path: '/voyager/api/messages', method: 'POST', body: {} }), error => error.details.serverCode === 'RECIPIENT_NOT_FIRST_DEGREE_CONNECTION'
+    && !JSON.stringify(error).includes('private'));
+});
 
 test('auth can inspect 401 challenge; errors and mutation network failures expose no body', async () => {
   const client = new LinkedInClient(newSession(), { fetchImpl: async () => new Response(JSON.stringify({ challenge_url: '/checkpoint/test', secret: 'do-not-log' }), { status: 401 }) });

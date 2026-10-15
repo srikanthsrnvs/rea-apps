@@ -4,7 +4,7 @@ Native-HTTP CLI for people search, profiles, and messaging, reconstructed with R
 
 **Verified:** Google account session import, people search and pagination, profile lookup by identifier and URN, contact-info reads, inbox pagination, conversation lookup, message reads/pagination, and unread filtering. These worked through HTTP with the Android emulator stopped. Message sending is implemented and locally tested; no live message has been sent.
 
-**Current limit:** the exported test session was subsequently rejected by LinkedIn. The first live send returned HTTP 422, and a later attempt and ordinary profile reads returned authentication errors. No message acceptance was confirmed. Session longevity and live sending are not yet verified; a successful import does not establish reliable unattended operation.
+**Current limit:** a live standard-message attempt to a second-degree profile was explicitly rejected with `RECIPIENT_NOT_FIRST_DEGREE_CONNECTION` (HTTP 422). The CLI reports this permission restriction without retrying. Exported test sessions have also encountered subsequent authentication failures. No message acceptance was confirmed. Session longevity and successful live sending are not yet verified; a successful import does not establish reliable unattended operation.
 
 ## Install
 

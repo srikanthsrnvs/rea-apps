@@ -61,8 +61,10 @@ export class LinkedInClient {
       try { data = text ? JSON.parse(text) : {}; } catch { data = null; }
       if (!response.ok && !allowStatuses.includes(response.status)) {
         const status = response.status;
+        const serverCode = data?.code === 'RECIPIENT_NOT_FIRST_DEGREE_CONNECTION' ? data.code : undefined;
         throw new LinkedInError(status === 401 ? 'AUTH_REQUIRED' : status === 403 ? 'ACCESS_DENIED' : status === 429 ? 'RATE_LIMITED' : 'API_ERROR',
-          `LinkedIn returned HTTP ${status}.`, { status, retryAfter: response.headers.get('retry-after') ?? undefined });
+          `LinkedIn returned HTTP ${status}.`, { status, retryAfter: response.headers.get('retry-after') ?? undefined,
+            ...(serverCode ? { serverCode } : {}) });
       }
       if (data === null && !allowText) throw new LinkedInError('INVALID_RESPONSE', 'LinkedIn returned a page instead of API JSON. Complete any required sign-in verification.');
       return responseMeta ? { status: response.status, headers: response.headers, data: data ?? text } : data ?? text;

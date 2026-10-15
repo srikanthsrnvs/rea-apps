@@ -218,8 +218,10 @@ export async function sendMessage(client, prepared, { confirm = false } = {}) {
     const status = cause?.status ?? cause?.statusCode ?? cause?.details?.status;
     const definiteRejection = Number.isInteger(status) && status >= 400 && status < 500 && ![408, 409, 425, 429].includes(status);
     const reauthenticationRequired = status === 401 || cause?.code === 'AUTH_REQUIRED';
-    throw new InboxError(definiteRejection ? (reauthenticationRequired ? 'LinkedIn rejected the message because sign-in is required. Refresh the session before preparing another attempt.' : 'LinkedIn rejected the message request.') : 'The message result is uncertain. Do not send another copy; reconcile this originToken.',
+    const notConnected = cause?.details?.serverCode === 'RECIPIENT_NOT_FIRST_DEGREE_CONNECTION';
+    throw new InboxError(definiteRejection ? (notConnected ? 'LinkedIn cannot send a standard message to this member because they are not a first-degree connection.' : reauthenticationRequired ? 'LinkedIn rejected the message because sign-in is required. Refresh the session before preparing another attempt.' : 'LinkedIn rejected the message request.') : 'The message result is uncertain. Do not send another copy; reconcile this originToken.',
       definiteRejection ? 'MESSAGE_REJECTED' : 'MESSAGE_SEND_UNKNOWN', { operationId: prepared.operationId, originToken: prepared.originToken, status: status ?? null,
+        ...(notConnected ? { serverCode: 'RECIPIENT_NOT_FIRST_DEGREE_CONNECTION' } : {}),
         ...(reauthenticationRequired ? { reauthenticationRequired: true } : {}) }, cause);
   }
   try { checkErrors(response); } catch {

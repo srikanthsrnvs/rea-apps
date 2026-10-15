@@ -38,6 +38,8 @@ For a reply, native delivery preparation puts both `message.conversationUrn` and
 
 `originToken` follows `MessageUUIDUtils.createOriginToken`: a UUID v4 string. The native sync tracking utility converts a UUID's 16 big-endian bytes to unsigned character values through `BytesUtil.bytesToString`, equivalent to a Latin-1 byte string, **not base64**. `trackingId` follows this representation. `Message.body` is the native `com.linkedin.pemberly.text.AttributedText` model, with JSON keys `text` and `attributes`.
 
+A live new-conversation attempt to a second-degree profile returned HTTP 422 with `RECIPIENT_NOT_FIRST_DEGREE_CONNECTION`. The CLI exposes this recognized permission code while withholding raw response bodies. It does not substitute a connection invitation, buy InMail, or retry a rejected standard message. Successful live sending still requires validation with an eligible recipient.
+
 `prepareMessage` creates a frozen, reviewable plan with stable `originToken`, request digest and operation ID; it sends nothing. `sendMessage(..., {confirm: true})` makes exactly one transport call with retries disabled. A returned message entity URN establishes acceptance. A timeout, interrupted connection, or unexpected success response remains `MESSAGE_SEND_UNKNOWN`, preserving the token. `reconcileMessage` searches a selected page for that token; absence on one page is explicitly inconclusive. The CLI must persist an attempted operation **before** calling send and must not automatically resend on a later process invocation. Server deduplication support is observed statically; exactly-once delivery is not claimed.
 
 ## Inbox state

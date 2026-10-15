@@ -103,6 +103,15 @@ test('expired authentication is reported explicitly without retrying the message
   await assert.rejects(sendMessage(client, plan, { confirm: true }), { code: 'MESSAGE_ALREADY_ATTEMPTED' });
   assert.equal(calls, 1);
 });
+test('non-connection rejection explains the recipient restriction and is not retried', async () => {
+  const plan = prepareMessage({ mailboxUrn: mailbox, recipientUrns: [recipient], text: 'Hello', originToken });
+  let calls = 0;
+  const client = { request: async () => { calls++; throw Object.assign(new Error('HTTP 422'), { details: { status: 422, serverCode: 'RECIPIENT_NOT_FIRST_DEGREE_CONNECTION' } }); } };
+  await assert.rejects(sendMessage(client, plan, { confirm: true }), error => error.code === 'MESSAGE_REJECTED'
+    && error.details.serverCode === 'RECIPIENT_NOT_FIRST_DEGREE_CONNECTION' && /first-degree connection/.test(error.message));
+  await assert.rejects(sendMessage(client, plan, { confirm: true }), { code: 'MESSAGE_ALREADY_ATTEMPTED' });
+  assert.equal(calls, 1);
+});
 test('category actions and notification patch use native POST contracts', async () => {
   const requests = [];
   const client = { request: async spec => { requests.push(spec); return null; } };
