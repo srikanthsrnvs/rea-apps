@@ -1,3 +1,8 @@
+import {
+  NativeServerPredictionPlanner,
+  agentAhead,
+  predictionRoutesEqual,
+} from './native-prediction.mjs';
 import { nativeGeodesy as geo } from './native-geodesy.mjs';
 import {
   NativeFrameSampler,
@@ -44,6 +49,8 @@ export class MapMotion {
 
   reset() {
     this.planner = new NativeRoutePlanner(geo);
+    this.predictions = new NativeServerPredictionPlanner();
+    this.lastPrediction = null;
     this.queue = new NativeTimingQueue();
     this.sampler = new NativeFrameSampler();
     this.retainedRoute = null;
@@ -65,7 +72,8 @@ export class MapMotion {
     const route = scene.routes?.find((r) =>
       ['provider', 'provider_recommended'].includes(r.kind),
     );
-    const identity = `${scene.tripId}:${scene.status}:${position.epoch}:${position.lat}:${position.lon}:${position.course}:${route?.encodedPolyline ?? ''}`;
+    this.predictions.observePredictions(scene.driver?.prediction ?? []);
+    const identity = `${scene.driver?.streamSequence ?? ''}:${scene.tripId}:${scene.status}:${position.epoch}:${position.lat}:${position.lon}:${position.course}:${route?.encodedPolyline ?? ''}`;
     if (identity === this.observation) return;
     const points =
       route?.points?.length <= 2000 && route.points.every(valid)
@@ -103,12 +111,29 @@ export class MapMotion {
       };
       this.sampler.previous = this.position;
     }
+    this.predictions.observeRouteline(observation.vehicle, nowMs);
+    if (
+      this.lastPrediction &&
+      predictionRoutesEqual(
+        this.lastPrediction.target.route,
+        observation.vehicle.route,
+      ) &&
+      agentAhead(this.lastPrediction.target.agent, observation.vehicle.agent)
+    )
+      return;
     const plan = this.planner.plan(observation.vehicle);
     this.mode = plan.mode;
     this.queue.enqueue(plan.animations, nowMs / 1000);
   }
 
   frame(nowMs) {
+    for (const prediction of this.predictions.advanceTo(nowMs)) {
+      const plan = this.planner.plan(prediction.target);
+      this.queue.enqueue(plan.animations, prediction.atMs / 1000, {
+        predictionDuration: prediction.durationSeconds,
+      });
+      this.lastPrediction = prediction;
+    }
     const events = this.queue.tick(nowMs / 1000);
     const path = vehicleBatchPath(events, nowMs);
     if (path.length) this.sampler.replace(path);

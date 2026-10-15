@@ -125,3 +125,14 @@ export async function authenticatedOperation(operation) {
 export async function authenticatedRequest(endpoint, body, options) {
   return authenticatedOperation(({send}) => send(endpoint, body, options));
 }
+
+// A stream must release the account lock before its long-lived network read.
+// The caller separately guards this generation before accepting each message.
+export async function authenticatedStreamContext() {
+  return authenticatedOperation(async ({session}) => {
+    if (!session.userUUID || !session.mapViewerGeneration) throw new Error('Initialize the map session guard before streaming');
+    const credential = await integrity(session);
+    return { owner: `${session.userUUID}:${session.mapViewerGeneration}`,
+      headers: { ...requestHeaders(session.context, session.accessToken), 'x-uber-cit': credential.token } };
+  });
+}

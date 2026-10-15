@@ -73,6 +73,7 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 | `map [--trip-id UUID]` | Read the selected ride's route, waypoints and driver-position snapshots |
 | `route --from LAT,LON --to LAT,LON` | Read an Uber driving-road route recommendation |
 | `map link --trip-id UUID` | Retrieve the official trip-sharing URL without sending it to anyone |
+| `map stream --trip-id UUID [--duration 30]` | Read native driver and ETA events as NDJSON; no browser |
 | `map serve [--trip-id UUID]` | Return an expiring iframe map URL and keep its foreground server running |
 | `payments` | List payment method IDs, masked labels and expiry state |
 | `products --from LAT,LON --to LAT,LON` | List ride options for a route |
@@ -87,11 +88,12 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 Use `--via LAT,LON` repeatedly for intermediate stops, `--dry-run` to inspect a request, and `--raw` to retain the full shopping response in stdout. `shopping` outputs the full response by default. Coordinates are latitude followed by longitude.
 
 The experimental map viewer renders in the **client's** browser. For an explicitly selected trip, it can recover missing account-status details through Uber's native trip-sharing data API. The CLI keeps tracking tokens on the server. A ride without usable coordinates cannot produce a viewer link. The headless
-host serves HTTP and authenticated trip snapshots using Node only. It reuses
-Uber's real cartography and selected product artwork; native animation,
-camera behavior and pixel parity are not yet reproduced. For remote embedding,
+host uses Node HTTP/2 for the native Ramen stream, with status snapshots as a fallback, and sends changes to the iframe immediately over authenticated SSE. It reuses
+Uber's real cartography and selected product artwork. Native route pulse, queued motion and server-prediction timing are reconstructed; camera behavior and pixel parity remain unverified. For remote embedding,
 use a reachable `--public-url` and HTTPS reverse proxy, with optional
 `--frame-origin` restrictions. See the [map reconstruction findings and embedding guide](docs/map-reconstruction.md).
+
+The native driver stream supplies pickup ETA in minutes, current road geometry and server-authored predictions. After six seconds without a new observation, prediction playback follows the native queue; it does not estimate movement from speed. Reconnects resume the stream cursor, and logout or account replacement revokes the viewer. The Orin has authenticated and received real idle heartbeat frames; active-trip driver/ETA delivery through this new transport still requires a fresh authorized test.
 
 The viewer now includes the recovered native route reveal/pulse timing, a
 solid base line, persistent car sprites, queued road-following animation and

@@ -1,0 +1,11 @@
+{
+  "name": "linkedin-standalone-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless LinkedIn people search, profiles and messaging CLI",
+  "bin": { "linkedin": "bin/linkedin" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=22.19" },
+  "files": ["bin/", "src/", "scripts/", "docs/", "README.md"]
+}

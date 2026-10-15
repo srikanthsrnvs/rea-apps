@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+linkedin_node=${LINKEDIN_NODE:-$workspace/.runtime/node}
+if [ ! -x "$linkedin_node" ]; then
+  printf '%s\n' 'Run linkedin/scripts/setup-linux.sh first, or set LINKEDIN_NODE to a compatible Node executable.' >&2
+  exit 1
+fi
+exec "$linkedin_node" "$workspace/bin/linkedin" "$@"

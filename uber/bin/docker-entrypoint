@@ -11,7 +11,7 @@ fi
 # Kernel lock survives PID namespace differences and releases on process exit.
 # A viewer is a long-lived read service; lock each token/status transaction so
 # other containers can still book, cancel, refresh credentials, or log out.
-if [ "${1:-}" = "map" ] && [ "${2:-}" = "serve" ]; then
+if [ "${1:-}" = "map" ] && { [ "${2:-}" = "serve" ] || [ "${2:-}" = "stream" ]; }; then
   unset UBER_CLI_KERNEL_LOCK
   export UBER_CLI_KERNEL_LOCK_PER_REQUEST=1
   exec node /app/bin/uber "$@"

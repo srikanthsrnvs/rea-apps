@@ -12,7 +12,8 @@ const a = { lat: 37.7749, lon: -122.4194 };
 const b = { lat: 37.7749, lon: -122.4189 };
 const c = { lat: 37.7754, lon: -122.4189 };
 const d = { lat: 37.7759, lon: -122.4189 };
-let next = false;
+let next = false,
+  publish;
 const scene = () => ({
   state: 'replay',
   status: 'Synthetic browser test',
@@ -27,11 +28,19 @@ const scene = () => ({
     },
   ],
   waypoints: [{ ...d, kind: 'pickup' }],
-  eta: { pickupDisplay: '1 min' },
+  eta: { pickupDisplay: next ? '2 min' : '1 min' },
 });
 const viewer = await startMapServer(
   { durationSeconds: 120 },
-  { getScene: async () => scene() },
+  {
+    getScene: async () => scene(),
+    subscribeToScenes: (listener) => {
+      publish = listener;
+      return () => {
+        publish = null;
+      };
+    },
+  },
 );
 let browser;
 try {
@@ -101,7 +110,15 @@ try {
     '1 min',
   );
   next = true;
-  await page.waitForTimeout(14000);
+  const sentAt = Date.now();
+  publish(scene());
+  await page.waitForFunction(
+    () =>
+      document.querySelector('.waypoint-callout-body')?.textContent === '2 min',
+    { timeout: 2000 },
+  );
+  const etaDeliveryMs = Date.now() - sentAt;
+  await page.waitForTimeout(7000);
   const result = await page.evaluate(() => ({
     markerReused: window.proof.node === document.querySelector('.driver'),
     pulseFrames: new Set(window.proof.pulse).size,
@@ -122,7 +139,9 @@ try {
   }
   assert.deepEqual(await page.evaluate(() => window.testErrors ?? []), []);
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, synthetic: true, ...result }));
+  console.log(
+    JSON.stringify({ passed: true, synthetic: true, etaDeliveryMs, ...result }),
+  );
 } finally {
   await browser?.close();
   await viewer.close();

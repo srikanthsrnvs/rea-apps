@@ -118,6 +118,7 @@ uber search --query TEXT --near LAT,LON  Find places by name or address
 uber status                        Query current account trip state
 uber map [--trip-id UUID]           Read map routes, waypoints and driver-position snapshots
 uber route --from LAT,LON --to LAT,LON  Read an Uber-recommended driving road route
+uber map stream --trip-id UUID [--duration 30]  Stream selected trip scenes as NDJSON
 uber map link --trip-id UUID        Retrieve the official trip-sharing URL without sending it
 uber map serve [--trip-id UUID]     Serve an expiring iframe map; remains running until stopped
 uber payments                      List saved payment method IDs and display names
@@ -182,36 +183,30 @@ State: ${stateDirectory}`);
     if (values.confirm || values['dry-run'] || values.raw) throw new Error('Map link is a read-only trip-link request');
     const { getTripShareLink } = await import('./trip-share.mjs');
     print(await getTripShareLink(values['trip-id']));
-  } else if (command === 'map' || command === 'map serve') {
+  } else if (command === 'map' || command === 'map serve' || command === 'map stream') {
     if (values['trip-id']) requireUUID(values['trip-id'], 'Trip ID');
     const { getTripMap } = await import('./trip-map.mjs');
     if (command === 'map') {
       if (['host', 'port', 'public-url', 'frame-origin', 'duration'].some(key => values[key] !== undefined)) throw new Error('Viewer settings belong to uber map serve');
       print(await getTripMap({ tripId: values['trip-id'] }));
+    } else if (command === 'map stream') {
+      requireUUID(values['trip-id'], 'Trip ID');
+      if (values.raw || values.confirm || values['dry-run'] || ['host','port','public-url','frame-origin'].some(key => values[key] !== undefined)) throw new Error('Map stream supports --trip-id and --duration');
+      const { runMapStream } = await import('./map-stream-cli.mjs');
+      await runMapStream({ tripId: values['trip-id'], duration: values.duration });
     } else {
       if (values.raw || values.confirm || values['dry-run']) throw new Error('Map serve supports read-only viewer settings');
-      const { startMapServer, mapSessionGuard } = await import('./map-server.mjs');
-      // Bind the lease to the first selected trip. Never follow a different ride
-      // if the original ride ends during a long-lived browser session.
-      let selectedTripId = values['trip-id'];
+      const { startMapServer, mapSessionGuard, mapServerOptions } = await import('./map-server.mjs');
+      const { createSelectedTripFeed } = await import('./map-live-feed.mjs');
+      const options = { host: values.host, port: values.port, publicUrl: values['public-url'], frameOrigins: values['frame-origin'], durationSeconds: values.duration };
+      const validated = mapServerOptions(options);
       const isAuthorized = await mapSessionGuard();
-      const viewer = await startMapServer({ host: values.host, port: values.port, publicUrl: values['public-url'], frameOrigins: values['frame-origin'], durationSeconds: values.duration }, {
-        isAuthorized,
-        getScene: async () => {
-          if (!await isAuthorized()) throw new Error('Map session changed');
-          let scene;
-          try { scene = await getTripMap({ tripId: selectedTripId }); }
-          catch (error) {
-            if (error.code !== 'TRIP_NOT_FOUND' || !selectedTripId) throw error;
-            // Absence can mean cancellation, completion, or a response change.
-            // Clear the map without inventing a terminal server status.
-            return { schemaVersion: 1, observedAt: new Date().toISOString(), state: 'unavailable', tripId: selectedTripId, pollingIntervalMs: 8000, driver: { position: null, path: [] }, routes: [], waypoints: [], eta: {}, warnings: ['The selected trip is absent from the current status response.'] };
-          }
-          if (!await isAuthorized()) throw new Error('Map session changed');
-          if (scene.tripId) selectedTripId ??= scene.tripId;
-          return scene;
-        },
-      });
+      const feed = await createSelectedTripFeed({ tripId: values['trip-id'], isAuthorized,
+        durationMs: validated.durationSeconds * 1000 });
+      let viewer;
+      try { viewer = await startMapServer(options, { isAuthorized, getScene: () => feed.read(),
+        subscribeToScenes: listener => feed.subscribe(listener), onClose: () => feed.close() }); }
+      catch (error) { feed.close(); throw error; }
       const { mapUrl, expiresAt, listening, tripId, state, fidelity } = viewer;
       print({ mapUrl, expiresAt, listening, tripId, state, fidelity, lifecycle: 'Foreground server; keep this command running. Stop with SIGINT/SIGTERM or wait for expiry.' });
       const stop = () => { viewer.close().catch(() => { process.exitCode = 1; }); };

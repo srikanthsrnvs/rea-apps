@@ -338,7 +338,8 @@ export class NativeRoutePlanner {
         }
       }
     }
-    // Caller c9b.h updates prior only when accepting ordinary update; prediction suppression lives outside this API.
+    // Both accepted real observations and emitted predictions update this prior.
+    // Caller applies c9b.h suppression before planning older real observations.
     this.previous = v;
     return { animations, mode };
   }

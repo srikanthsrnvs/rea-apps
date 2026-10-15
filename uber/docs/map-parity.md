@@ -67,19 +67,18 @@ login material or private video is shipped in this repository.
 ## Browser adapter boundaries
 
 The motion kernels reconstruct the specified native paths. Their browser adapter
-uses current trip snapshots rather than the native push stream. A recommended
+uses native driver pushes with status snapshots as fallback. A recommended
 route is accepted for motion only if its first point lies within10m of observed
 GPS; otherwise the actual GPS point remains authoritative and the native
 route-less fallback is used. Native currentRoute observations use the incoming
 route's first point. A shrinking route merges overlapping edges before planning;
-the driver sprite is retained across polls. No location is extrapolated beyond
-received observations. These facts do not establish that a routing recommendation
+the driver sprite is retained across polls. Beyond real observations, movement is permitted only from server-supplied prediction points. These facts do not establish that a routing recommendation
 is the driver's selected navigation route.
 
 Resource bounds in this adapter are2000incoming route points,4000retained edges,
 and32queued groups. They are implementation limits, not inferred Uber defaults.
-The shipped native default catch-up flag is false. Prediction inputs and remote
-feature overrides have not been observed. The sampler consumes at most one
+The shipped native default catch-up flag is false. Prediction input schema and native playback are recovered; active-trip delivery and remote
+feature overrides still require runtime verification. The sampler consumes at most one
 pending target per frame and assigns the target course directly; generic CSS
 heading easing has deliberately not been substituted.
 
@@ -144,3 +143,84 @@ its availability is not a claim that every cancellation transition is implemente
 The platform table is tied to this reference framework version. Other Android
 versions can sample a path differently. The migrated profile's analytic curve
 and native GL rasterization are separate, still unverified implementation paths.
+
+
+## Native live transport and predictions
+
+The shipped `z62.z.c`/`c0` channel calls
+`https://cn-geo1.uber.com/uber.streaming.ramen.RamenService/RamenStreaming`
+using bidirectional HTTP/2 gRPC. OAuth bearer and ordinary mobile headers bind
+the saved account; a new `x-uber-streamgate-connection-id` is generated per
+connection. The initial proto3 Request with lastSeenSeqId0 is an empty protobuf
+inside the five-byte gRPC frame; the request stream stays open. On the Orin,
+the recovered endpoint accepted HTTP200application/grpc and returned eight
+native heartbeat frames in a bounded30second idle probe. This proves headless
+authentication/transport liveness, not active-trip subscription success.
+
+Response tags are1MsgList,2ControlMsg,3HeartBeat,4GraphQL status. Msg tags are
+1int64sequence,2topic,3nested UUID,5Content,7requestFeatureAck. Content tags
+1enum (1binary protobuf/2JSON),2payload bytes. Receipt ACKs precede selected
+consumer processing; unknown topics are acknowledged but never projected.
+Requested feature ACKs follow consumption. The native topic is
+`trip_driver_location_update_v2`; this is local dispatch, not a fabricated
+subscription request. Sequence cursors retain exact64bit values. Reconnects
+resume the cursor with fresh headers; UNAUTHENTICATED16 refreshes OAuth.
+
+TripDriverLocationUpdateV2 fields are1path points,2tripUuid,3currentRoute,
+4etaToPickup,5etaToPickupString,6etaToPickupStringShort,7prediction,
+8encodedCurrentTraffic,9meetupLocation,10isAgentDetached. Path point tags
+1/2/3/4/5 are double latitude/longitude/course/epoch/speed; epoch is milliseconds.
+Prediction tags1double distanceInMeters,2int64timestamp. Prediction timestamp
+**differences are seconds**. The projector exposes only bounded location, route,
+prediction and ETA fields for the exact selected trip. Traffic/meetup/detachment
+rendering is not claimed implemented.
+
+Native `fab.q.c` maps exact-trip EN_ROUTE push field4 directly through
+`ActiveOrderSchema.etaInMinutes`; **etaToPickup is minutes**. The ETA label
+preserves server formatted strings, falling back to the numeric minute value;
+negative ETA hides it. Formatted string getters in this APK are serializer-only,
+so their use in the browser is not evidence of identical native map typography.
+The street-view HUD consumes numeric ETA with native plural resources. Ordinary
+assigned-trip annotation decoration remains a comparison gap. No ETA is
+fabricated from routing distance, booking time or a clock countdown.
+
+`kub.g.F/a`, `c66.o.accept`, and `WaypointRoute.a/d` establish prediction playback:
+every real route observation cancels predictions and resets a6000ms debounce.
+At expiry, capture the latest server point list; begin at index1, use adjacent
+timestamp differences as animation seconds, and schedule the next target after
+that duration. Distances are offsets from the original real agent, not cumulative
+from the previous prediction. Edge boundaries advance to the next edge; route
+end clamps. A new real point cancels timers even if it is behind the previous
+predicted agent and suppressed for motion. No server predictions means no
+extrapolation. Last accepted motion targets include predictions.
+
+Tests cover real heartbeat bytes, wire ACKs/BigInt cursors, fragmented frames,
+backpressure, reconnects, credential generation changes, stalled callbacks,
+ETA unit/negative/missing values, stale positions, prediction debounce and
+route progression, immediate SSE delivery and terminal-state cancellation.
+A real client browser test exercises streamed ETA changes, persistent sprites,
+intermediate positions, route trimming and pulse frames in both themes. Its
+coordinates are synthetic. A fresh real trip is still needed to verify delivered
+ETA/currentRoute/prediction cadence and visual parity with Uber Android.
+
+
+Retained REA evidence for the new wire and playback contract includes:
+`ev_56df2dda860cd18200fc7992ac3953803136d6ca4c2c08034a41bf5f358aa443`
+(content decoding),
+`ev_8d154911dab8a733fd3005e120d6370a2e18fd1452ede01e0887bb635dd14db9`
+(receipt ACK),
+`ev_340dd28e7472cd7efea299b426bf2685f823c9501256d405b852d18986af6287`
+and `ev_3a4166aa094b4d80bc3641469201088f45a407e124931fee025b6dbb9c80a6b8`
+(driver Wire adapter),
+`ev_66513deb9d903e9a7fd858dbbcf73484e02c725b8a9f3c899b1b9fb671d19c1c`
+and `ev_bc3a1528e360d88309f53e1f21537d2900773052c6d610e40ad1345847697c29`
+(prediction debounce/cancel),
+`ev_7915abcb31f89d92bf30fcec2304a3ebe9c4db914b645826421fc81b9f144e1b`
+(recursive prediction timing). Full source bodies and APK stay outside Git.
+
+The production transport and codec were additionally exercised on the headless
+Orin with the existing CLI session: one authenticated connection, eight frames,
+80wire bytes in30seconds, zero driver messages while idle, clean bounded stop.
+The browser smoke test delivered a changed ETA over SSE within3ms on loopback,
+retained the car node and sampled144distinct clipped route starts with348pulse
+frames; these are synthetic test results, not live-trip smoothness measurements.

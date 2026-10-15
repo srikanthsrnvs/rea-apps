@@ -71,18 +71,25 @@ Key source observations:
 - Map-hub routing decodes with factor `1e-5`: `ev_d6c0ee029d82ac2db142e6d51a056b377277a88787bcecd5ca1cd9592cc07f1f`. The exact current-trip leg consumer remains a separate caller-coverage gap.
 - Native driver-location factory: `ev_22ca6342287473710ca7cd5f4da172ab8f64dcdd2c5bcbb893993f503e49931b` prefers a separate `TripDriverLocationUpdateV2` stream for en-route trips and otherwise uses snapshot data.
 
-The prototype uses shared status polling, with a minimum interval of 8 seconds
-and the server's longer requested interval where present. It selects the newest
-timestamped path point at or before the current time and reports its age.
-Future-only or untimestamped paths do not produce a claimed current position.
-It does not yet reproduce the native realtime transport, path interpolation,
-predictions, animation, or camera director. Legacy server ETA display strings
-are preserved; unverified numeric ETA units stay null.
+`map` remains a snapshot read. `map serve` and `map stream` now connect to the
+native Ramen HTTP/2 gRPC stream and consume only the selected trip's
+`trip_driver_location_update_v2` messages. They retain shared status polling
+(minimum8seconds) for lifecycle/fallback data. Native pickup ETA is in minutes;
+server currentRoute and prediction points feed the reconstructed motion queue.
+The iframe receives authenticated SSE events immediately instead of waiting for
+the next browser poll. The stream owner is bound to the saved login generation;
+refresh happens in short transactions and does not lock other CLI operations.
+
+On2026-10-15 the Orin authenticated to the recovered stream and received real
+heartbeat frames. Active-trip messages over this implementation have not yet
+been observed. See the [transport and prediction contract](map-parity.md#native-live-transport-and-predictions)
+for the wire contract, tests and remaining verification limits.
 
 ## Runtime and embedding
 
 ```sh
 uber map --trip-id TRIP_UUID
+uber map stream --trip-id TRIP_UUID --duration 30
 uber map serve --trip-id TRIP_UUID
 ```
 
@@ -147,8 +154,8 @@ booking into an apparent purchase failure, and it never retries a ride request.
 
 Remaining work for the requested identical clone: verify the active rider style
 and feature flags; match native density/collision rules, waypoint and ETA
-annotations, camera framing and transitions; recover the realtime update
-transport and animation timeline; compare the browser and Android map during an
+annotations, camera framing and transitions; verify the recovered live stream
+and prediction timeline against an assigned driver; compare the browser and Android map during an
 explicitly authorized real trip.
 
 A real test ride on 2026-10-15 exposed a live-data failure: the status response

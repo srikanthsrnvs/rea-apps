@@ -1,3 +1,4 @@
+import { watchScenes } from './live-stream.mjs';
 import {
   Map as MapLibreMap,
   Marker,
@@ -40,7 +41,11 @@ const waypoints = new Map();
 let pulseStart = null,
   animationFrameId = null;
 const vehicleImages = new Map();
+let liveEnabled = false,
+  liveController = null,
+  liveRetryTimer = null;
 const coordinate = (point) => [point.lon, point.lat];
+const animationTime = () => performance.timeOrigin + performance.now();
 const show = (message) => {
   status.textContent = message;
 };
@@ -157,7 +162,7 @@ function animateRoute(now) {
     !map?.getSource('ride-routes')
   )
     return;
-  const position = motion.frame(Date.now());
+  const position = motion.frame(animationTime());
   if (position && vehicleMarker) {
     renderedPosition = position;
     vehicleMarker.setLngLat(coordinate(position));
@@ -211,7 +216,7 @@ function render(scene) {
     motion.reset();
     removeVehicle();
   }
-  motion.update(scene, Date.now());
+  motion.update(scene, animationTime());
   if (!map || (!map.getLayer('ride-route') && !map.isStyleLoaded())) return;
   const ids = new Set();
   for (const [index, point] of (scene.waypoints ?? []).entries()) {
@@ -307,6 +312,11 @@ function render(scene) {
   else
     show(
       [
+        ['failed', 'reconnecting', 'revoked'].includes(
+          scene.liveTransport?.state,
+        )
+          ? 'Live updates unavailable · using status snapshots'
+          : null,
         scene.state === 'replay' && typeof scene.status === 'string'
           ? scene.status
           : null,
@@ -331,6 +341,42 @@ async function loadStyle() {
   window.uberMapFidelity = result.fidelity;
   return result.style;
 }
+function unavailable(code) {
+  document.querySelector('#map').hidden = true;
+  document.querySelector('#recenter').hidden = true;
+  stopped = true;
+  clearTimeout(timer);
+  clearTimeout(liveRetryTimer);
+  liveController?.abort();
+  show(code === 410 ? 'Map viewer expired' : 'Map access is unavailable');
+  markers.forEach((marker) => marker.remove());
+  map
+    ?.getSource('ride-routes')
+    ?.setData({ type: 'FeatureCollection', features: [] });
+}
+function startLiveDelivery() {
+  if (stopped || liveController || !liveEnabled) return;
+  liveController = new AbortController();
+  const controller = liveController;
+  watchScenes({
+    url: new URL('./events', location.href),
+    key,
+    signal: controller.signal,
+    onScene: render,
+    onUnavailable: unavailable,
+    onRefreshError: () =>
+      show('Trip status refresh failed · using last received data'),
+  })
+    .catch(() => {
+      if (!stopped && !controller.signal.aborted) {
+        show('Live updates reconnecting · using status snapshots');
+        liveRetryTimer = setTimeout(startLiveDelivery, 2000);
+      }
+    })
+    .finally(() => {
+      if (liveController === controller) liveController = null;
+    });
+}
 async function poll() {
   if (stopped) return;
   let interval = 8000;
@@ -341,18 +387,7 @@ async function poll() {
       referrerPolicy: 'no-referrer',
     });
     if ([401, 403, 410].includes(response.status)) {
-      document.querySelector('#map').hidden = true;
-      document.querySelector('#recenter').hidden = true;
-      stopped = true;
-      show(
-        response.status === 410
-          ? 'Map viewer expired'
-          : 'Map access is unavailable',
-      );
-      markers.forEach((m) => m.remove());
-      map
-        ?.getSource('ride-routes')
-        ?.setData({ type: 'FeatureCollection', features: [] });
+      unavailable(response.status);
       return;
     }
     if (!response.ok) throw new Error('Trip refresh failed');
@@ -362,6 +397,9 @@ async function poll() {
       Math.min(3600000, payload.scene.pollingIntervalMs ?? 8000),
     );
     render(payload.scene);
+    liveEnabled =
+      payload.fidelity?.updates === 'ramen_push_with_status_fallback';
+    startLiveDelivery();
   } catch {
     show(
       latest && points(latest).length
@@ -378,6 +416,8 @@ document.querySelector('#recenter').addEventListener('click', () => {
 addEventListener('pagehide', () => {
   stopped = true;
   clearTimeout(timer);
+  clearTimeout(liveRetryTimer);
+  liveController?.abort();
   if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
 });
 try {

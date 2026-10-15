@@ -83,3 +83,28 @@ test('remaining geometry clips at animated nearest projection, preserving road b
   const clipped = trimRouteAt([a, b, c], { lat: 0.00001, lon: 0.00025 });
   assert.deepEqual(clipped, [{ lat: 0, lon: 0.00025 }, b, c]);
 });
+test('server predictions bridge native six-second silence and stop on a real observation', () => {
+  const motion = new MapMotion();
+  const first = scene(a, [a, b, c]);
+  first.driver.prediction = [
+    { distanceInMeters: 0, timestamp: 0 },
+    { distanceInMeters: 30, timestamp: 3 },
+    { distanceInMeters: 50, timestamp: 6 },
+  ];
+  motion.update(first, 100000);
+  for (let t = 100000; t < 106000; t += 16) motion.frame(t);
+  assert.equal(motion.lastPrediction, null);
+  const samples = [];
+  for (let t = 106000; t < 108000; t += 16) samples.push(motion.frame(t));
+  assert.ok(samples.some((p) => p.lon > 0.00005 && p.lon < 0.00027));
+  assert.equal(motion.lastPrediction.durationSeconds, 3);
+  const behind = scene(a, [a, b, c], 2);
+  behind.driver.prediction = first.driver.prediction;
+  motion.update(behind, 108000); // resets debounce, cannot rewind past predicted target
+  const queued = motion.queue.pending.length;
+  assert.equal(motion.predictions.active, null);
+  motion.frame(109500);
+  assert.equal(motion.queue.pending.length <= queued, true);
+  motion.update({ ...behind, state: 'ended' }, 110000);
+  assert.equal(motion.frame(110001), null);
+});
