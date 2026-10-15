@@ -77,8 +77,8 @@ is the driver's selected navigation route.
 
 Resource bounds in this adapter are2000incoming route points,4000retained edges,
 and32queued groups. They are implementation limits, not inferred Uber defaults.
-The shipped native default catch-up flag is false. Prediction input schema and native playback are recovered; active-trip delivery and remote
-feature overrides still require runtime verification. The sampler consumes at most one
+The shipped native default catch-up flag is false. Prediction input schema and native playback are recovered, and active-trip delivery
+was verified. Remote feature overrides still require runtime verification. The sampler consumes at most one
 pending target per frame and assigns the target course directly; generic CSS
 heading easing has deliberately not been substituted.
 
@@ -200,8 +200,8 @@ ETA unit/negative/missing values, stale positions, prediction debounce and
 route progression, immediate SSE delivery and terminal-state cancellation.
 A real client browser test exercises streamed ETA changes, persistent sprites,
 intermediate positions, route trimming and pulse frames in both themes. Its
-coordinates are synthetic. A fresh real trip is still needed to verify delivered
-ETA/currentRoute/prediction cadence and visual parity with Uber Android.
+coordinates are synthetic. The subsequent real-trip validation below verifies delivered ETA/currentRoute/
+prediction data; frame-by-frame visual parity with Android remains unverified.
 
 
 Retained REA evidence for the new wire and playback contract includes:
@@ -224,3 +224,33 @@ Orin with the existing CLI session: one authenticated connection, eight frames,
 The browser smoke test delivered a changed ETA over SSE within3ms on loopback,
 retained the car node and sampled144distinct clipped route starts with348pulse
 frames; these are synthetic test results, not live-trip smoothness measurements.
+
+
+## Assigned-driver validation
+
+On2026-10-15 an explicitly approved test ride was booked and then cancelled
+through the CLI on the headless Orin. Its Ramen stream delivered exact-trip
+`trip_driver_location_update_v2` messages containing currentRoute, a pickup ETA
+that changed from3minutes to2minutes, real GPS epochs in milliseconds, and
+server predictions with seconds-based timestamps. The iframe displayed the
+ETA and car movement; the user confirmed “Looks right; cancel now.” This is
+user visual confirmation, not an automated pixel comparison against Android.
+
+A60second private SSE capture contains24projected scene events and16distinct
+native stream sequences, with11–16prediction points per observation. Replaying
+those actual scenes through the motion kernel produced309distinct positions
+and cleared the car on terminal state without errors. These measurements do
+not prove an identical native frame rate or every route/camera transition.
+The browser QA probe's wait on the empty `.driver` container was unsuitable for
+original artwork (its positioned child is the visible element); that probe timed
+out even while the ETA and motion model were updating. It is not counted as a
+passing automated live-browser check. The separate synthetic browser check and
+user's direct observation remain the visual evidence.
+
+The cancellation preview changed during the test, so the CLI refused the stale
+plan before sending a cancellation mutation. A refreshed plan remained within
+the approved terms and cancelled successfully. Uber's final receipt reported
+no charge and a removed temporary hold; account status confirmed zero active
+orders, and the final map scene was ClientCanceled with no car. The temporary
+viewer and tunnel were then stopped. Raw scenes, account identifiers, endpoints
+with viewer credentials and receipts remain private outside Git.

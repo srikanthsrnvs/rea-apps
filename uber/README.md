@@ -93,7 +93,7 @@ Uber's real cartography and selected product artwork. Native route pulse, queued
 use a reachable `--public-url` and HTTPS reverse proxy, with optional
 `--frame-origin` restrictions. See the [map reconstruction findings and embedding guide](docs/map-reconstruction.md).
 
-The native driver stream supplies pickup ETA in minutes, current road geometry and server-authored predictions. After six seconds without a new observation, prediction playback follows the native queue; it does not estimate movement from speed. Reconnects resume the stream cursor, and logout or account replacement revokes the viewer. The Orin has authenticated and received real idle heartbeat frames; active-trip driver/ETA delivery through this new transport still requires a fresh authorized test.
+The native driver stream supplies pickup ETA in minutes, current road geometry and server-authored predictions. After six seconds without a new observation, prediction playback follows the native queue; it does not estimate movement from speed. Reconnects resume the stream cursor, and logout or account replacement revokes the viewer. A controlled real-trip test on the headless Orin verified native driver, ETA, road-route and prediction delivery; the user confirmed the ETA and motion looked right. The ride was cancelled and the final receipt reported no charge. Full Android visual parity remains unverified.
 
 The viewer now includes the recovered native route reveal/pulse timing, a
 solid base line, persistent car sprites, queued road-following animation and

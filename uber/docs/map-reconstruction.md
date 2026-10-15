@@ -80,9 +80,11 @@ The iframe receives authenticated SSE events immediately instead of waiting for
 the next browser poll. The stream owner is bound to the saved login generation;
 refresh happens in short transactions and does not lock other CLI operations.
 
-On2026-10-15 the Orin authenticated to the recovered stream and received real
-heartbeat frames. Active-trip messages over this implementation have not yet
-been observed. See the [transport and prediction contract](map-parity.md#native-live-transport-and-predictions)
+On2026-10-15 the Orin authenticated to the recovered stream, then received
+actual assigned-driver messages during an approved real-trip test. These carried
+pickup ETA, currentRoute and prediction points. The user confirmed the ETA and
+car movement looked right. Cancellation completed; the final receipt reported
+no charge, and account status reported zero active orders. See the [transport and prediction contract](map-parity.md#native-live-transport-and-predictions)
 for the wire contract, tests and remaining verification limits.
 
 ## Runtime and embedding
@@ -154,8 +156,8 @@ booking into an apparent purchase failure, and it never retries a ride request.
 
 Remaining work for the requested identical clone: verify the active rider style
 and feature flags; match native density/collision rules, waypoint and ETA
-annotations, camera framing and transitions; verify the recovered live stream
-and prediction timeline against an assigned driver; compare the browser and Android map during an
+annotations, camera framing and transitions; compare the delivered prediction
+timeline frame by frame against Android during an
 explicitly authorized real trip.
 
 A real test ride on 2026-10-15 exposed a live-data failure: the status response
