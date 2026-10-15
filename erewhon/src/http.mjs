@@ -1,6 +1,7 @@
 import * as disk from './state.mjs';
 
 export const apiBase = 'https://ordersapi.enfmkt.com';
+export const serviceOrigin = 'https://erewhon.com';
 export class ApiError extends Error {
   constructor(code, message, status) { super(message); this.name = 'ApiError'; this.code = code; if (status !== undefined) this.status = status; }
 }
@@ -20,7 +21,10 @@ export async function request(endpoint, { method = 'POST', form, token, readOnly
   method = String(method).toUpperCase();
   if (!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) throw new ApiError('INVALID_METHOD', 'Unsupported API method.');
   if (!Number.isInteger(retries) || retries < 0 || retries > 2 || (retries && !readOnly)) throw new ApiError('INVALID_RETRY', 'Retries require an explicit read-only request and are limited to two.');
-  const headers = { Accept: 'application/json', 'ngrok-skip-browser-warning': 'true' };
+  // Carry the first-party request context used by the app's WebView API calls.
+  // Payment confirmation can need this context to construct a return URL.
+  const headers = { Accept: 'application/json, text/plain, */*', 'ngrok-skip-browser-warning': 'true',
+    Origin: serviceOrigin, Referer: `${serviceOrigin}/` };
   if (token !== undefined) {
     if (typeof token !== 'string' || !token || /[\r\n]/.test(token)) throw new ApiError('INVALID_TOKEN', 'The stored credential is invalid.');
     headers.Authorization = `Bearer ${token}`;

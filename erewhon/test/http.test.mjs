@@ -14,6 +14,10 @@ test('POST omits its body when form is undefined and sends exact scalar form enc
   await request('/v1/phoneverify',{form:{phone:'2025550100',otp:'0012',userDetails:'{}',device_id:'sample-id',flag:false},token:'private'},f.options);
   const call=f.calls[1]; assert.equal(call.args.body,'phone=2025550100&otp=0012&userDetails=%7B%7D&device_id=sample-id&flag=false');
   assert.equal(call.args.headers.Authorization,'Bearer private'); assert.equal(call.args.redirect,'manual');
+  assert.equal(call.args.headers.Accept,'application/json, text/plain, */*');
+  assert.equal(call.args.headers.Origin,'https://erewhon.com');
+  assert.equal(call.args.headers.Referer,'https://erewhon.com/');
+  assert.equal(call.args.headers['User-Agent'],undefined);
   const record=f.values.get('last-response'); assert.equal(Object.hasOwn(record,'headers'),false); assert.equal(Object.hasOwn(record,'body'),false);
 });
 
