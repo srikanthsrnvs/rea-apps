@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeTripMap, decodePolyline, getTripMap } from '../src/trip-map.mjs';
+import { normalizeTripMap, normalizeSharedTripMap, decodePolyline, getTripMap } from '../src/trip-map.mjs';
 
 // Synthetic fixtures follow retained Trip/VehiclePathPoint and modern MOP serializers.
 // They are protocol tests, not a live assigned-driver capture.
@@ -54,3 +54,35 @@ test('empty modern vehicle path preserves valid legacy snapshot path',()=>{const
 test('partial single-order representation does not erase modern map features',()=>{const raw=modern();raw.singleRiderAppOrderResponse={order:{id:orderId,state:'IN_PROGRESS',jobs:{singlePersonalTransport:{transport:{id:tripId}}}}};const scene=normalizeTripMap(raw,{now});assert.equal(scene.vehicleMapIconUrl,'https://example.uber.com/car.png');assert.equal(scene.driver.path.length,2);assert.equal(scene.waypoints.length,2);});
 test('legacy order with unsupported empty jobs is unavailable rather than idle',()=>{assert.equal(normalizeTripMap({fulfillmentStateData:{orders:[{orderId:{uuid:orderId},orderPlan:{jobs:[]}}]}},{now}).state,'unknown');});
 test('aggregate route geometry is bounded across separate encoded legs',()=>{const raw=legacy({currentRoute:null,legs:[{encodedPolyline:'??'.repeat(19000)},{encodedPolyline:'??'.repeat(19001)},{encodedPolyline:'??'.repeat(19002)}]});assert.throws(()=>normalizeTripMap(raw,{now}),{code:'MAP_LIMIT_EXCEEDED'});});
+
+
+test('real-booking order-fetch failure is explicit and cannot become idle or missing trip', async () => {
+  const raw = { clientStatus: { status: 'Dispatching' }, fulfillmentStateData: { orders: null },
+    isAllRiderAppOrdersEnabled: true, riderAppOrdersFetchResult: { riderAppOrdersFetchSucceeded: false },
+    metadata: { pollingIntervalMs: 60000 } };
+  for (const payload of [raw, { ...raw, fulfillmentStateData: { orders: [] } }]) {
+    assert.throws(() => normalizeTripMap(payload, { tripId, now }), { code: 'MAP_TRIP_FETCH_FAILED' });
+  }
+  let calls = 0;
+  await assert.rejects(getTripMap({ tripId, now }, { send: async () => { calls++; return raw; }, loadSharedTrip: async () => { throw Object.assign(new Error('fixture shared API unavailable'), { code: 'MAP_TRIP_FETCH_FAILED' }); } }), { code: 'MAP_TRIP_FETCH_FAILED' });
+  assert.equal(calls, 1); // client-status returns only a phase and cannot repair missing geometry.
+});
+
+
+test('native sharing fallback recovers exact selected ride when account order fetching fails', async () => {
+  let selected;
+  const shared = { uuid: tripId, status: 'Accepted', tokenState: 'ACTIVE',
+    pickupLocation: { latitude: 38.5, longitude: -120.2 }, destination: { latitude: 40.7, longitude: -120.95 },
+    locations: path, routeLines: [{ encodedPolyline: encoded }], driver: { privateNumber: 'PRIVATE_PHONE' }, shareToken: 'PRIVATE_TOKEN' };
+  const scene = await getTripMap({ tripId, now }, { send: async () => ({ clientStatus: { status: 'Accepted' }, riderAppOrdersFetchResult: { riderAppOrdersFetchSucceeded: false } }),
+    loadSharedTrip: async id => { selected = id; return shared; }, loadIcons: async () => null });
+  assert.equal(selected, tripId); assert.equal(scene.source, 'native_trip_share'); assert.equal(scene.state, 'active');
+  assert.equal(scene.waypoints.length, 2); assert.equal(scene.driver.position.epoch, now - 1000);
+  assert.equal(scene.routes[0].points.length, 3); assert.ok(!JSON.stringify(scene).includes('PRIVATE'));
+  assert.throws(() => normalizeSharedTripMap({ ...shared, uuid: otherTripId }, { tripId, now }), { code: 'TRIP_NOT_FOUND' });
+  assert.throws(() => normalizeSharedTripMap({ ...shared, tokenState: 'EXPIRED' }, { tripId, now }), { code: 'MAP_SHARE_REVOKED' });
+  const hidden = normalizeSharedTripMap({ ...shared, hideRouteline: true, locations: [{ ...path[0], epoch: Math.floor(now / 1000) }] }, { tripId, now });
+  assert.equal(hidden.routes.length, 0); assert.equal(hidden.driver.position, null);
+  const cancelled = normalizeSharedTripMap({ ...shared, status: 'ClientCanceled' }, { tripId, now });
+  assert.equal(cancelled.state, 'ended'); assert.equal(cancelled.driver.position, null);
+});

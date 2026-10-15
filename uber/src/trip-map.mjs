@@ -1,5 +1,6 @@
 import { authenticatedRequest } from './client.mjs';
 import { loadTripMapIcons } from './map-vehicle.mjs';
+import { fetchSharedTrip } from './trip-share.mjs';
 
 const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -142,6 +143,12 @@ export function normalizeTripMap(payload, { tripId, now = Date.now() } = {}) {
   if (tripId !== undefined && !uuid(tripId)) fail('INVALID_TRIP_ID', 'Supply a canonical Uber trip UUID.');
   const body = object(payload?.body) ? payload.body : payload;
   if (!object(body)) fail('UNSUPPORTED_MAP_RESPONSE', 'The response is not a trip-status object.');
+  // A failed server-side order fetch is not an empty account or a cancelled ride.
+  // Observed on a real booking: fulfillmentStateData.orders was null while
+  // riderAppOrdersFetchSucceeded was false and clientStatus was Dispatching.
+  if (body.riderAppOrdersFetchResult?.riderAppOrdersFetchSucceeded === false) {
+    fail('MAP_TRIP_FETCH_FAILED', 'Uber could not fetch the trip details. No current driver location is available.');
+  }
   const { candidates, unsupported } = collectCandidates(body), warnings = new Set();
   if (unsupported) warnings.add('Some active orders have no supported map transport shape.');
   const clientStatus = text(body.clientStatus?.status);
@@ -193,8 +200,37 @@ export function normalizeTripMap(payload, { tripId, now = Date.now() } = {}) {
     vehicleMapIconUrl: safeIcon(feature?.vehicleMapIconUrl ?? trip?.vehicleMapIconUrl), warnings: [...warnings] };
 }
 
-export async function getTripMap(options = {}, { send = authenticatedRequest, loadIcons = loadTripMapIcons } = {}) {
-  const scene = normalizeTripMap(await send('/rt/riders/me/status', {}, { readOnly: true }), options);
+/** Native sharing projection; no share tokens, rider/driver identity or contact fields. */
+export function normalizeSharedTripMap(payload, options = {}) {
+  const body = object(payload?.body) ? payload.body : payload;
+  if (!uuid(body?.uuid) || typeof body.status !== 'string') fail('UNSUPPORTED_MAP_RESPONSE', 'Unrecognized Uber shared-trip response.');
+  if (options.tripId && uuid(options.tripId) !== uuid(body.uuid)) fail('TRIP_NOT_FOUND', 'The shared trip does not match the selected ride.');
+  if (body.tokenState !== 'ACTIVE') fail('MAP_SHARE_REVOKED', 'Uber trip tracking is no longer available.');
+  const now = options.now instanceof Date ? options.now.getTime() : options.now ?? Date.now();
+  const locations = list(body.locations, 2000, 'Shared driver locations');
+  // Do not guess seconds-to-ms conversions for an unverified timestamp scalar.
+  const observed = locations.filter(point => finite(point?.epoch) && point.epoch >= now - 86400000 && point.epoch <= now + 3600000);
+  const legs = body.hideRouteline === true ? [] : list(body.routeLines, 100, 'Shared route lines').map(line => ({ encodedPolyline: line?.encodedPolyline }));
+  const scene = normalizeTripMap({ clientStatus: { status: body.status }, trip: {
+    uuid: body.uuid, pickupLocation: body.pickupLocation, destination: body.destination,
+    vehicle: { vehiclePath: observed }, legs,
+  } }, options);
+  scene.source = 'native_trip_share';
+  scene.driver.source = observed.length ? 'native_share_locations' : null;
+  scene.pollingIntervalMs = 8000;
+  if (locations.length !== observed.length) scene.warnings.push('Some shared location timestamps could not be verified as recent milliseconds.');
+  return scene;
+}
+
+export async function getTripMap(options = {}, { send = authenticatedRequest, loadIcons = loadTripMapIcons, loadSharedTrip = fetchSharedTrip } = {}) {
+  const status = await send('/rt/riders/me/status', {}, { readOnly: true });
+  let scene;
+  try { scene = normalizeTripMap(status, options); }
+  catch (error) {
+    if (!options.tripId || !['MAP_TRIP_FETCH_FAILED', 'UNSUPPORTED_MAP_RESPONSE', 'TRIP_NOT_FOUND'].includes(error.code)) throw error;
+    scene = normalizeSharedTripMap(await loadSharedTrip(options.tripId, { send }), options);
+    scene.warnings.push('Account status omitted this trip; using the native trip-sharing data source.');
+  }
   let icons = null;
   try { icons = scene.tripId ? await loadIcons(scene.tripId) : null; }
   catch { scene.warnings.push('Saved vehicle artwork is unavailable; position data remains usable.'); }

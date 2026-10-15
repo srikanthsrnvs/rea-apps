@@ -87,10 +87,14 @@ function render(scene) {
     map.addSource('ride-routes', { type: 'geojson', data: routes });
     map.addLayer({ id: 'ride-route', type: 'line', source: 'ride-routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': night.matches ? '#fff' : '#000', 'line-width': 4 } });
   } else map.getSource('ride-routes').setData(routes);
-  if (changedTrip || follow) recenter();
+  const hasCoordinates = points(scene).length > 0;
+  document.querySelector('#map').hidden = !hasCoordinates;
+  document.querySelector('#recenter').hidden = !hasCoordinates;
+  if (hasCoordinates) { map.resize(); if (changedTrip || follow) recenter(); }
   if (scene.state === 'idle') show('No active ride');
-  else if (scene.state === 'ended' || scene.state === 'unavailable') show('This ride is no longer in the active trip response');
-  else show([typeof scene.status === 'string' ? scene.status : null, scene.eta?.pickupDisplay].filter(Boolean).join(' · '));
+  else if (scene.state === 'ended') show(['ClientCanceled', 'DriverCanceled', 'Canceled', 'CANCELED'].includes(scene.status) ? 'Ride cancelled' : 'Ride ended');
+  else if (scene.state === 'unavailable') show('Trip details are unavailable');
+  else show([typeof scene.status === 'string' ? scene.status : null, scene.eta?.pickupDisplay, Number.isFinite(scene.driver?.positionAgeMs) && scene.driver.positionAgeMs > 30000 ? `Driver location ${Math.floor(scene.driver.positionAgeMs / 1000)}s old` : null].filter(Boolean).join(' · '));
 }
 async function loadStyle() {
   const response = await fetch(nativeStyles.default, { credentials: 'omit', referrerPolicy: 'no-referrer' });
@@ -104,19 +108,24 @@ async function poll() {
   let interval = 8000;
   try {
     const response = await fetch(new URL('./state', location.href), { headers: { authorization: `Bearer ${key}` }, cache: 'no-store', referrerPolicy: 'no-referrer' });
-    if ([401, 403, 410].includes(response.status)) { stopped = true; show(response.status === 410 ? 'Map viewer expired' : 'Map access is unavailable'); markers.forEach(m => m.remove()); map?.getSource('ride-routes')?.setData({ type: 'FeatureCollection', features: [] }); return; }
+    if ([401, 403, 410].includes(response.status)) { document.querySelector('#map').hidden = true; document.querySelector('#recenter').hidden = true; stopped = true; show(response.status === 410 ? 'Map viewer expired' : 'Map access is unavailable'); markers.forEach(m => m.remove()); map?.getSource('ride-routes')?.setData({ type: 'FeatureCollection', features: [] }); return; }
     if (!response.ok) throw new Error('Trip refresh failed');
     const payload = await response.json();
     interval = Math.max(8000, Math.min(3600000, payload.scene.pollingIntervalMs ?? 8000));
     render(payload.scene);
-  } catch { show('Unable to refresh trip · retrying'); }
+  } catch { show(latest && points(latest).length ? 'Trip refresh failed · showing last received locations' : 'Trip details unavailable · retrying'); }
   timer = setTimeout(poll, interval);
 }
 document.querySelector('#recenter').addEventListener('click', () => { follow = true; recenter(); });
 addEventListener('pagehide', () => { stopped = true; clearTimeout(timer); });
 try {
   if (!key || !/^[A-Za-z0-9_-]{43}$/.test(key)) throw new Error('Open the complete map link returned by the CLI');
-  map = new MapLibreMap({ container: 'map', style: await loadStyle(), center: [0, 20], zoom: 1, attributionControl: false });
+  // Obtain a real scene before constructing the map. A global default camera
+  // must never masquerade as the booked ride while the trip request fails.
+  await poll();
+  if (stopped) throw new Error(status.textContent);
+  const initial = latest && points(latest)[0];
+  map = new MapLibreMap({ container: 'map', style: await loadStyle(), center: initial ? coordinate(initial) : [0, 0], zoom: 15, attributionControl: false });
   map.on('dragstart', () => { follow = false; });
   map.on('rotate', () => { vehicleDraw?.(); });
   map.on('zoom', () => { vehicleDraw?.(); });
@@ -124,5 +133,4 @@ try {
   map.on('error', () => { show('Some map resources could not load'); });
   map.on('load', () => { if (latest) render(latest); });
   night.addEventListener('change', async () => { try { map.setStyle(await loadStyle()); map.once('style.load', () => { if (latest) render(latest); }); } catch { show('Unable to change map theme'); } });
-  await poll();
 } catch (error) { show(error.message); }

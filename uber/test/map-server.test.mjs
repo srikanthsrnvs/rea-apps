@@ -130,3 +130,13 @@ test('a longer server polling interval is respected across viewers', async t => 
   assert.equal((await fetch(url, { headers })).status, 200);
   assert.equal(calls, 2);
 });
+
+
+test('an active ride without real geometry never advertises a map URL', async () => {
+  for (const state of ['active', 'dispatching', 'unknown']) {
+    await assert.rejects(startMapServer({}, { getScene: async () => ({ ...scene, state, tripId: 'fixture-trip' }) }),
+      { code: 'MAP_GEOMETRY_UNAVAILABLE' });
+  }
+  await assert.rejects(startMapServer({}, { getScene: async () => ({ ...scene, state: 'active', waypoints: [{ lat: 999, lon: 20 }] }) }),
+    { code: 'MAP_GEOMETRY_UNAVAILABLE' });
+});

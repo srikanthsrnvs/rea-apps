@@ -81,7 +81,16 @@ export async function startMapServer(options = {}, { getScene, now = Date.now, i
     return pending;
   }
   // Fail before advertising a URL when login or response shape is unusable.
-  await scene();
+  const initial = await scene();
+  const points = [...(initial.waypoints ?? []), ...(initial.driver?.position ? [initial.driver.position] : []),
+    ...(initial.routes ?? []).flatMap(route => route.points ?? [])];
+  const hasCoordinates = points.some(point => Number.isFinite(point?.lat) && Math.abs(point.lat) <= 90
+    && Number.isFinite(point?.lon) && Math.abs(point.lon) <= 180);
+  if (initial.state !== 'idle' && !hasCoordinates) {
+    const error = new Error('No usable trip coordinates are available. Map link was not created.');
+    error.code = 'MAP_GEOMETRY_UNAVAILABLE';
+    throw error;
+  }
   const prefix = config.base?.pathname.replace(/\/$/, '') ?? '';
   const frameAncestors = config.origins.length ? ["'self'", ...config.origins].join(' ') : '*';
   const csp = `default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' https://tc2.uber.com https://unpkg.com; img-src 'self' data: blob: https://*.uber.com https://d1a3f4spazzrp4.cloudfront.net; worker-src blob: https://unpkg.com; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors ${frameAncestors}`;

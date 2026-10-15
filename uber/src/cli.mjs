@@ -117,6 +117,7 @@ uber resolve --id ID --provider PROVIDER  Resolve a place to coordinates
 uber search --query TEXT --near LAT,LON  Find places by name or address
 uber status                        Query current account trip state
 uber map [--trip-id UUID]           Read map routes, waypoints and driver-position snapshots
+uber map link --trip-id UUID        Retrieve the official trip-sharing URL without sending it
 uber map serve [--trip-id UUID]     Serve an expiring iframe map; remains running until stopped
 uber payments                      List saved payment method IDs and display names
 uber products --from LAT,LON --to LAT,LON  List current ride products
@@ -172,6 +173,10 @@ State: ${stateDirectory}`);
   } else if (command === 'status') {
     const response = await authenticatedRequest('/rt/riders/me/status', {});
     print(values.raw ? response : normalizeTripStatus(response));
+  } else if (command === 'map link') {
+    if (values.confirm || values['dry-run'] || values.raw) throw new Error('Map link is a read-only trip-link request');
+    const { getTripShareLink } = await import('./trip-share.mjs');
+    print(await getTripShareLink(values['trip-id']));
   } else if (command === 'map' || command === 'map serve') {
     if (values['trip-id']) requireUUID(values['trip-id'], 'Trip ID');
     const { getTripMap } = await import('./trip-map.mjs');

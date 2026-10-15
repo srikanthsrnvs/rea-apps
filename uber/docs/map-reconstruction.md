@@ -141,11 +141,45 @@ booking into an apparent purchase failure, and it never retries a ride request.
 - Automated tests cover geometry limits, response variants, exact trip selection,
   missing/terminal states, map-data privacy, viewer authorization and expiry,
   account revocation, shared polling, error backoff, styles and sprite math.
-- 128 tests passed on Linux ARM64 and Node 22 Linux; macOS passed 127 with the
-  Linux-only kernel-lock test skipped.
+- Regression tests cover native sharing redirects, account-scoped token caching,
+  exact trip matching, cancelled/revoked states and failed order fetches. Browser
+  QA checks initial failure, recovery, stale-location labels and empty-state hiding.
 
 Remaining work for the requested identical clone: verify the active rider style
 and feature flags; match native density/collision rules, waypoint and ETA
 annotations, camera framing and transitions; recover the realtime update
 transport and animation timeline; compare the browser and Android map during an
-explicitly authorized real trip. No ride was booked for this investigation.
+explicitly authorized real trip.
+
+A real test ride on 2026-10-15 exposed a live-data failure: the status response
+reported Dispatching, `isAllRiderAppOrdersEnabled: true`,
+`riderAppOrdersFetchSucceeded: false`, and null fulfillment orders. The browser
+could not obtain trip geometry and displayed its default world camera. The ride
+was cancelled; Uber's receipt reported no charge. This live test failed.
+
+The projection now reports `MAP_TRIP_FETCH_FAILED` for that server response,
+and startup rejects non-idle scenes without valid coordinates. The browser keeps
+the map hidden until real coordinates arrive, instead of displaying a default
+world camera. These changes prevent misleading output; they do not establish a
+working assigned-driver feed. The native `/client-status` response contains only
+`clientStatus`, so it cannot repair the missing trip data. The order-fetch failure
+is bypassed for explicitly selected rides using the native sharing data API.
+
+`ShareApi.shareTrip` supplies the selected ride's official link via
+`GET /rt/trips/{tripUUID}/share-yo-ride?shareTripType=RIDER_SHARE`.
+Following first-party redirects without account credentials yields its tracking
+token. `ShareClient.a` / `ks3.i.apply` establish
+`POST /rt/sharetrip/fetch` with `{request:{shareToken,usePolylines:true}}`.
+The token stays on the CLI host; only the closed map projection reaches the
+iframe. Resolution is cached in memory for one minute, scoped to rider and trip.
+Neither retrieving a link nor fetching its data sends messages to contacts.
+
+The headless Orin retrieved the exact cancelled test trip through this API,
+including correct pickup/destination and `status:ClientCanceled`. The scene
+now recovers from missing account-status trip data without claiming the trip is
+still active. The official share page itself returned HTTP 404 after redirecting
+to m.uber.com and declared SAMEORIGIN; it is not used as an embedded map.
+Driver coordinates, when present, require plausible recent millisecond
+observations. Unknown timestamp units are omitted instead of guessed. The source
+also honors `hideRouteline`. A successful assigned-driver comparison remains
+unverified.

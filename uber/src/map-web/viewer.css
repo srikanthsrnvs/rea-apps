@@ -8,3 +8,5 @@ body{font-family:Arial,sans-serif}
 .driver{width:14px;height:14px;background:#000;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px #0003}
 .vehicle-artwork{width:56px;height:56px;background-repeat:no-repeat;background-position:0 0}
 @media(prefers-color-scheme:dark){html,body,#map{background:#3e434c}#status,#recenter{background:#000;color:#fff}.waypoint,.driver{background:#000;border-color:#fff}}
+
+[hidden]{display:none!important}

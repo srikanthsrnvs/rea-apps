@@ -71,6 +71,7 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 | `resolve --id ID --provider PROVIDER` | Resolve a search result to coordinates |
 | `status` | Query current trip state and active orders |
 | `map [--trip-id UUID]` | Read the selected ride's route, waypoints and driver-position snapshots |
+| `map link --trip-id UUID` | Retrieve the official trip-sharing URL without sending it to anyone |
 | `map serve [--trip-id UUID]` | Return an expiring iframe map URL and keep its foreground server running |
 | `payments` | List payment method IDs, masked labels and expiry state |
 | `products --from LAT,LON --to LAT,LON` | List ride options for a route |
@@ -84,7 +85,7 @@ Commands output JSON; errors output JSON to stderr and exit with status 1.
 
 Use `--via LAT,LON` repeatedly for intermediate stops, `--dry-run` to inspect a request, and `--raw` to retain the full shopping response in stdout. `shopping` outputs the full response by default. Coordinates are latitude followed by longitude.
 
-The experimental map viewer renders in the **client's** browser. The headless
+The experimental map viewer renders in the **client's** browser. For an explicitly selected trip, it can recover missing account-status details through Uber's native trip-sharing data API. The CLI keeps tracking tokens on the server. A ride without usable coordinates cannot produce a viewer link. The headless
 host serves HTTP and authenticated trip snapshots using Node only. It reuses
 Uber's real cartography and selected product artwork; native animation,
 camera behavior and pixel parity are not yet reproduced. For remote embedding,
