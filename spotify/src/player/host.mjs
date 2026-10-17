@@ -1,6 +1,6 @@
 // Optional adapter for your own frontend. ChatGPT/MCP Apps supply this bridge.
 // `invoke` routes a named Spotify tool to the authenticated backend on the Orin.
-const allowed = new Set(["spotify_status", "spotify_pause", "spotify_resume", "spotify_next", "spotify_previous", "spotify_seek"]);
+const allowed = new Set(["spotify_status", "spotify_pause", "spotify_resume", "spotify_next", "spotify_previous", "spotify_seek", "spotify_volume"]);
 
 export function mountSpotifyPlayer(container, { resource, output, invoke, theme = "light" }) {
   if (resource?.uri !== "ui://spotify/player-v1.html" || typeof resource.text !== "string")
@@ -37,6 +37,9 @@ export function mountSpotifyPlayer(container, { resource, output, invoke, theme 
         if (name === "spotify_seek") {
           if (Object.keys(args).some(key => !["seconds", "track-uri"].includes(key)) || !Number.isFinite(args.seconds) || args.seconds < 0 || typeof args["track-uri"] !== "string")
             throw new Error("Invalid seek input.");
+        } else if (name === "spotify_volume") {
+          if (Object.keys(args).some(key => !["percent", "device-id"].includes(key)) || !Number.isFinite(args.percent) || args.percent < 0 || args.percent > 100 || typeof args["device-id"] !== "string" || !args["device-id"])
+            throw new Error("Invalid volume input.");
         } else if (name === "spotify_status") {
           if (Object.keys(args).some(key => key !== "refresh") || (args.refresh !== undefined && typeof args.refresh !== "boolean"))
             throw new Error("Invalid refresh input.");

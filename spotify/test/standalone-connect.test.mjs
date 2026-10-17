@@ -118,6 +118,12 @@ test("native volume uses 16-bit scale and confirms the returned percentage", asy
   assert.deepEqual(result, { percent: 40 });
 });
 
+test("a stale volume component never changes the replacement speaker", async () => {
+  const p = protocol();
+  await assert.rejects(executeConnect("volume", {percent:23,"device-id":"old-speaker"}, p.request, p.options), {code:"STALE_DEVICE"});
+  assert.equal(p.calls.some(c => c.path.includes("/connect/volume/")), false);
+});
+
 test("native context play preserves URI, skip offset and source attribution", async () => {
   const p = protocol((path, opts, cluster) => {
     if (path.includes("/player/command/")) {

@@ -6,11 +6,13 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { PLAYER_URI, PLAYER_MIME, playbackResult, playerResource } from "../src/player.mjs";
 
 test("playback results retain the existing result and reference one static component", async () => {
-  const state = { state: "playing", track: { name: "Song", uri: "spotify:track:one" }, positionMs: 42, durationMs: 1000 };
+  const state = { state: "playing", track: { name: "Song", uri: "spotify:track:one" }, positionMs: 42, durationMs: 1000, volume: 23 };
   const output = playbackResult("play", state);
   assert.equal(output.result, state);
   assert.equal(output.component.resourceUri, PLAYER_URI);
   assert.equal(output.component.actions.pause, "spotify_pause");
+  assert.equal(output.component.actions.volume, "spotify_volume");
+  assert.equal(output.component.props.playback.volume, 23);
   assert.equal(output.component.props.playback.positionMs, 42);
   assert.equal(playbackResult("search", { tracks: [] }).component, undefined);
   assert.equal(playbackResult("play", null).component, undefined);
@@ -27,7 +29,7 @@ test("MCP advertises and serves the player; controls operate the same playlist s
   try {
     await client.connect(transport);
     const tools = (await client.listTools()).tools;
-    for (const name of ["play", "status", "pause", "resume", "next", "previous", "seek"]) {
+    for (const name of ["play", "status", "pause", "resume", "next", "previous", "seek", "volume"]) {
       const tool = tools.find(t => t.name === `spotify_${name}`);
       assert.equal(tool._meta.ui.resourceUri, PLAYER_URI);
       assert.ok(tool._meta.ui.visibility.includes("app"));
@@ -52,5 +54,7 @@ test("MCP advertises and serves the player; controls operate the same playlist s
     assert.equal(stale.structuredContent.component, undefined);
     assert.equal((await call("previous")).structuredContent.result.track.uri, "spotify:track:one");
     assert.equal((await call("seek", { seconds: 90, "track-uri": "spotify:track:one" })).structuredContent.result.positionMs, 90000);
+    assert.equal((await call("volume", {percent:0,"device-id":"speaker"})).structuredContent.result.percent, 0);
+    assert.equal((await call("status")).structuredContent.component.props.playback.volume, 0);
   } finally { await client.close(); }
 });

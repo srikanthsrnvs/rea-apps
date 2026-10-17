@@ -4,7 +4,7 @@ export const PLAYER_URI = "ui://spotify/player-v1.html";
 export const PLAYER_MIME = "text/html;profile=mcp-app";
 export const playerCommands = new Set([
   "status", "play", "pause", "resume", "toggle", "next", "previous", "seek",
-  "shuffle", "repeat", "transfer", "player",
+  "shuffle", "repeat", "transfer", "player", "volume",
 ]);
 
 export const playerToolMeta = {
@@ -25,12 +25,13 @@ export function playbackResult(name, result) {
         state: result.state, track: result.track, context: result.context,
         positionMs: result.positionMs, durationMs: result.durationMs,
         device: result.device, deviceId: result.deviceId, restrictions: result.restrictions,
+        volume: result.volume,
         observedAt: Date.now(),
       },
     },
     actions: {
       refresh: "spotify_status", pause: "spotify_pause", resume: "spotify_resume",
-      next: "spotify_next", previous: "spotify_previous", seek: "spotify_seek",
+      next: "spotify_next", previous: "spotify_previous", seek: "spotify_seek", volume: "spotify_volume",
     },
   };
   return output;
@@ -42,7 +43,7 @@ export async function playerResource() {
     text: await readFile(new URL("./player/player.html", import.meta.url), "utf8"),
     _meta: {
       ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } },
-      "openai/widgetDescription": "Live Spotify player with track details, pause/resume, previous/next and a seek bar. Controls use the active Spotify Connect device.",
+      "openai/widgetDescription": "Live Spotify player with track details, pause/resume, previous/next, seek and volume controls. Controls use the active Spotify Connect device.",
       "openai/widgetPrefersBorder": true,
       "openai/widgetCSP": { connect_domains: [], resource_domains: [] },
     },

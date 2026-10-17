@@ -71,6 +71,17 @@ try {
   const seek = calls.find(c => c.name === "spotify_seek");
   assert.equal(seek.arguments.seconds, 90);
   assert.equal(seek.arguments["track-uri"], "spotify:track:one");
+  const volume = frame.getByRole("slider", {name:"Volume",exact:true});
+  await volume.fill("42"); await volume.dispatchEvent("change");
+  await frame.locator("#mute:enabled").waitFor();
+  assert.equal((await client.callTool({name:"spotify_status",arguments:{}})).structuredContent.result.volume, 42);
+  const volumeCall = calls.find(c => c.name === "spotify_volume");
+  assert.deepEqual(volumeCall.arguments, {percent:42,"device-id":"speaker"});
+  await frame.getByRole("button", {name:"Mute",exact:true}).click();
+  await frame.getByRole("button", {name:"Unmute",exact:true}).waitFor();
+  await frame.getByRole("button", {name:"Unmute",exact:true}).click();
+  await frame.locator("#mute:enabled").waitFor();
+  assert.equal((await client.callTool({name:"spotify_status",arguments:{}})).structuredContent.result.volume, 42);
   rejectNext = true;
   await frame.getByRole("button", { name: "Next track", exact: true }).click();
   await frame.getByRole("status").filter({ hasText: "Device disconnected" }).waitFor();
@@ -90,7 +101,16 @@ try {
   assert.equal(await frame.locator("html").evaluate(e => e.scrollWidth <= e.clientWidth), true);
   await frame.getByRole("button", { name: "Pause", exact: true }).waitFor();
   await page.waitForTimeout(100);
-  assert.equal(await frame.locator("html").evaluate(e => e.scrollHeight <= e.clientHeight + 1), true, "Host must resize for wrapped track titles");
+  assert.equal(await frame.locator("html").evaluate(e => e.scrollHeight <= e.clientHeight + 1), true, "Host must resize for player controls");
+  assert.equal(await frame.locator(".eyebrow").count(), 0);
+  const long = await client.callTool({name:"spotify_status",arguments:{}});
+  const longTitle = "A very long song title that must scroll continuously without creating another line";
+  long.structuredContent.component.props.playback.track.name = longTitle;
+  await page.evaluate(result => window.player.update(result), long);
+  await frame.locator("h1.marquee").waitFor();
+  assert.equal(await frame.locator("h1").evaluate(e => getComputedStyle(e).whiteSpace), "nowrap");
+  assert.equal(await frame.locator("#title-track").evaluate(e => getComputedStyle(e).animationName), "song-marquee");
+  assert.equal(await frame.locator("html").evaluate(e => e.scrollWidth <= e.clientWidth), true);
   await page.screenshot({ path: fileURLToPath(new URL("../.runtime/player-mobile.png", import.meta.url)) });
   await frame.locator("body").evaluate(() => window.parent.postMessage({jsonrpc:"2.0",id:9999,method:"tools/call",params:{name:"spotify_playlist_unfollow",arguments:{uri:"spotify:playlist:test"}}}, "*"));
   await page.waitForTimeout(100);
@@ -119,7 +139,7 @@ try {
   await live.getByRole("button",{name:"Pause",exact:true}).waitFor();
   await standalone.screenshot({path:fileURLToPath(new URL("../.runtime/player-viewer.png",import.meta.url))});
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "pause", "resume", "next", "previous", "seek", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal", "authenticated standalone viewer"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png", ".runtime/player-viewer.png"] }));
+  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "pause", "resume", "next", "previous", "seek", "volume and mute", "single-line title scrolling", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal", "authenticated standalone viewer"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png", ".runtime/player-viewer.png"] }));
 } finally {
   holdStatus = false;
   await browser?.close();

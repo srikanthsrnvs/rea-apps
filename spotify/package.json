@@ -1,6 +1,6 @@
 {
   "name": "spotify-desktop-cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Native Spotify CLI and MCP player controls without a browser or desktop app",
   "bin": {

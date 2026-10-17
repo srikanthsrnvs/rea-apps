@@ -6,12 +6,16 @@ const tracks = [
   { uri: "spotify:track:two", name: "Second <script>song</script>", artists: ["Second artist"], album: "Test playlist" },
 ];
 let index = 0;
-const state = { state: "playing", context: "spotify:playlist:test", positionMs: 30000, durationMs: 210000, device: "Test speaker", deviceId: "speaker", track: tracks[0] };
+const state = { state: "playing", context: "spotify:playlist:test", positionMs: 30000, durationMs: 210000, device: "Test speaker", deviceId: "speaker", volume: 35, track: tracks[0] };
 const server = createMcpServer({}, { run: async (name, args) => {
   if (name === "pause") state.state = "paused";
   if (["play", "resume"].includes(name)) state.state = "playing";
   if (name === "next") index = (index + 1) % tracks.length;
   if (name === "previous") index = Math.max(0, index - 1);
+  if (name === "volume") {
+    if (args["device-id"] !== state.deviceId) throw Object.assign(new Error("The active speaker changed."), {code:"STALE_DEVICE"});
+    state.volume = args.percent; return { percent: state.volume };
+  }
   state.track = tracks[index];
   if (name === "seek") {
     if (args["track-uri"] && args["track-uri"] !== state.track.uri)

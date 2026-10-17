@@ -5,7 +5,7 @@ import { execute } from "../client.mjs";
 import { catalog, validateArguments } from "../catalog.mjs";
 import { playbackResult, playerResource } from "../player.mjs";
 
-const controls = new Map(["status", "pause", "resume", "previous", "next", "seek"].map(name => [`spotify_${name}`, name]));
+const controls = new Map(["status", "pause", "resume", "previous", "next", "seek", "volume"].map(name => [`spotify_${name}`, name]));
 export async function startPlayerServer({ secret, expiresAt, port = 0, ownerId, run = execute, isCurrent = async () => true, onStop = () => {} }) {
   if (!/^[A-Za-z0-9_-]{43}$/.test(secret) || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) throw Error("Invalid player session");
   const files = new Map(await Promise.all([["/", "viewer.html", "text/html; charset=utf-8"],
@@ -47,6 +47,7 @@ export async function startPlayerServer({ secret, expiresAt, port = 0, ownerId, 
       try { args = validateArguments(catalog.find(c => c.name === name), input.arguments ?? {}); }
       catch { return reply(res, 400, { error: "invalid_arguments" }); }
       if (name === "seek" && !args["track-uri"]) return reply(res, 400, { error: "expected_track_required" });
+      if (name === "volume" && (args.percent === undefined || !args["device-id"])) return reply(res, 400, { error: "expected_device_required" });
       const job = tail.then(async () => {
         if (closing) return { ok: false, error: { code: "PLAYER_CLOSED", message: "Player closed." } };
         try { return playbackResult(name, await run(name, args, { backend: "native", ...(ownerId ? { expectedControllerId: ownerId } : {}) })); }

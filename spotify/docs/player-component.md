@@ -18,13 +18,14 @@ Playback commands return their existing result plus a `component` descriptor. Th
       "resume": "spotify_resume",
       "previous": "spotify_previous",
       "next": "spotify_next",
-      "seek": "spotify_seek"
+      "seek": "spotify_seek",
+      "volume": "spotify_volume"
     }
   }
 }
 ```
 
-The actual `props.playback` also contains the track URI, artists, album, playlist/context URI, position, duration, device, restrictions and observation timestamp. The descriptor accompanies `status`, `play`, `pause`, `resume`, `toggle`, `next`, `previous`, `seek`, `shuffle`, `repeat` and `transfer` when they return playback state. Errors and unrelated commands do not fabricate a player or report a successful mutation.
+The actual `props.playback` also contains the track URI, artists, album, playlist/context URI, position, duration, device, volume, restrictions and observation timestamp. The descriptor accompanies `status`, `play`, `pause`, `resume`, `toggle`, `next`, `previous`, `seek`, `shuffle`, `repeat` and `transfer` when they return playback state. Errors and unrelated commands do not fabricate a player or report a successful mutation.
 
 ## MCP Apps and ChatGPT
 
@@ -38,7 +39,7 @@ The protocol follows the [official OpenAI UI guide](https://developers.openai.co
 
 For clients without MCP Apps rendering, `spotify player` starts an optional loopback HTTP viewer and returns the same prebuilt component plus its URL. `spotify player --public --cloudflared-path /path/to/cloudflared` returns an expiring HTTPS link accessible from another computer. Cloudflared is optional and is not installed or started by normal CLI setup/commands. An existing authenticated frontend can instead use the host adapter directly, without a tunnel.
 
-The viewer runs only Node HTTP on the host; HTML renders on the user's client. Its callbacks allow status, pause/resume, previous/next and guarded seek only. Spotify tokens stay on the backend. The link's fragment carries a separate random capability key; the server requires it for every control request. Keep the complete link private. The key is bound to the current account/controller, expires after 30 minutes by default (maximum 120), and is revoked on account changes. `--ttl-minutes N` selects its lifetime. `spotify player --stop` closes the viewer and tunnel without stopping music. Logout also stops the viewer.
+The viewer runs only Node HTTP on the host; HTML renders on the user's client. Its callbacks allow status, pause/resume, previous/next, guarded seek and guarded volume changes only. Spotify tokens stay on the backend. The link's fragment carries a separate random capability key; the server requires it for every control request. Keep the complete link private. The key is bound to the current account/controller, expires after 30 minutes by default (maximum 120), and is revoked on account changes. `--ttl-minutes N` selects its lifetime. `spotify player --stop` closes the viewer and tunnel without stopping music. Logout also stops the viewer.
 
 While a viewer is active, playback/status results include `component.url` and `component.expiresAt` alongside the normal MCP resource descriptor. The same URL is suitable as an iframe source. Hosts with MCP Apps rendering can continue using the static resource and direct tool callbacks without starting this optional service. This repository does not change the renderer of a text-only chat: open or embed the returned URL in that client instead.
 
@@ -61,7 +62,7 @@ player.update(nextPlaybackToolResult);
 player.destroy();
 ```
 
-For a CLI-backed agent, the backend maps the six fixed `spotify_*` player actions to the corresponding CLI commands, validates arguments and returns their JSON. Keep that routing on the backend connected to the authenticated Spotify runtime. Do not pass arbitrary command strings to a shell or expose Spotify’s debugging endpoint to the client. The adapter allows only status, pause, resume, previous, next and seek, with validated seek arguments. Its iframe is sandboxed without same-origin access. The model is not involved in these callbacks.
+For a CLI-backed agent, the backend maps the seven fixed `spotify_*` player actions to the corresponding CLI commands, validates arguments and returns their JSON. Keep that routing on the backend connected to the authenticated Spotify runtime. Do not pass arbitrary command strings to a shell or expose Spotify’s debugging endpoint to the client. The adapter allows only status, pause, resume, previous, next, seek and volume, with validated track/device guards. Its iframe is sandboxed without same-origin access. The model is not involved in these callbacks.
 
 ## Playback behavior
 
@@ -71,10 +72,12 @@ For a CLI-backed agent, the backend maps the six fixed `spotify_*` player action
 - The player interpolates elapsed time locally, refreshes every three seconds while visible, and respects Spotify’s control restrictions. All controls affect the active Connect device shown on the card.
 - Successful controls reuse the confirmed state returned by the action. Manual refresh and error recovery explicitly bypass read caches; mutations are never replayed for recovery.
 - Pending actions disable controls. Errors are shown and followed by a status read; an uncertain mutation is never automatically repeated.
+- Volume is shown as a percentage, with a release-to-commit slider and mute/unmute. Changes include the expected device ID; a stale control cannot change a replacement speaker. Unsupported volume is disabled.
+- Track titles stay on one line. Overflowing titles scroll right to left; reduced-motion preferences disable the animation while preserving the complete accessible title.
 - There is no generated UI, remote desktop streaming, external frontend dependency, or separate audio player. Spotify continues to play on the selected device.
 
 ## Verification
 
 `npm test` covers the actual stdio MCP resource and metadata, playlist controls, preserved CLI results and stale-track seek rejection. `node scripts/check-player-browser.mjs` uses Playwright and a deterministic MCP fixture for browser acceptance, without changing real playback. Install Playwright in the development environment or set `SPOTIFY_PLAYWRIGHT_MODULE` to its module; `SPOTIFY_TEST_BROWSER` optionally selects an existing Chromium executable. Playwright is not required by the CLI or the component.
 
-Browser acceptance checks the actual reusable host adapter, pause/resume, previous/next, seek, escaped metadata, failed actions, external state refresh, mobile layout, action allowlisting and disposal. Screenshots go under the ignored `.runtime/` directory. A real local Spotify status read also verified that the tool returns the current track and component together; the browser control checks use the isolated playlist fixture.
+Browser acceptance checks the actual reusable host adapter, pause/resume, previous/next, seek, volume/mute, single-line scrolling titles, escaped metadata, failed actions, external state refresh, mobile layout, action allowlisting and disposal. Screenshots go under the ignored `.runtime/` directory. A real local Spotify status read also verified that the tool returns the current track and component together; the browser control checks use the isolated playlist fixture.

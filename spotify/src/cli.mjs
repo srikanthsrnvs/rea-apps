@@ -19,7 +19,7 @@ const print = (value) =>
   );
 try {
   if (raw.length === 1 && ["--version", "-v"].includes(raw[0])) {
-    process.stdout.write("0.3.0\n");
+    process.stdout.write("0.3.1\n");
     process.exit(0);
   }
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
@@ -53,7 +53,7 @@ try {
       throw invalid("Usage: spotify component [--pretty]");
     print({ contents: [await playerResource()] });
   } else if (parsed.name === "tools") {
-    print({ name: "spotify", version: "0.3.0", backend: backendName(),
+    print({ name: "spotify", version: "0.3.1", backend: backendName(),
       ...(backendName() === "native" ? { capabilities: nativeCapabilities } : {}), commands: available });
   } else if (parsed.name === "connect") {
     if (parsed.tokens.some((t) => !["--restart", "--json", "--pretty"].includes(t)))

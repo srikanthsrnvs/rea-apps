@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Spotify player</title>
 <style>
-:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:light-dark(#17251c,#f2f8f3);background:transparent}*{box-sizing:border-box}body{margin:0;padding:16px}.player{max-width:560px;margin:auto;padding:30px;border:1px solid light-dark(#dfe8e0,#304438);border-radius:24px;background:light-dark(#f6faf5,#14221a)}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:light-dark(#536c5a,#a4bda9);display:flex;align-items:center;gap:8px}.dot{width:7px;height:7px;border-radius:50%;background:#1db954}h1{font-size:clamp(24px,5vw,36px);line-height:1.15;letter-spacing:-.04em;margin:26px 0 9px;overflow-wrap:anywhere}.artist{font-size:16px;margin:0;color:light-dark(#526658,#adbfaf)}.album{font-size:12px;min-height:18px;margin:7px 0 0;color:light-dark(#69806f,#879f8d)}.controls{display:flex;align-items:center;justify-content:center;gap:28px;margin:26px 0}button{font:inherit;border:0;cursor:pointer;color:inherit;background:transparent;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:48px;height:48px;transition:transform .12s,background .12s}button:hover:enabled{background:light-dark(#e3ede3,#263d2d);transform:scale(1.04)}button:active:enabled{transform:scale(.96)}button:focus-visible,input:focus-visible{outline:3px solid #1db954;outline-offset:5px}button:disabled{opacity:.35;cursor:default}.primary{width:88px;height:88px;background:#1ed760;color:#082713;box-shadow:0 8px 24px #1db95422}.primary:hover:enabled{background:#3de276}.primary svg{width:36px;height:36px}svg{width:25px;height:25px;fill:currentColor}.seek{width:100%;display:block;accent-color:#1db954;cursor:pointer;height:24px;margin:0}.seek:disabled{cursor:default}.times{display:flex;justify-content:space-between;font-size:11px;font-variant-numeric:tabular-nums;color:light-dark(#627769,#9fb6a5);margin-top:3px}.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px;min-height:28px;font-size:12px;color:light-dark(#526c5b,#a4bda9)}.device{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.refresh{width:28px;height:28px;border-radius:8px}.refresh svg{width:17px;height:17px}.error{font-size:12px;color:light-dark(#a33325,#ffb5a9);margin:12px 0 0;line-height:1.5}.error:empty{display:none}[hidden]{display:none!important}@media(max-width:350px){body{padding:8px}.player{padding:22px}.controls{gap:18px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:light-dark(#17251c,#f2f8f3);background:transparent}*{box-sizing:border-box}body{margin:0;padding:16px}.player{max-width:560px;margin:auto;padding:30px;border:1px solid light-dark(#dfe8e0,#304438);border-radius:24px;background:light-dark(#f6faf5,#14221a)}h1{font-size:clamp(24px,5vw,36px);line-height:1.15;letter-spacing:-.04em;margin:0 0 9px;white-space:nowrap;overflow:hidden}.artist{font-size:16px;margin:0;color:light-dark(#526658,#adbfaf)}.album{font-size:12px;min-height:18px;margin:7px 0 0;color:light-dark(#69806f,#879f8d)}.controls{display:flex;align-items:center;justify-content:center;gap:28px;margin:26px 0}button{font:inherit;border:0;cursor:pointer;color:inherit;background:transparent;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:48px;height:48px;transition:transform .12s,background .12s}button:hover:enabled{background:light-dark(#e3ede3,#263d2d);transform:scale(1.04)}button:active:enabled{transform:scale(.96)}button:focus-visible,input:focus-visible{outline:3px solid #1db954;outline-offset:5px}button:disabled{opacity:.35;cursor:default}.primary{width:88px;height:88px;background:#1ed760;color:#082713;box-shadow:0 8px 24px #1db95422}.primary:hover:enabled{background:#3de276}.primary svg{width:36px;height:36px}svg{width:25px;height:25px;fill:currentColor}.seek{width:100%;display:block;accent-color:#1db954;cursor:pointer;height:24px;margin:0}.seek:disabled{cursor:default}.times{display:flex;justify-content:space-between;font-size:11px;font-variant-numeric:tabular-nums;color:light-dark(#627769,#9fb6a5);margin-top:3px}.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px;min-height:28px;font-size:12px;color:light-dark(#526c5b,#a4bda9)}.device{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.refresh{width:28px;height:28px;border-radius:8px}.refresh svg{width:17px;height:17px}.error{font-size:12px;color:light-dark(#a33325,#ffb5a9);margin:12px 0 0;line-height:1.5}.error:empty{display:none}[hidden]{display:none!important}@media(max-width:350px){body{padding:8px}.player{padding:22px}.controls{gap:18px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.volume-row{display:flex;align-items:center;gap:12px;margin-top:18px}.volume-row button{width:44px;height:44px;flex-shrink:0}.volume-row svg{width:21px;height:21px}.volume-slider{flex:1;min-width:0;width:100%;height:24px;accent-color:#1db954}.volume-value{width:42px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:light-dark(#526c5b,#a4bda9)}
+#title-track{display:inline-flex;gap:40px;white-space:nowrap}#title-text{white-space:nowrap}#title-copy{display:none}.marquee #title-copy{display:inline}.marquee #title-track{animation:song-marquee var(--title-duration,12s) linear infinite;will-change:transform}.artist,.album{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@keyframes song-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--title-distance,0px)))}}@media(prefers-reduced-motion:reduce){.marquee #title-track{animation:none}}
 </style>
 </head>
 <body>
 <main class="player" aria-label="Spotify playback controls">
-  <div class="eyebrow"><span class="dot" aria-hidden="true"></span>Spotify <span id="state">· Connecting</span></div>
-  <h1 id="title">Connecting to Spotify…</h1>
+  <h1 id="title"><span id="title-track"><span id="title-text">Connecting to Spotify…</span><span id="title-copy" aria-hidden="true"></span></span></h1>
   <p class="artist" id="artist"></p><p class="album" id="album"></p>
   <div class="controls">
     <button id="previous" aria-label="Previous track" title="Previous track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h3v16H5zm14 0v16L9 12z"/></svg></button>
@@ -20,6 +21,11 @@
   </div>
   <input id="seek" class="seek" type="range" min="0" max="0" value="0" step="1" aria-label="Playback position" disabled>
   <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
+  <div class="volume-row" aria-label="Speaker volume">
+    <button id="mute" aria-label="Mute" title="Mute" disabled><svg id="volume-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9zm13-4v2a6 6 0 0 1 0 10v2a8 8 0 0 0 0-14zm-2 4v6a4 4 0 0 0 0-6z"/></svg><svg id="muted-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M3 9v6h4l5 4V5L7 9zm12-1 3 4-3 4 2 1 3-4 3 4 1-1-3-4 3-4-1-1-3 4-3-4z"/></svg></button>
+    <input id="volume" class="volume-slider" type="range" min="0" max="100" step="1" value="0" aria-label="Volume" disabled>
+    <span id="volume-value" class="volume-value">—</span>
+  </div>
   <div class="footer"><span id="device" class="device">Connecting…</span><button id="refresh" class="refresh" aria-label="Refresh playback" title="Refresh playback"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7V3l-2 2a9 9 0 1 0 3 10h-3a6 6 0 1 1-2-8l-3 3h9V3h-2z"/></svg></button></div>
   <p id="error" class="error" role="status" aria-live="polite"></p>
 </main>
@@ -29,9 +35,10 @@
   const el = id => document.getElementById(id);
   let playback = null, anchor = 0, busy = false, reading = false, stale = true;
   let scrubbing = false, scrubUri = null, bridgeReady = false, disposed = false;
-  let nextId = 0, hostOrigin = null, newest = 0;
+  let nextId = 0, hostOrigin = null, newest = 0, volumeDragging = false, volumeDevice = null;
+  const previousVolume = new Map();
   const requests = new Map();
-  const targets = { refresh:"spotify_status", pause:"spotify_pause", resume:"spotify_resume", previous:"spotify_previous", next:"spotify_next", seek:"spotify_seek" };
+  const targets = { refresh:"spotify_status", pause:"spotify_pause", resume:"spotify_resume", previous:"spotify_previous", next:"spotify_next", seek:"spotify_seek", volume:"spotify_volume" };
   const time = ms => { const s = Math.max(0, Math.floor((Number(ms) || 0) / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2,"0"); };
   const position = () => playback ? Math.min(playback.durationMs || 0, (playback.positionMs || 0) + (playback.state === "playing" && !stale ? performance.now() - anchor : 0)) : 0;
   function controls() {
@@ -42,6 +49,8 @@
     if (permissions.canSkipNext === false) el("next").disabled = true;
     if (permissions.canSkipPrevious === false) el("previous").disabled = true;
     if (permissions.canSeek === false) el("seek").disabled = true;
+    const canVolume = !busy && !stale && !!playback?.deviceId && Number.isFinite(playback.volume);
+    el("volume").disabled = !canVolume; el("mute").disabled = !canVolume;
     el("refresh").disabled = busy || reading || !bridgeReady;
     el("play-pause").setAttribute("aria-busy", String(busy));
   }
@@ -50,18 +59,43 @@
     const ms = position(); el("seek").value = String(ms / 1000); el("elapsed").textContent = time(ms);
     el("seek").setAttribute("aria-valuetext", time(ms) + " of " + time(playback.durationMs));
   }
+  function measureTitle() {
+    const width = el("title-text").getBoundingClientRect().width, available = el("title").clientWidth;
+    const overflows = width > available + 1;
+    el("title").classList.toggle("marquee", overflows);
+    el("title-copy").textContent = overflows ? el("title-text").textContent : "";
+    el("title").style.setProperty("--title-distance", (width + 40) + "px");
+    el("title").style.setProperty("--title-duration", Math.max(8, (width + 40) / 35) + "s");
+  }
+  function setTitle(text) {
+    if (el("title-text").textContent !== text) { el("title").classList.remove("marquee"); el("title-text").textContent = text; }
+    el("title").setAttribute("aria-label", text); el("title").title = text;
+    measureTitle();
+  }
   function render() {
     if (!playback) { controls(); return; }
-    el("title").textContent = playback.track?.name || "Nothing playing";
+    setTitle(playback.track?.name || "Nothing playing");
     el("artist").textContent = (playback.track?.artists || []).join(", ");
     el("album").textContent = playback.track?.album || "";
-    el("state").textContent = "· " + (stale ? "Reconnecting" : playback.state === "playing" ? "Playing" : playback.state === "paused" ? "Paused" : "Stopped");
     el("device").textContent = playback.device ? "Playing on " + playback.device : "No active device";
     const paused = playback.state !== "playing";
     el("play-icon").hidden = !paused; el("pause-icon").hidden = paused;
     el("play-pause").setAttribute("aria-label", paused ? "Resume" : "Pause");
     el("play-pause").title = paused ? "Resume" : "Pause";
     if (!scrubbing) el("seek").max = String((playback.durationMs || 0) / 1000);
+    if (!volumeDragging) {
+      const value = playback.volume;
+      el("volume").value = Number.isFinite(value) ? String(Math.round(value)) : "0";
+      el("volume-value").textContent = Number.isFinite(value) ? Math.round(value) + "%" : "—";
+      el("volume").setAttribute("aria-valuetext", Number.isFinite(value) ? Math.round(value) + " percent" : "Unavailable");
+    }
+    if (playback.volume > 0 && playback.deviceId) {
+      previousVolume.set(playback.deviceId, playback.volume);
+      if (previousVolume.size > 16) previousVolume.delete(previousVolume.keys().next().value);
+    }
+    const muted = playback.volume === 0;
+    el("volume-icon").hidden = muted; el("muted-icon").hidden = !muted;
+    el("mute").setAttribute("aria-label", muted ? "Unmute" : "Mute"); el("mute").title = muted ? "Unmute" : "Mute";
     el("duration").textContent = time(playback.durationMs); controls(); tick();
   }
   function accept(response) {
@@ -87,7 +121,12 @@
   }
   async function call(action, args = {}) {
     if (!bridgeReady) throw Error("This player needs a connected MCP Apps host.");
-    const result = await request("tools/call", { name: targets[action], arguments: args }); return accept(result);
+    const result = await request("tools/call", { name: targets[action], arguments: args });
+    const accepted = accept(result), output = result?.structuredContent || result;
+    if (action === "volume" && output?.ok && Number.isFinite(output.result?.percent) && playback?.deviceId === args["device-id"]) {
+      playback = {...playback, volume:output.result.percent}; render(); return true;
+    }
+    return accepted;
   }
   async function refresh(fresh = false) {
     if (disposed || !bridgeReady || reading || busy || document.hidden) return;
@@ -97,12 +136,12 @@
     finally { reading = false; controls(); }
   }
   async function action(name, args) {
-    if (disposed || busy || stale) { scrubbing = false; render(); return; }
+    if (disposed || busy || stale) { scrubbing = false; volumeDragging = false; render(); return; }
     busy = true; el("error").textContent = ""; controls();
     let needsRefresh = true;
     try { needsRefresh = !await call(name, args); }
     catch (error) { stale = true; el("error").textContent = error.message; }
-    finally { busy = false; scrubbing = false; render(); if (needsRefresh) await refresh(true); }
+    finally { busy = false; scrubbing = false; volumeDragging = false; render(); if (needsRefresh) await refresh(true); }
   }
   window.addEventListener("message", event => {
     if (event.source !== window.parent || disposed) return;
@@ -135,9 +174,20 @@
     action("seek", {seconds:Number(el("seek").value), "track-uri":scrubUri});
   });
   el("seek").addEventListener("pointercancel", () => { scrubbing = false; render(); });
+  el("volume").addEventListener("input", () => {
+    if (!volumeDragging) volumeDevice = playback?.deviceId;
+    volumeDragging = true; el("volume-value").textContent = el("volume").value + "%"; el("volume").setAttribute("aria-valuetext", el("volume").value + " percent");
+  });
+  el("volume").addEventListener("change", () => {
+    if (!volumeDevice || volumeDevice !== playback?.deviceId) { volumeDragging = false; render(); return; }
+    action("volume", {percent:Number(el("volume").value), "device-id":volumeDevice});
+  });
+  el("volume").addEventListener("pointercancel", () => { volumeDragging = false; render(); });
+  el("mute").onclick = () => action("volume", {percent:playback.volume === 0 ? previousVolume.get(playback.deviceId) ?? 25 : 0, "device-id":playback.deviceId});
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
   const clock = setInterval(tick, 250), polling = setInterval(refresh, 3000);
   const resize = new ResizeObserver(() => {
+    measureTitle();
     if (bridgeReady && !disposed) notify("ui/notifications/size-changed", {height:Math.ceil(document.body.getBoundingClientRect().height)});
   });
   resize.observe(document.body);
@@ -149,7 +199,7 @@
   }
   window.addEventListener("pagehide", dispose, {once:true});
   if (window.parent === window) {
-    el("title").textContent = "Spotify player"; el("error").textContent = "Open this component in a connected MCP Apps host to control Spotify."; controls();
+    setTitle("Spotify player"); el("error").textContent = "Open this component in a connected MCP Apps host to control Spotify."; controls();
   } else {
     request("ui/initialize", {appInfo:{name:"spotify-player",version:"1.0.0"},appCapabilities:{},protocolVersion:"2026-01-26"})
       .then(result => {
@@ -157,7 +207,7 @@
         bridgeReady = true;
         if (["light","dark"].includes(result?.hostContext?.theme)) document.documentElement.style.colorScheme = result.hostContext.theme;
         notify("ui/notifications/initialized", {}); notify("ui/notifications/size-changed", {height:document.documentElement.scrollHeight}); refresh();
-      }).catch(error => { el("title").textContent = "Spotify player"; el("error").textContent = error.message; controls(); });
+      }).catch(error => { setTitle("Spotify player"); el("error").textContent = error.message; controls(); });
   }
 })();
 </script>

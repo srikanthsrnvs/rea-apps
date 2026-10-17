@@ -19,6 +19,8 @@ test("optional viewer serves the existing component and accepts only authenticat
     assert.equal((await rpc({ name: "spotify_play", arguments: { uri: "anything" } })).status, 400);
     assert.equal((await rpc({ name: "spotify_status", arguments: { token: "injected" } })).status, 400);
     assert.equal((await rpc({ name: "spotify_seek", arguments: { seconds: 12 } })).status, 400);
+    assert.equal((await rpc({ name: "spotify_volume", arguments: { percent: 23 } })).status, 400);
+    assert.equal((await rpc({ name: "spotify_volume", arguments: { percent: 101, "device-id":"speaker" } })).status, 400);
     const result = await (await rpc({ name: "spotify_status", arguments: { refresh: true } })).json();
     assert.equal(result.component.id, "spotify.player"); assert.equal(calls.length, 1);
     assert.deepEqual(calls[0], { name: "status", args: { refresh: true }, options: { backend: "native" } });

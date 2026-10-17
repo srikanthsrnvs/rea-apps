@@ -54,7 +54,7 @@ Playback commands return the observed state, not just a request acknowledgement.
 
 ## Prebuilt music controls
 
-Playback results also include a versioned `spotify.player` component reference with current song, artist, album, playback position, device and control bindings. Its static HTML has a large pause/resume button, previous/next and a seek bar. The model never generates the component or handles button clicks.
+Playback results also include a versioned `spotify.player` component reference with current song, artist, album, playback position, device and control bindings. Its static HTML has a large pause/resume button, previous/next, seek, volume and mute/unmute. Long titles scroll on one line. The model never generates the component or handles button clicks.
 
 A connected MCP Apps host loads `ui://spotify/player-v1.html`. Custom frontends can use the included sandboxed host adapter. `spotify component` returns the static resource for a CLI-backed renderer. Ordinary shell JSON alone does not make ChatGPT display UI: the host must support and connect to the component contract. See the [player integration guide](docs/player-component.md).
 

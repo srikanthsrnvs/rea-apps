@@ -311,9 +311,11 @@ export class ConnectController {
       case "volume": {
         if (args.percent === undefined) return { percent: this.status().volume };
         if (!Number.isFinite(args.percent) || args.percent < 0 || args.percent > 100) fail("INVALID_ARGUMENT", "Volume must be between 0 and 100.");
+        const deviceId = this.status().deviceId;
+        if (args["device-id"] !== undefined && args["device-id"] !== deviceId) fail("STALE_DEVICE", "The active speaker changed. Refresh before changing its volume.");
         if (this.devices().find((d) => d.active)?.supportsVolume === false) fail("UNSUPPORTED", "This Connect device does not support remote volume.");
-        await this._connect("volume", { volume: Math.round(65535 * args.percent / 100) });
-        const status = await this._confirm((s) => s.volume !== null && Math.abs(s.volume - args.percent) <= 1, "Volume was requested but not confirmed.");
+        await this._connect("volume", { volume: Math.round(65535 * args.percent / 100) }, deviceId);
+        const status = await this._confirm((s) => s.deviceId === deviceId && s.volume !== null && Math.abs(s.volume - args.percent) <= 1, "Volume was requested but not confirmed.");
         return { percent: status.volume };
       }
       case "shuffle": case "repeat": {

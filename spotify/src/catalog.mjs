@@ -114,7 +114,7 @@ export const catalog = [
   entry(
     "volume",
     "Get volume, or set a percentage from 0 to 100",
-    { percent: number("Volume percentage", 0, 100) },
+    { percent: number("Volume percentage", 0, 100), "device-id": text("Optional expected active device ID; reject a stale volume control") },
     [],
     ["percent"],
     "write",
