@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readState, saveState, removeState, withStateLock } from "./state.mjs";
 import { DEVICE_AUTH_URL, TOKEN_URL, deviceAuthorizationParams, deviceTokenParams, refreshTokenParams, parseDeviceAuthorization, parseTokenResponse, publicAuthorization, classifyOAuthError } from "./auth-protocol.mjs";
 import { readJson } from "./http.mjs";
+import { invalidateReadCache } from "./read-cache.mjs";
 const fail = (error) => { throw Object.assign(new Error(error.message), { code: error.code }); };
 async function exchange(url, params) {
   let response;
@@ -53,6 +54,7 @@ export async function loginStatus() {
       return pending.error ? { loggedIn: false, phase: error.phase, errorCode: error.code } : approval(pending);
     }
     const next = { ...parseTokenResponse(response.body), controllerId: randomBytes(16).toString("hex"), acquiredAt: Date.now() };
+    await invalidateReadCache();
     await saveState("session", next); await removeState("login");
     return authenticated(next);
   });
@@ -75,5 +77,5 @@ export async function getSession({ refresh = false } = {}) {
   return session;
 }
 export async function logout() {
-  return withStateLock(async () => { await removeState("session"); await removeState("login"); return { loggedIn: false, phase: "logged_out", backend: "standalone" }; });
+  return withStateLock(async () => { await removeState("session"); await removeState("login"); await invalidateReadCache(); return { loggedIn: false, phase: "logged_out", backend: "standalone" }; });
 }

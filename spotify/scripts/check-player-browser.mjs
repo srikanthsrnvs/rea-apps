@@ -7,11 +7,13 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { PLAYER_URI } from "../src/player.mjs";
+import { startPlayerServer } from "../src/player/server.mjs";
+import { randomBytes } from "node:crypto";
 const { chromium } = await import(process.env.SPOTIFY_PLAYWRIGHT_MODULE || "playwright");
 const client = new Client({ name: "player-browser-test", version: "1" });
 const transport = new StdioClientTransport({ command: process.execPath,
   args: [fileURLToPath(new URL("../test/fixtures/player-mcp.mjs", import.meta.url))], stderr: "pipe" });
-let browser, server;
+let browser, server, viewer;
 let rejectNext = false, failedCalls = 0, holdStatus = false, statusCalls = 0;
 const calls = [];
 try {
@@ -75,6 +77,8 @@ try {
   assert.equal(failedCalls, 1);
   assert.equal(await frame.getByRole("heading").textContent(), "First song");
   await frame.getByRole("button", { name: "Refresh playback" }).click();
+  await frame.locator("#refresh:enabled").waitFor();
+  assert.ok(calls.some(c => c.name === "spotify_status" && c.arguments.refresh === true), "Manual refresh must reach the backend with fresh-read semantics");
   const previousStatusCalls = statusCalls;
   await client.callTool({ name: "spotify_next", arguments: {} });
   await frame.getByRole("heading", { name: "Second <script>song</script>" }).waitFor({ timeout: 10000 });
@@ -98,11 +102,28 @@ try {
   for (const id of ["play-pause", "next", "previous"]) assert.equal(await frame.locator(`#${id}`).isDisabled(), true);
   await page.evaluate(() => window.player.destroy());
   assert.equal(await page.locator("iframe").count(), 0);
+  const secret = randomBytes(32).toString("base64url");
+  viewer = await startPlayerServer({ secret, expiresAt: Date.now() + 60000, run: async (name, args) => {
+    const response = await client.callTool({name:`spotify_${name}`, arguments:args});
+    if (response.isError) throw Error(response.structuredContent.error.message);
+    return response.structuredContent.result;
+  } });
+  const standalone = await browser.newPage({viewport:{width:500,height:570}});
+  standalone.on("pageerror", error => errors.push(error.message));
+  await standalone.goto(`http://127.0.0.1:${viewer.port}/#key=${secret}`);
+  const live = standalone.frameLocator("iframe");
+  await live.getByRole("heading",{name:"Second <script>song</script>"}).waitFor();
+  await live.getByRole("button",{name:"Pause",exact:true}).click();
+  await live.getByRole("button",{name:"Resume",exact:true}).waitFor();
+  await live.getByRole("button",{name:"Resume",exact:true}).click();
+  await live.getByRole("button",{name:"Pause",exact:true}).waitFor();
+  await standalone.screenshot({path:fileURLToPath(new URL("../.runtime/player-viewer.png",import.meta.url))});
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "pause", "resume", "next", "previous", "seek", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png"] }));
+  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "pause", "resume", "next", "previous", "seek", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal", "authenticated standalone viewer"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png", ".runtime/player-viewer.png"] }));
 } finally {
   holdStatus = false;
   await browser?.close();
+  await viewer?.close();
   if (server) await new Promise(resolve => server.close(resolve));
   await client.close();
 }

@@ -1,10 +1,5 @@
-export class SpotifyError extends Error {
-  constructor(code, message, details) {
-    super(message);
-    this.code = code;
-    this.details = details;
-  }
-}
+import { SpotifyError } from "./errors.mjs";
+export { SpotifyError } from "./errors.mjs";
 
 export class SpotifyConnection {
   constructor(socket, target, timeoutMs = 20000) {

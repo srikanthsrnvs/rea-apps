@@ -55,3 +55,12 @@ test("zero volume and empty description survive argument parsing", () => {
     "",
   );
 });
+
+test("discovery and refresh boolean flags share exact CLI/MCP values", () => {
+  assert.equal(parseCommand(["discover", "--refresh"]).args.refresh, true);
+  assert.equal(parseCommand(["devices", "--network=false"]).args.network, false);
+  assert.equal(parseCommand(["devices", "--network", "false", "--refresh", "true"]).args.refresh, true);
+  assert.equal(parseCommand(["search", "jazz", "--refresh"]).args.refresh, true);
+  assert.throws(() => parseCommand(["devices", "--network=maybe"]), { code: "INVALID_ARGUMENT" });
+  assert.throws(() => parseCommand(["discover", "--timeout-ms", "6000"]), { code: "INVALID_ARGUMENT" });
+});

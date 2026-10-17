@@ -133,6 +133,7 @@ export class NativeCatalogBackend {
       fail("UNSUPPORTED", "The requested read query is not in the pinned Spotify query manifest.");
     if (!isObject(variables)) fail("INVALID_ARGUMENT", "Query variables must be a JSON object.");
     const response = await this.request(this.pathfinderUrl, {
+      ...(!mutation ? { readTtlMs: name.startsWith("search") ? 15000 : name === "profileAttributes" ? 300000 : name === "fetchPlaylist" ? 5000 : 15000 } : {}),
       method: "POST", body: { operationName: name, variables,
         extensions: { persistedQuery: { version: 1, sha256Hash: definition.sha256Hash } } },
     });
@@ -235,7 +236,7 @@ export class NativeCatalogBackend {
   async recent() {
     const profile = await this.profile();
     const result = await this.request(`${this.spclientBaseUrl}/recently-played/v3/user/${encodeURIComponent(profile.username)}/recently-played`,
-      { query: { format: "json", offset: 0, limit: 50, filter: "default,collection-new-episodes" } });
+      { query: { format: "json", offset: 0, limit: 50, filter: "default,collection-new-episodes" }, readTtlMs: 15000 });
     if (!Array.isArray(result?.playContexts)) invalidResponse();
     const contexts = result.playContexts;
     const uris = contexts.map(({ uri }) => uri).filter((uri) => typeof uri === "string" && !/^spotify:user:/u.test(uri));

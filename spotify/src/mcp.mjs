@@ -7,7 +7,7 @@ import { PLAYER_URI, PLAYER_MIME, playerCommands, playerToolMeta, playerResource
 import { backendName, nativeCommands } from "./standalone/capabilities.mjs";
 
 export function createMcpServer(options = {}, { run = execute, connect = connectSpotify } = {}) {
-  const server = new McpServer({ name: "spotify-desktop", version: "0.2.0" });
+  const server = new McpServer({ name: "spotify-desktop", version: "0.3.0" });
   server.registerResource("spotify-player", PLAYER_URI,
     { mimeType: PLAYER_MIME, description: "Prebuilt Spotify playback controls" },
     async () => ({ contents: [await playerResource()] }));

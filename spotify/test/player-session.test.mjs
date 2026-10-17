@@ -1,0 +1,23 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+const directory = await fs.mkdtemp(path.join(os.tmpdir(), "spotify-viewer-lifecycle-"));
+process.env.SPOTIFY_STATE_DIR = directory;
+const { managePlayer } = await import("../src/player/session.mjs");
+const { readState, saveState, withStateLock } = await import("../src/standalone/state.mjs");
+test.after(async () => { await withStateLock(() => managePlayer({stop:true})); await fs.rm(directory, {recursive:true,force:true}); });
+test("viewer worker starts, reuses its URL, rejects another account and stops independently of playback", async () => {
+  await saveState("session", { controllerId: "account-one" });
+  const first = await withStateLock(() => managePlayer({"ttl-minutes":1}, "account-one"));
+  const record = await readState("player-host"), origin = new URL(first.url).origin;
+  assert.equal(first.public, false); assert.ok(first.url.includes("#key="));
+  assert.equal((await fs.stat(path.join(directory,"player-host.json"))).mode & 0o777, 0o600);
+  const second = await withStateLock(() => managePlayer({}, "account-one")); assert.equal(second.url, first.url);
+  await saveState("session", { controllerId: "account-two" });
+  const rejected = await fetch(`${origin}/rpc`, { method:"POST", headers:{Authorization:`Bearer ${record.secret}`,"Content-Type":"application/json"},body:JSON.stringify({name:"spotify_status"}) });
+  assert.equal(rejected.status, 401);
+  assert.deepEqual(await withStateLock(() => managePlayer({stop:true})), {stopped:true});
+  assert.equal((await readState("player-host")).phase, "stopped");
+});

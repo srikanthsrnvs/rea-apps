@@ -144,7 +144,7 @@ export class NativePlaylistBackend {
   async #rootlist() {
     const { username } = await this.catalog.profile();
     const payload = await this.request(`${this.base}/playlist/v2/user/${encodeURIComponent(username)}/rootlist`, {
-      query: { decorate: "revision,length,attributes,timestamp,owner,capabilities", bustCache: Date.now() },
+      query: { decorate: "revision,length,attributes,timestamp,owner,capabilities", bustCache: Date.now() }, readTtlMs: 10000,
     });
     return { username, ...parseRootlist(payload, username) };
   }

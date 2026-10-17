@@ -72,7 +72,7 @@
     const state = component.props?.playback;
     if (!state || !["playing","paused","stopped"].includes(state.state)) return;
     if (Number(state.observedAt) < newest) return;
-    newest = Number(state.observedAt) || 0; playback = state; anchor = performance.now(); stale = false; render();
+    newest = Number(state.observedAt) || 0; playback = state; anchor = performance.now(); stale = false; render(); return true;
   }
   function notify(method, params) {
     window.parent.postMessage({jsonrpc:"2.0",method,params}, hostOrigin || "*");
@@ -87,21 +87,22 @@
   }
   async function call(action, args = {}) {
     if (!bridgeReady) throw Error("This player needs a connected MCP Apps host.");
-    const result = await request("tools/call", { name: targets[action], arguments: args }); accept(result);
+    const result = await request("tools/call", { name: targets[action], arguments: args }); return accept(result);
   }
-  async function refresh() {
+  async function refresh(fresh = false) {
     if (disposed || !bridgeReady || reading || busy || document.hidden) return;
     reading = true; controls();
-    try { await call("refresh"); }
+    try { await call("refresh", fresh ? {refresh:true} : {}); }
     catch (error) { stale = true; el("error").textContent = error.message; render(); }
     finally { reading = false; controls(); }
   }
   async function action(name, args) {
     if (disposed || busy || stale) { scrubbing = false; render(); return; }
     busy = true; el("error").textContent = ""; controls();
-    try { await call(name, args); }
+    let needsRefresh = true;
+    try { needsRefresh = !await call(name, args); }
     catch (error) { stale = true; el("error").textContent = error.message; }
-    finally { busy = false; scrubbing = false; render(); await refresh(); }
+    finally { busy = false; scrubbing = false; render(); if (needsRefresh) await refresh(true); }
   }
   window.addEventListener("message", event => {
     if (event.source !== window.parent || disposed) return;
@@ -124,7 +125,7 @@
   });
   el("play-pause").onclick = () => action(playback?.state === "playing" ? "pause" : "resume");
   el("previous").onclick = () => action("previous"); el("next").onclick = () => action("next");
-  el("refresh").onclick = () => { el("error").textContent = ""; refresh(); };
+  el("refresh").onclick = () => { el("error").textContent = ""; refresh(true); };
   el("seek").addEventListener("input", () => {
     if (!scrubbing) scrubUri = playback?.track?.uri;
     scrubbing = true; el("elapsed").textContent = time(Number(el("seek").value) * 1000);

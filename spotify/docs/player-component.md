@@ -34,6 +34,14 @@ Run the existing `spotify mcp` server. Its playback tool descriptors advertise `
 
 The protocol follows the [official OpenAI UI guide](https://developers.openai.com/plugins/build/chatgpt-ui) and [MCP Apps quickstart](https://developers.openai.com/plugins/build/app-quickstart).
 
+## Standalone live viewer
+
+For clients without MCP Apps rendering, `spotify player` starts an optional loopback HTTP viewer and returns the same prebuilt component plus its URL. `spotify player --public --cloudflared-path /path/to/cloudflared` returns an expiring HTTPS link accessible from another computer. Cloudflared is optional and is not installed or started by normal CLI setup/commands. An existing authenticated frontend can instead use the host adapter directly, without a tunnel.
+
+The viewer runs only Node HTTP on the host; HTML renders on the user's client. Its callbacks allow status, pause/resume, previous/next and guarded seek only. Spotify tokens stay on the backend. The link's fragment carries a separate random capability key; the server requires it for every control request. Keep the complete link private. The key is bound to the current account/controller, expires after 30 minutes by default (maximum 120), and is revoked on account changes. `--ttl-minutes N` selects its lifetime. `spotify player --stop` closes the viewer and tunnel without stopping music. Logout also stops the viewer.
+
+While a viewer is active, playback/status results include `component.url` and `component.expiresAt` alongside the normal MCP resource descriptor. The same URL is suitable as an iframe source. Hosts with MCP Apps rendering can continue using the static resource and direct tool callbacks without starting this optional service. This repository does not change the renderer of a text-only chat: open or embed the returned URL in that client instead.
+
 ## Your own renderer
 
 Retrieve the same resource using MCP `resources/read`, or run `spotify component` on the backend and read `contents[0]`. Bundle `src/player/host.mjs` with your frontend, then mount it once:
@@ -61,6 +69,7 @@ For a CLI-backed agent, the backend maps the six fixed `spotify_*` player action
 - Previous/next follow Spotify’s active playlist or queue, including its own shuffle and repeat rules.
 - Seeking submits seconds and the current `track-uri`. The runtime rejects the action if playback changed tracks before it executed.
 - The player interpolates elapsed time locally, refreshes every three seconds while visible, and respects Spotify’s control restrictions. All controls affect the active Connect device shown on the card.
+- Successful controls reuse the confirmed state returned by the action. Manual refresh and error recovery explicitly bypass read caches; mutations are never replayed for recovery.
 - Pending actions disable controls. Errors are shown and followed by a status read; an uncertain mutation is never automatically repeated.
 - There is no generated UI, remote desktop streaming, external frontend dependency, or separate audio player. Spotify continues to play on the selected device.
 

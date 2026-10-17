@@ -61,6 +61,15 @@ test("status and devices are direct HTTP reads without a websocket or observer r
   assert.ok(p.calls.every((c) => c.path.endsWith("/cluster") && c.method === undefined));
 });
 
+test("volume, shuffle and repeat getters need only a cluster read and never register a receiver", async () => {
+  const p = protocol(), count = FakeSocket.instances.length;
+  assert.equal((await executeConnect("volume", {}, p.request, p.options)).percent, 50);
+  assert.equal((await executeConnect("shuffle", {}, p.request, p.options)).shuffle, false);
+  assert.equal((await executeConnect("repeat", {}, p.request, p.options)).repeat, "off");
+  assert.equal(FakeSocket.instances.length, count);
+  assert.ok(p.calls.every(c => c.path.endsWith("/cluster") && !c.method));
+});
+
 test("event controller registers a hidden non-player, sends command once, then unregisters", async () => {
   const p = protocol((path, opts, cluster) => {
     if (path.includes("/player/command/")) { assert.equal(opts.body.command.endpoint, "pause"); cluster.player_state.is_paused = true; }

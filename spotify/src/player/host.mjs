@@ -37,6 +37,9 @@ export function mountSpotifyPlayer(container, { resource, output, invoke, theme 
         if (name === "spotify_seek") {
           if (Object.keys(args).some(key => !["seconds", "track-uri"].includes(key)) || !Number.isFinite(args.seconds) || args.seconds < 0 || typeof args["track-uri"] !== "string")
             throw new Error("Invalid seek input.");
+        } else if (name === "spotify_status") {
+          if (Object.keys(args).some(key => key !== "refresh") || (args.refresh !== undefined && typeof args.refresh !== "boolean"))
+            throw new Error("Invalid refresh input.");
         } else if (Object.keys(args).length) throw new Error("This action takes no arguments.");
         const job = tail.then(() => {
           if (disposed) throw new Error("Player closed.");

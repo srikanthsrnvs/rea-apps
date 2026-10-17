@@ -31,7 +31,11 @@ const entry = (
   description,
   positional,
   effect,
-  inputSchema: { type: "object", properties, required, additionalProperties: false },
+  inputSchema: { type: "object", properties: {
+    ...((effect === "read" && name !== "login-status") || ["volume", "shuffle", "repeat"].includes(name)
+      ? { refresh: { type: "boolean", description: "Bypass saved read snapshots and fetch current data" } } : {}),
+    ...properties,
+  }, required, additionalProperties: false },
 });
 export const catalog = [
   entry(
@@ -44,6 +48,13 @@ export const catalog = [
   ),
   entry("login-status", "Check native login and pairing state without exposing credentials"),
   entry("logout", "Remove the standalone CLI's saved account and pending authorization", {}, [], [], "write"),
+  entry("player", "Return the prebuilt live player and its expiring viewer link; never starts local audio", {
+    public: { type: "boolean", description: "Create an HTTPS link using optional cloudflared; otherwise loopback only" },
+    stop: { type: "boolean", description: "Stop the viewer without changing playback", default: false },
+    "ttl-minutes": integer("Viewer link lifetime in minutes", 1, 120, { default: 30 }),
+    "listen-port": integer("Loopback HTTP port; zero chooses an available port", 0, 65535, { default: 0 }),
+    "cloudflared-path": text("Optional path to the cloudflared executable for public mode"),
+  }, [], [], "write"),
   entry(
     "status",
     "Current track, playback position, options, restrictions, volume and active device",
@@ -260,7 +271,14 @@ export const catalog = [
     ["uri", "folder"],
     "write",
   ),
-  entry("devices", "List Spotify Connect devices and their exact IDs"),
+  entry("devices", "List account Connect devices plus nearby speakers; LAN-only devices may require activation", {
+    network: { type: "boolean", description: "Include a bounded local-network scan", default: true },
+    refresh: { type: "boolean", description: "Bypass device and discovery read caches", default: false },
+  }),
+  entry("discover", "Discover nearby Connect, Sonos and Cast speakers without logging in; does not activate or play audio", {
+    "timeout-ms": integer("Local-network scan duration in milliseconds", 250, 5000, { default: 2000 }),
+    refresh: { type: "boolean", description: "Bypass the 30-second local discovery cache", default: false },
+  }),
   entry(
     "transfer",
     "Transfer playback to a device by exact ID or unique name",
@@ -394,7 +412,9 @@ export function parseCommand(argv) {
     if (token.startsWith("--")) {
       const [key, ...tail] = token.slice(2).split("=");
       if (!(key in command.inputSchema.properties)) throw invalid(`Unknown option: --${key}`);
-      const value = tail.length ? tail.join("=") : tokens[++i];
+      const schema = command.inputSchema.properties[key];
+      const value = tail.length ? tail.join("=") : schema.type === "boolean" &&
+        (tokens[i + 1] === undefined || tokens[i + 1].startsWith("--")) ? "true" : tokens[++i];
       if (value === undefined || (!tail.length && value.startsWith("--")))
         throw invalid(`Missing value for --${key}`);
       if (key in input) throw invalid(`Repeated argument: ${key}`);
@@ -411,6 +431,11 @@ export function parseCommand(argv) {
   return { name, args: validateArguments(command, input) };
 }
 function coerce(value, schema) {
+  if (schema.type === "boolean") {
+    if (value === "true") return true;
+    if (value === "false") return false;
+    throw invalid("Expected true or false.");
+  }
   if (schema.type === "number" || schema.type === "integer")
     return value.trim() ? Number(value) : NaN;
   if (!schema.type || schema.type === "array" || schema.type === "object") {

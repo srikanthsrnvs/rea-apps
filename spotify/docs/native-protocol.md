@@ -51,3 +51,5 @@ Queue, playlist and folder write contracts have simulated protocol/state tests. 
 Account/device restrictions still apply. This program controls an existing Connect receiver; it does not provide local audio decoding. Native private services can change. Pinned-query mismatch requires updating the manifest from fresh first-party artifacts. App-local settings/navigation, renderer service introspection and per-track account history remain outside the native tool catalog.
 
 The historical desktop bridge is preserved for explicit comparison through `SPOTIFY_BACKEND=desktop`, with no automatic fallback. Default setup no longer builds, starts or restarts that application.
+
+The controller also supports bounded native mDNS speaker discovery and account-scoped read caching. The historical desktop modules are imported only on their explicit path. See [discovery, cache policies and reference attribution](discovery-and-caching.md).

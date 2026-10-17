@@ -4,7 +4,7 @@ export const PLAYER_URI = "ui://spotify/player-v1.html";
 export const PLAYER_MIME = "text/html;profile=mcp-app";
 export const playerCommands = new Set([
   "status", "play", "pause", "resume", "toggle", "next", "previous", "seek",
-  "shuffle", "repeat", "transfer",
+  "shuffle", "repeat", "transfer", "player",
 ]);
 
 export const playerToolMeta = {
@@ -19,6 +19,7 @@ export function playbackResult(name, result) {
     return output;
   output.component = {
     id: "spotify.player", version: 1, resourceUri: PLAYER_URI, mimeType: PLAYER_MIME,
+    ...(result.viewer?.url ? { url: result.viewer.url, expiresAt: result.viewer.expiresAt } : {}),
     props: {
       playback: {
         state: result.state, track: result.track, context: result.context,

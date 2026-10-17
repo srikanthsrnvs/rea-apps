@@ -46,6 +46,10 @@ spotify transfer "EXACT SPEAKER NAME"
 
 Commands affect the account’s active Connect device. `transfer` requires its exact ID or a unique exact name. No speaker is invented when none is available. Availability and account/device restrictions are reported by Spotify.
 
+`devices` also performs a short local-network scan for Connect, Sonos and Cast speakers. `spotify discover` works without login; `devices --network=false` skips the LAN scan. Network-only speakers are marked unavailable until activated in Spotify. Discovery does not start audio or a background player. See [speaker discovery and efficient reads](docs/discovery-and-caching.md).
+
+Repeated reads reuse small, account-scoped snapshots: one second for playback state, 15 seconds for searches/library reads, and 30 seconds for LAN discovery. Use `--refresh` for current data. Mutations invalidate account snapshots and always use fresh confirmation reads. No mutation is retried automatically.
+
 Playback commands return the observed state, not just a request acknowledgement. An uncertain mutation is never automatically repeated; inspect status before retrying. Seeking from the player component includes the expected track URI so an old slider cannot seek a replacement track.
 
 ## Prebuilt music controls
@@ -53,6 +57,8 @@ Playback commands return the observed state, not just a request acknowledgement.
 Playback results also include a versioned `spotify.player` component reference with current song, artist, album, playback position, device and control bindings. Its static HTML has a large pause/resume button, previous/next and a seek bar. The model never generates the component or handles button clicks.
 
 A connected MCP Apps host loads `ui://spotify/player-v1.html`. Custom frontends can use the included sandboxed host adapter. `spotify component` returns the static resource for a CLI-backed renderer. Ordinary shell JSON alone does not make ChatGPT display UI: the host must support and connect to the component contract. See the [player integration guide](docs/player-component.md).
+
+`spotify player` returns an optional live viewer URL for clients without MCP Apps rendering. For a remote client, use `spotify player --public --cloudflared-path /path/to/cloudflared`. It serves the same prebuilt controls, with an expiring account-bound key; Spotify credentials stay on the host. Normal CLI commands need neither a viewer process nor a tunnel. `spotify player --stop` closes only the viewer.
 
 ## Library, playlists and queue
 

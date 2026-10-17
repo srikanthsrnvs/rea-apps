@@ -3,7 +3,7 @@ import { catalog, parseCommand, invalid } from "./catalog.mjs";
 import { execute } from "./client.mjs";
 import { connectSpotify } from "./lifecycle.mjs";
 import { playbackResult, playerResource } from "./player.mjs";
-import { backendName, nativeCommands } from "./standalone/capabilities.mjs";
+import { backendName, nativeCommands, nativeCapabilities } from "./standalone/capabilities.mjs";
 
 const raw = process.argv.slice(2);
 const available = catalog.filter(c => backendName() === "desktop" ? c.name !== "logout" : nativeCommands.has(c.name));
@@ -19,7 +19,7 @@ const print = (value) =>
   );
 try {
   if (raw.length === 1 && ["--version", "-v"].includes(raw[0])) {
-    process.stdout.write("0.2.0\n");
+    process.stdout.write("0.3.0\n");
     process.exit(0);
   }
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
@@ -34,7 +34,7 @@ try {
       process.stdout.write("spotify — native Spotify control without a desktop or browser\n\n");
       if (!selected)
         process.stdout.write(
-          "  connect [--restart]        Start or reconnect local runtime control\n  tools                      Print the command catalog as JSON\n  component                  Read the prebuilt player resource as JSON\n  mcp                        Serve these commands over MCP stdio\n\n",
+          "  connect                    Check login and the active Connect receiver\n  tools                      Print the command catalog as JSON\n  component                  Read the prebuilt player resource as JSON\n  mcp                        Serve these commands over MCP stdio\n\n",
         );
       for (const c of entries) {
         process.stdout.write(`  ${c.name.padEnd(22)} ${c.description}\n`);
@@ -53,7 +53,8 @@ try {
       throw invalid("Usage: spotify component [--pretty]");
     print({ contents: [await playerResource()] });
   } else if (parsed.name === "tools") {
-    print({ name: "spotify", version: "0.2.0", backend: backendName(), commands: available });
+    print({ name: "spotify", version: "0.3.0", backend: backendName(),
+      ...(backendName() === "native" ? { capabilities: nativeCapabilities } : {}), commands: available });
   } else if (parsed.name === "connect") {
     if (parsed.tokens.some((t) => !["--restart", "--json", "--pretty"].includes(t)))
       throw invalid("Usage: spotify connect [--restart] [--port N]");

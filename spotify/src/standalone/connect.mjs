@@ -15,7 +15,7 @@ function spotifyEndpoint(value, protocol) {
   return url.origin;
 }
 export async function resolveConnectEndpoints(request) {
-  const data = await request("https://apresolve.spotify.com/", { query: { type: ["dealer", "spclient"] } });
+  const data = await request("https://apresolve.spotify.com/", { query: { type: ["dealer", "spclient"] }, readTtlMs: 600000 });
   const dealer = data?.dealer?.[0] ?? data?.["dealer-g2"]?.[0], webgate = data?.spclient?.[0];
   return {
     dealer: spotifyEndpoint(`wss://${dealer || "dealer.g2.spotify.com"}`, "wss:"),
@@ -325,7 +325,7 @@ export class ConnectController {
       }
       case "transfer": {
         const matches = this.devices().filter((d) => d.id === args.device || d.name === args.device);
-        if (matches.length !== 1) fail("NOT_FOUND", "Specify an exact device ID or unique device name from devices.");
+        if (matches.length !== 1) fail("NOT_FOUND", "Choose an exact account device ID or unique name from devices. Nearby-only speakers must first be activated in Spotify.");
         if (!matches[0].available) fail("UNAVAILABLE", "Selected Connect device cannot be controlled.");
         await this._connect("transfer", { transfer_options: { restore_paused: "restore" } }, matches[0].id);
         return this._confirm((s) => s.deviceId === matches[0].id, "Device transfer was not confirmed.");
@@ -416,17 +416,22 @@ export class ConnectController {
   }
 }
 export function createConnectController(request, options) { return new ConnectController(request, options); }
-export async function executeConnect(name, args, request, options = {}) {
+export function isConnectRead(name, args = {}) {
+  return ["status", "devices", "queue"].includes(name) || (name === "volume" && args.percent === undefined) ||
+    (["shuffle", "repeat"].includes(name) && args.mode === undefined);
+}
+export async function executeConnect(name, args = {}, request, options = {}) {
   // The cluster endpoint supports direct read-only requests: no event connection or
   // observer registration is necessary for short status and device-list commands.
-  if (["status", "devices", "queue"].includes(name)) {
+  if (isConnectRead(name, args)) {
     const endpoints = options.resolveEndpoints ? await options.resolveEndpoints() : await resolveConnectEndpoints(request);
     const webgate = spotifyEndpoint(endpoints.webgate, "https:");
-    const data = await request(`${webgate}/connect-state/v1/cluster`, { headers: { Accept: "application/json" } });
+    const data = await request(`${webgate}/connect-state/v1/cluster`, { headers: { Accept: "application/json" }, readTtlMs: 1000 });
     const cluster = data?.cluster ?? data;
     if (!cluster || typeof cluster !== "object" || (!cluster.devices && !cluster.player_state)) fail("INVALID_RESPONSE", "Spotify returned no Connect cluster.");
     if (name === "devices") return normalizeConnectDevices(cluster);
-    if (name === "status") return normalizeConnectStatus(cluster, Date.now(), options.username ?? null);
+    if (name === "volume") return { percent: normalizeConnectStatus(cluster).volume };
+    if (["status", "shuffle", "repeat"].includes(name)) return normalizeConnectStatus(cluster, Date.now(), options.username ?? null);
     return queueResult(cluster, args?.limit ?? 20);
   }
   const controller = createConnectController(request, options);
