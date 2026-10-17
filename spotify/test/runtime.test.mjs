@@ -71,6 +71,17 @@ test("a stopped player reports zero position even when its timestamp is zero", a
   assert.equal(response.result.positionMs, 0);
 });
 
+test("seek from a stale player component never moves the replacement track", async () => {
+  let seeks = 0;
+  const invoke = runtime({
+    PlayerAPI: { getState: () => ({ item: { uri: "spotify:track:new" }, isPaused: true, duration: 200000, positionAsOfTimestamp: 0 }), seekTo: () => seeks++ },
+    ConnectDevicesAPI: { getDevices: () => [] }, PlaybackAPI: { getVolume: () => 1 },
+  });
+  const response = await invoke("seek", { seconds: 60, "track-uri": "spotify:track:old" });
+  assert.equal(response.error.code, "STALE_TRACK");
+  assert.equal(seeks, 0);
+});
+
 test("playlist updates wait for the returned metadata to reflect the change", async () => {
   let reads = 0;
   const invoke = runtime({

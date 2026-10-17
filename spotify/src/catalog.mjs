@@ -43,13 +43,14 @@ export const catalog = [
     "write",
   ),
   entry("login-status", "Check native login and pairing state without exposing credentials"),
+  entry("logout", "Remove the standalone CLI's saved account and pending authorization", {}, [], [], "write"),
   entry(
     "status",
     "Current track, playback position, options, restrictions, volume and active device",
   ),
   entry(
     "search",
-    "Search Spotify using the logged-in desktop session",
+    "Search Spotify using the authenticated native backend",
     {
       query: text("Search terms"),
       type: choice(
@@ -94,7 +95,7 @@ export const catalog = [
   entry(
     "seek",
     "Seek within the current track",
-    { seconds: number("Absolute position in seconds", 0) },
+    { seconds: number("Absolute position in seconds", 0), "track-uri": text("Optional current track URI; reject the seek if playback has moved to another track") },
     ["seconds"],
     ["seconds"],
     "write",

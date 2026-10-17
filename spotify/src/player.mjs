@@ -1,0 +1,49 @@
+import { readFile } from "node:fs/promises";
+
+export const PLAYER_URI = "ui://spotify/player-v1.html";
+export const PLAYER_MIME = "text/html;profile=mcp-app";
+export const playerCommands = new Set([
+  "status", "play", "pause", "resume", "toggle", "next", "previous", "seek",
+  "shuffle", "repeat", "transfer",
+]);
+
+export const playerToolMeta = {
+  ui: { resourceUri: PLAYER_URI, visibility: ["model", "app"] },
+  "openai/outputTemplate": PLAYER_URI,
+  "openai/widgetAccessible": true,
+};
+
+export function playbackResult(name, result) {
+  const output = { ok: true, result };
+  if (!playerCommands.has(name) || !["playing", "paused", "stopped"].includes(result?.state))
+    return output;
+  output.component = {
+    id: "spotify.player", version: 1, resourceUri: PLAYER_URI, mimeType: PLAYER_MIME,
+    props: {
+      playback: {
+        state: result.state, track: result.track, context: result.context,
+        positionMs: result.positionMs, durationMs: result.durationMs,
+        device: result.device, deviceId: result.deviceId, restrictions: result.restrictions,
+        observedAt: Date.now(),
+      },
+    },
+    actions: {
+      refresh: "spotify_status", pause: "spotify_pause", resume: "spotify_resume",
+      next: "spotify_next", previous: "spotify_previous", seek: "spotify_seek",
+    },
+  };
+  return output;
+}
+
+export async function playerResource() {
+  return {
+    uri: PLAYER_URI, mimeType: PLAYER_MIME,
+    text: await readFile(new URL("./player/player.html", import.meta.url), "utf8"),
+    _meta: {
+      ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } },
+      "openai/widgetDescription": "Live Spotify player with track details, pause/resume, previous/next and a seek bar. Controls use the active Spotify Connect device.",
+      "openai/widgetPrefersBorder": true,
+      "openai/widgetCSP": { connect_domains: [], resource_domains: [] },
+    },
+  };
+}

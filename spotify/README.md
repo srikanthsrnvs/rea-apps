@@ -1,112 +1,100 @@
-# Spotify desktop CLI
+# Spotify CLI
 
-Control Spotify desktop on macOS or headless Linux with JSON commands or MCP tools. Playback, queue editing, search, library actions, private playlists, playlist folders, Spotify Connect devices, and app settings use Spotify's own runtime services. Native device pairing supports first login through the CLI, with one-time approval on another phone or computer. No Spotify developer account, API key, or copied session token is required.
+Control Spotify directly from Node on macOS or headless Linux. The default backend uses Spotify’s native device authorization, Connect HTTP/WebSocket protocol, and Pathfinder catalog calls. **No Spotify desktop app, Chromium, Chrome, Xvfb, Docker, emulator, Android device, or developer API key is needed.**
 
-Playback and library operations were tested with Spotify 1.2.92.148 on Apple Silicon. Native session inspection also works with macOS 1.3.4.258; headless pairing, restart, search, library reads, devices and MCP were tested with Linux 1.2.95.453. This app uses Chromium Embedded Framework (CEF). The CLI connects to its renderer on a loopback debugging port and discovers services and query definitions from the running app. Spotify handles authentication, playback, and account restrictions.
+This is a remote controller for Spotify Connect devices such as your speaker. It does not decode or play audio through the Linux host’s sound hardware.
 
-## Start using it
+## Install and sign in
 
-Install Node 22.19 or newer and Spotify for macOS. The launcher uses `node` from PATH, or an existing bundled Codex runtime when available. Set `SPOTIFY_NODE` to choose a specific executable.
-
-```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
-cd rea-apps/spotify
-npm ci
-export PATH="$PWD/bin:$PATH"
-spotify connect
-spotify status --pretty
-spotify search "Daft Punk" --type track --limit 5
-spotify play --query "Veridis Quo"
-spotify pause
-spotify resume
-```
-
-If Spotify is running without debugging on macOS, use `spotify connect --restart` once. This quits and relaunches the desktop app with debugging bound to `127.0.0.1:9222`. A normal launch from the Dock may require this again. For first login, run `spotify login`, open its returned `verificationUri` on another device, and approve its `userCode`. No notification is sent automatically. Run `spotify login-status` to confirm `loggedIn:true`. Spotify stores the session itself. App files and persistent launch settings are unchanged. The debugging endpoint allows local processes to control this session; quit Spotify to close it.
-
-Use `--port N` or `SPOTIFY_PORT` for another loopback port. On a fresh checkout, run `npm ci` before starting. The cloned REA project is needed for investigation, not for running this CLI.
-
-## Headless Linux
-
-Yes: setup, login, discovery, commands, and MCP work over SSH, without a physical screen, desktop session, VNC, or browser on the Linux host. Spotify runs under Xvfb inside a container. First login needs one approval on an already logged-in phone or computer. No developer API key is needed.
-
-On x86_64 or ARM64 Linux, install Docker Engine with Compose v2, Git, curl, tar, xz and sha256sum, then:
+Linux ARM64 or x86-64:
 
 ```sh
 git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
 cd rea-apps/spotify
 ./scripts/setup-headless.sh
-bin/spotify-headless login
-# Open the returned verificationUri on another device and approve userCode.
-bin/spotify-headless login-status
-bin/spotify-headless devices --pretty
-bin/spotify-headless search "Daft Punk" --type track --limit 5
-bin/spotify-headless mcp
+export PATH="$HOME/.local/bin:$PATH"
+spotify login
+# Approve the returned Spotify URL/code on your phone or computer.
+spotify login-status
+spotify devices --pretty
 ```
 
-Setup installs a private native Node runtime, builds the container, enables LAN discovery and waits for the native login service. On ARM64 it also installs a pinned QEMU emulator and a boot service using sudo; this requires systemd. Session data stays in a private Docker volume. Spotify restarts automatically with Docker. Use `bin/spotify-headless service start|stop|restart|logs|wait` to manage it. The debugger listens only on `127.0.0.1:9222`.
+The setup filename is retained for compatibility; it now installs only native Node and the CLI dependencies. `--no-build` is accepted but no container is built. Node downloads use official release checksums. There is no browser process on the host at login or during later commands.
 
-Use an available Spotify Connect device for playback. Audio through the Linux machine's own hardware needs separate configuration. ARM emulation adds startup cost; Spotify's private interfaces may change with app updates. [Linux setup details](docs/headless-linux.md) cover prerequisites, pairing, persistence, MCP and troubleshooting.
+On macOS, install Node 22.19 or newer, run `npm ci`, and use `bin/spotify`. First login follows the same pairing flow; there is no desktop application prerequisite.
 
-## Commands
+Login calls `accounts.spotify.com/oauth2/device/authorize` directly and returns Spotify’s own approval URL and code. `login-status` polls the token endpoint at its prescribed interval. The CLI saves access/refresh tokens privately under `~/.config/spotify-cli` (override: `SPOTIFY_STATE_DIR`) and renews them when needed. No account password or developer client secret is requested. `spotify logout` removes local authorization.
 
-`spotify help` lists commands. `spotify help playlist-move` describes arguments. `spotify tools` emits JSON Schemas for all 47 app commands. Both `playlist-add` and `playlist add` work, as do equivalent queue and folder aliases. Quote multi-word values.
-
-| Controls           | Commands                                                                                                                                                  |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Login              | `login`, `login-status`                                                                                                                                   |
-| Playback           | `status`, `play`, `pause`, `resume`, `toggle`, `next`, `previous`, `seek`, `volume`, `shuffle`, `repeat`                                                  |
-| Discovery          | `search`, `history`, `recent`                                                                                                                             |
-| Queue              | `queue`, `queue-add`, `queue-remove`, `queue-move`, `queue-clear`                                                                                         |
-| Library            | `library`, `liked`, `save`, `unsave`, `contains`                                                                                                          |
-| Playlists          | `playlists`, `playlist`, `playlist-create`, `playlist-update`, `playlist-add`, `playlist-remove`, `playlist-move`, `playlist-follow`, `playlist-unfollow` |
-| Folders            | `folder-create`, `folder-rename`, `folder-move`                                                                                                           |
-| Devices            | `devices`, `transfer`                                                                                                                                     |
-| App                | `settings`, `setting`, `open`                                                                                                                             |
-| Advanced discovery | `queries`, `query`, `apis`, `api-call`                                                                                                                    |
-
-URI arguments accept `spotify:…`, `https://open.spotify.com/…` links, or `liked`. Multiple URIs use commas. Search categories are `all`, `track`, `album`, `artist`, `playlist`, `episode`, `show`, `user`, and `audiobook`. Availability depends on the account and region.
+## Play and control
 
 ```sh
+spotify search "Daft Punk" --type track --limit 5
+spotify play --query "Veridis Quo"
 spotify play liked
-spotify play spotify:album:1gHpRoAeRbwlG4v8RYBzE3 --index 0
+spotify play spotify:playlist:PLAYLIST_ID --index 0
+spotify pause
+spotify resume
+spotify next
+spotify previous
 spotify seek 30
 spotify volume 25
 spotify shuffle on
 spotify repeat context
 spotify devices
-spotify transfer local_device
-spotify queue add spotify:track:2LD2gT7gwAurzdQDQtILds
-spotify queue
-spotify liked --offset 20 --limit 20
-spotify contains spotify:track:2LD2gT7gwAurzdQDQtILds
-spotify settings
-spotify setting playback.autoMix false
+spotify transfer "EXACT SPEAKER NAME"
 ```
 
-Playlist creation returns its URI and confirms private, unpublished access. Editing or removing rows requires the exact `uid` returned by `playlist` or `queue`, so duplicate songs can be changed independently. Move indices and pagination offsets start at zero. `queue-clear` clears explicit additions; the playback context continues. `playlist-unfollow` removes a playlist from the library and is recoverable by following its URI again.
+Commands affect the account’s active Connect device. `transfer` requires its exact ID or a unique exact name. No speaker is invented when none is available. Availability and account/device restrictions are reported by Spotify.
+
+Playback commands return the observed state, not just a request acknowledgement. An uncertain mutation is never automatically repeated; inspect status before retrying. Seeking from the player component includes the expected track URI so an old slider cannot seek a replacement track.
+
+## Prebuilt music controls
+
+Playback results also include a versioned `spotify.player` component reference with current song, artist, album, playback position, device and control bindings. Its static HTML has a large pause/resume button, previous/next and a seek bar. The model never generates the component or handles button clicks.
+
+A connected MCP Apps host loads `ui://spotify/player-v1.html`. Custom frontends can use the included sandboxed host adapter. `spotify component` returns the static resource for a CLI-backed renderer. Ordinary shell JSON alone does not make ChatGPT display UI: the host must support and connect to the component contract. See the [player integration guide](docs/player-component.md).
+
+## Library, playlists and queue
+
+```sh
+spotify liked --offset 20 --limit 20
+spotify library --limit 20
+spotify playlists
+spotify playlist PLAYLIST_URI --offset 0 --limit 20
+spotify contains TRACK_URI
+spotify save TRACK_URI
+spotify unsave TRACK_URI
+spotify queue
+spotify queue add TRACK_URI
+spotify queue remove EXACT_ROW_UID
+spotify queue move EXACT_ROW_UID 0
+spotify queue clear
+```
+
+Library/playlist pages preserve pagination, exact row UIDs and revisions. `playlists` reads the native rootlist including folder hierarchy. Queue edits preserve unrelated context/hidden rows and use the server’s revision. Duplicate occurrences are addressed by exact UID; ambiguous queue occurrences fail rather than guessing.
+
+Private playlist creation, playlist edits, follow/unfollow and folder operations have native implementations:
 
 ```sh
 spotify playlist create "Evening mix" --description "A private playlist"
-# Substitute returned URI and row UID in subsequent commands:
 spotify playlist add PLAYLIST_URI TRACK_URI
-spotify playlist PLAYLIST_URI
-spotify playlist move PLAYLIST_URI ROW_UID 0
+spotify playlist move PLAYLIST_URI EXACT_ROW_UID 0
 spotify playlist update PLAYLIST_URI --description ""
 spotify folder create "Music"
 spotify folder move PLAYLIST_URI FOLDER_URI
 spotify folder move PLAYLIST_URI root
 ```
 
-## Give it to a model
+Creation checks private/unpublished state. A partial setup failure returns `error.details.createdUri`; inspect that resource before retrying creation. Mutations use exact server identifiers and read confirmations, with no automatic replay.
 
-Models with shell access can invoke the checkout's `bin/spotify` launcher directly and discover arguments using `tools`. [Model instructions](docs/model-tools.md) explain results and identifiers.
+## Tools for models
 
-For an MCP client supporting local stdio servers, use [mcp-config.example.json](mcp-config.example.json), replacing the example path with your checkout's absolute path:
+`spotify tools` returns the currently supported command schemas. `spotify help COMMAND` describes arguments. Multi-word aliases such as `queue add` and `playlist create` are supported. URI arguments accept `spotify:…` and `https://open.spotify.com/…` links; pagination and target indices are zero-based.
 
 ```json
 {
   "mcpServers": {
-    "spotify-desktop": {
+    "spotify": {
       "command": "/absolute/path/to/rea-apps/spotify/bin/spotify",
       "args": ["mcp"]
     }
@@ -114,28 +102,22 @@ For an MCP client supporting local stdio servers, use [mcp-config.example.json](
 }
 ```
 
-The MCP server exposes 48 tools: `spotify_connect` plus all 47 app commands, including `spotify_login`, `spotify_login_status`, `spotify_search`, `spotify_play`, and `spotify_playlist_add`. CLI and MCP share validated schemas and runtime code. Persistent registration in a particular model client is separate from running the server.
+MCP exposes `spotify_connect` plus supported CLI operations. It uses the same native backend, schemas and player component. Public Web API calls to `api.spotify.com` are not used and there is no automatic desktop fallback.
 
-## Results and errors
+Pinned native read queries are discoverable through `queries` and `query`. Desktop-only settings, renderer/API introspection, app navigation and per-track account listening history are not advertised by the standalone backend. The old desktop implementation remains available for historical comparison only through an explicit `SPOTIFY_BACKEND=desktop`; it is never automatically selected or launched on a native failure.
 
-Operational commands emit one JSON object to stdout:
+## Results and verification
 
-```json
-{ "ok": true, "result": { "percent": 25 } }
-```
+Commands emit `{ "ok": true, "result": ... }` or a typed `{ "ok": false, "error": ... }`. Playback responses additionally contain `component`. `--pretty` adds indentation. Exit status is 0 for success, 2 for invalid arguments, 1 for execution failures. Credentials and raw upstream authentication errors are never included in tool results.
 
-Failures return `{"ok":false,"error":{"code":"…","message":"…"}}`. Exit status is `0` for success, `2` for invalid arguments or unknown commands, and `1` for execution failures. `--pretty` indents JSON. A timeout or `STATE_NOT_CONFIRMED` may mean a mutation completed; read state before retrying. Failed creation includes `error.details.createdUri` if a playlist already exists.
+On the ARM64 Orin, independent device pairing and refresh succeeded. With the old desktop container stopped, the normal CLI verified playback status, Connect device discovery, native search, liked songs and library/playlist reads. The current speaker volume was set to the same value and confirmed through the native Connect endpoint. Measured CLI peak RSS for status/devices/search/liked was about 97–99 MiB, compared with a 1.218 GiB sample for the prior desktop container. These are measured workloads, not a universal upper bound. CLI processes exit after their command; an MCP host keeps its Node server running.
 
-Common mutations check observed state before reporting success. Advanced `api-call` returns the service response and may require a separate read to confirm its effect. `queries --route album` discovers shipped read queries by loading that route without navigating the UI. Advanced signatures and variables must be discovered from the app; [reverse engineering notes](docs/reverse-engineering.md) include examples.
-
-Spotify updates can change these private interfaces. Missing capabilities return typed errors. Account and device restrictions still apply. Advanced methods have broader scope than the individually verified commands.
-
-## Verification
+Playlist/folder and queue write implementations have protocol/state tests grounded in first-party shipped code; they have not all been re-tested as live account mutations in this backend migration. No disposable playlists or queue changes were made for this migration. See [native protocol evidence and limits](docs/native-protocol.md).
 
 ```sh
 npm test
-# Deliberately changes playback and disposable library data, then restores them:
-npm run test:live
+# Development-only browser checks of the prebuilt component, no real playback:
+node scripts/check-player-browser.mjs
 ```
 
-The live acceptance run passed 55 operations against the logged-in app, including exact duplicate playlist editing, private creation, queue reordering, playback, settings, and transfers between the Mac and a speaker. It restored the original track, context, position, device, volume, shuffle, and repeat settings, and unfollowed its temporary playlist. Additional live checks covered folders, catalog queries, search categories, cold launch, and MCP execution. Private reports and static evidence are archived outside this checkout; they are not needed at runtime.
+Browser checks require Playwright in the development environment; neither Playwright nor a browser is needed by the deployed CLI. Spotify’s private interfaces can change; unrecognized pinned queries or native contracts return typed errors and require a CLI update. REA was used for investigation and is not required at runtime.

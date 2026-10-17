@@ -22,11 +22,11 @@ if [ "$mode" = both ]; then
   if [ -e "$destination" ] || [ -L "$destination" ]; then
     [ -L "$destination" ] || { printf '%s\n' "An existing file occupies $destination." >&2; exit 1; }
     case "$(readlink "$destination")" in
-      */spotify-desktop-cli/bin/spotify-headless|*/spotify/bin/spotify-headless) ;;
+      */spotify-desktop-cli/bin/spotify-headless|*/spotify/bin/spotify-headless|*/spotify/bin/spotify) ;;
       *) printf '%s\n' "An unrelated symlink occupies $destination." >&2; exit 1 ;;
     esac
   fi
-  ln -sfn "$workspace/spotify/bin/spotify-headless" "$destination"
+  ln -sfn "$workspace/spotify/bin/spotify" "$destination"
   UBER_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/uber/scripts/setup-linux.sh"
   INSTAGRAM_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/instagram/scripts/setup-linux.sh"
   RESY_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/resy/scripts/setup-linux.sh"

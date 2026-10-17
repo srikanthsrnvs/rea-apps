@@ -4,7 +4,7 @@ Standalone tools reconstructed from installed apps, with separate Spotify, Uber,
 
 | App | Commands | Runtime |
 | --- | --- | --- |
-| [Spotify](spotify/README.md) | Login, search, playback, library, playlists, speakers, MCP | macOS Spotify or the maintained headless Linux container |
+| [Spotify](spotify/README.md) | Device pairing, search, playback, queues, library, playlists, folders, Spotify Connect devices and prebuilt music controls | Native Node HTTP/WebSocket; no desktop app, Chromium, Docker or emulator |
 | [Uber](uber/README.md) | Verification-code login, address search, ride options, fares, payment selection, booking, cancellation, experimental iframe map | Native Node.js HTTP; map renders in the client's browser; no Android device or browser on the host |
 | [Instagram](instagram/README.md) | Search, Explore, inbox summaries, followers, following, saved collections | Headless HTTP login with an Instagram approval link; Android used for protocol investigation |
 | [OpenTable](opentable/README.md) | Verification-code login, paginated restaurant search, tables, payments, reservations, reviewed booking and cancellation | Headless Node HTTP; no Android, browser or display required on the host |
@@ -21,19 +21,11 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's container and native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, and `erewhon` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify needs Docker Engine with Compose v2; see its [Linux prerequisites](spotify/docs/headless-linux.md). On ARM64, its emulator setup requires systemd and sudo. The other apps reuse the native Node runtime and need no Android or emulation at runtime. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy also installs cloudflared for its temporary login relay.
+The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, and `erewhon` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime and need no Android or emulation at runtime. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy also installs cloudflared for its temporary login relay.
 
 For one native app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, or `--erewhon-only`.
 
-For an existing Spotify installation, preserve its saved container volume and use:
-
-```sh
-./scripts/setup-linux.sh --no-build
-```
-
-When moving an older checkout, keep its private `.env` (including the device hostname) in `spotify/.env`. Run setup from the new directory to refresh the runtime and command links.
-
-The fixed Spotify Compose project and volume names are retained when updating this repository, so moving into `spotify/` preserves its saved login. Never run `docker compose down -v` during migration.
+For an existing Spotify installation, rerun setup and complete the new native `spotify login` pairing. Once native commands work, stop the old desktop container with `spotify/bin/spotify-headless service stop` to reclaim RAM. Its saved profile volume can remain as a recovery copy; native sessions are separate. See the [migration guide](spotify/docs/headless-linux.md#existing-desktop-deployments).
 
 ## Sign in and use
 
@@ -77,4 +69,4 @@ npm --prefix opentable test
 npm --prefix erewhon test
 ```
 
-The apps have separate dependency trees and private session storage. Spotify and Uber have separate Docker build contexts. Spotify's profile stays in its existing Docker volume. Instagram stores its session under `~/.config/instagram-cli`, Uber under `~/.config/uber-cli`, Resy under `~/.config/resy-cli`, OpenTable under `~/.config/opentable-cli`, and Erewhon under `~/.config/erewhon-cli` (or `$XDG_CONFIG_HOME/APP-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.
+The apps have separate dependency trees and private session storage. Native Spotify stores its session under `~/.config/spotify-cli`; historical desktop Docker files remain only for recovery/comparison. Instagram stores its session under `~/.config/instagram-cli`, Uber under `~/.config/uber-cli`, Resy under `~/.config/resy-cli`, OpenTable under `~/.config/opentable-cli`, and Erewhon under `~/.config/erewhon-cli` (or `$XDG_CONFIG_HOME/APP-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.

@@ -3,15 +3,22 @@ import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { catalog } from "./catalog.mjs";
 import { execute } from "./client.mjs";
 import { connectSpotify } from "./lifecycle.mjs";
+import { PLAYER_URI, PLAYER_MIME, playerCommands, playerToolMeta, playerResource, playbackResult } from "./player.mjs";
+import { backendName, nativeCommands } from "./standalone/capabilities.mjs";
 
-export async function serveMcp(options = {}) {
-  const server = new McpServer({ name: "spotify-desktop", version: "0.1.0" });
+export function createMcpServer(options = {}, { run = execute, connect = connectSpotify } = {}) {
+  const server = new McpServer({ name: "spotify-desktop", version: "0.2.0" });
+  server.registerResource("spotify-player", PLAYER_URI,
+    { mimeType: PLAYER_MIME, description: "Prebuilt Spotify playback controls" },
+    async () => ({ contents: [await playerResource()] }));
   const register = (name, description, inputSchema, effect, handler) => {
     server.registerTool(
       name,
       {
         description,
         inputSchema: fromJsonSchema(inputSchema),
+        ...(playerCommands.has(name.replace(/^spotify_/, "").replaceAll("_", "-"))
+          ? { _meta: playerToolMeta } : {}),
         annotations: {
           readOnlyHint: effect === "read",
           destructiveHint: effect !== "read" && /remove|unsave|clear|api_call/.test(name),
@@ -21,7 +28,7 @@ export async function serveMcp(options = {}) {
       async (args) => {
         let output;
         try {
-          output = { ok: true, result: await handler(args) };
+          output = playbackResult(name.replace(/^spotify_/, "").replaceAll("_", "-"), await handler(args));
         } catch (error) {
           output = {
             ok: false,
@@ -36,28 +43,35 @@ export async function serveMcp(options = {}) {
           content: [{ type: "text", text: JSON.stringify(output) }],
           structuredContent: output,
           isError: !output.ok,
+          ...(output.component ? { _meta: playerToolMeta } : {}),
         };
       },
     );
   };
   register(
     "spotify_connect",
-    "Connect or launch Spotify. Headless Linux uses Xvfb and D-Bus. On macOS restart:true enables debugging by restarting the app. If logged out, use spotify_login.",
+    "Inspect the standalone Spotify connection. No browser or desktop application is started. If logged out, use spotify_login and approve its Spotify pairing URL.",
     {
       type: "object",
       properties: { restart: { type: "boolean", default: false } },
       additionalProperties: false,
     },
     "write",
-    (args) => connectSpotify({ ...options, restart: args.restart ?? false }),
+    (args) => connect({ ...options, restart: args.restart ?? false }),
   );
   for (const command of catalog)
+    if (backendName() === "desktop" ? command.name !== "logout" : nativeCommands.has(command.name))
     register(
       `spotify_${command.name.replaceAll("-", "_")}`,
       command.description,
       command.inputSchema,
       command.effect,
-      (args) => execute(command.name, args, options),
+      (args) => run(command.name, args, options),
     );
+  return server;
+}
+
+export async function serveMcp(options = {}) {
+  const server = createMcpServer(options);
   await server.connect(new StdioServerTransport());
 }

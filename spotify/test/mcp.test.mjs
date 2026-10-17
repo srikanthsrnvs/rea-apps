@@ -4,6 +4,7 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { fileURLToPath } from "node:url";
 import { catalog } from "../src/catalog.mjs";
+import { nativeCommands } from "../src/standalone/capabilities.mjs";
 
 test("real stdio MCP catalog and pre-execution argument rejection", async () => {
   const client = new Client({ name: "spotify-cli-test", version: "1" });
@@ -15,7 +16,7 @@ test("real stdio MCP catalog and pre-execution argument rejection", async () => 
   try {
     await client.connect(transport);
     const tools = (await client.listTools()).tools;
-    assert.equal(tools.length, catalog.length + 1);
+    assert.equal(tools.length, catalog.filter(c => nativeCommands.has(c.name)).length + 1);
     assert.equal(tools.find((t) => t.name === "spotify_login").annotations.readOnlyHint, false);
     assert.equal(
       tools.find((t) => t.name === "spotify_login_status").annotations.readOnlyHint,
@@ -25,7 +26,7 @@ test("real stdio MCP catalog and pre-execution argument rejection", async () => 
     assert.equal(pause.annotations.readOnlyHint, false);
     assert.equal(tools.find((t) => t.name === "spotify_search").annotations.readOnlyHint, true);
     assert.equal(
-      tools.find((t) => t.name === "spotify_playlist_remove").annotations.destructiveHint,
+      tools.find((t) => t.name === "spotify_unsave").annotations.destructiveHint,
       true,
     );
     const bad = await client.callTool({ name: "spotify_volume", arguments: { percent: 101 } });

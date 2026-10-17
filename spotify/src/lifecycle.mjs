@@ -6,9 +6,16 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { SpotifyConnection, SpotifyError } from "./cdp.mjs";
 import { execute } from "./client.mjs";
+import { backendName } from "./standalone/capabilities.mjs";
 const run = promisify(execFile);
 
 export async function connectSpotify({ port = 9222, restart = false } = {}) {
+  if (!["native", "desktop"].includes(backendName()))
+    throw new SpotifyError("INVALID_ARGUMENT", "SPOTIFY_BACKEND must be native or desktop.");
+  if (backendName() === "native") {
+    const { connectStandalone } = await import("./standalone/client.mjs");
+    return connectStandalone();
+  }
   const state = async (alreadyConnected) => {
     const auth = await execute("login-status", {}, { port });
     return {

@@ -2,8 +2,11 @@
 import { catalog, parseCommand, invalid } from "./catalog.mjs";
 import { execute } from "./client.mjs";
 import { connectSpotify } from "./lifecycle.mjs";
+import { playbackResult, playerResource } from "./player.mjs";
+import { backendName, nativeCommands } from "./standalone/capabilities.mjs";
 
 const raw = process.argv.slice(2);
+const available = catalog.filter(c => backendName() === "desktop" ? c.name !== "logout" : nativeCommands.has(c.name));
 const portIndex = raw.indexOf("--port");
 let port = Number(process.env.SPOTIFY_PORT ?? 9222);
 if (portIndex !== -1) {
@@ -16,7 +19,7 @@ const print = (value) =>
   );
 try {
   if (raw.length === 1 && ["--version", "-v"].includes(raw[0])) {
-    process.stdout.write("0.1.0\n");
+    process.stdout.write("0.2.0\n");
     process.exit(0);
   }
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
@@ -24,14 +27,14 @@ try {
   const parsed = parseCommand(raw);
   if (parsed.name === "help") {
     const selected = parsed.subject ?? parsed.tokens?.[0];
-    const entries = selected ? catalog.filter((c) => c.name === selected) : catalog;
+    const entries = selected ? catalog.filter((c) => c.name === selected) : available;
     if (selected && !entries.length) throw invalid(`Unknown command: ${selected}`);
     if (raw.includes("--json")) print({ name: "spotify", commands: entries });
     else {
-      process.stdout.write("spotify — control your logged-in Spotify desktop app\n\n");
+      process.stdout.write("spotify — native Spotify control without a desktop or browser\n\n");
       if (!selected)
         process.stdout.write(
-          "  connect [--restart]        Start or reconnect local runtime control\n  tools                      Print the command catalog as JSON\n  mcp                        Serve these commands over MCP stdio\n\n",
+          "  connect [--restart]        Start or reconnect local runtime control\n  tools                      Print the command catalog as JSON\n  component                  Read the prebuilt player resource as JSON\n  mcp                        Serve these commands over MCP stdio\n\n",
         );
       for (const c of entries) {
         process.stdout.write(`  ${c.name.padEnd(22)} ${c.description}\n`);
@@ -45,8 +48,12 @@ try {
         '\nAll commands return JSON. Use --pretty for indentation and --port N for another local port.\nMulti-word aliases work: spotify queue add URI; spotify playlist create "Name".\n',
       );
     }
+  } else if (parsed.name === "component") {
+    if (parsed.tokens.some((t) => !["--json", "--pretty"].includes(t)))
+      throw invalid("Usage: spotify component [--pretty]");
+    print({ contents: [await playerResource()] });
   } else if (parsed.name === "tools") {
-    print({ name: "spotify-desktop", version: "0.1.0", commands: catalog });
+    print({ name: "spotify", version: "0.2.0", backend: backendName(), commands: available });
   } else if (parsed.name === "connect") {
     if (parsed.tokens.some((t) => !["--restart", "--json", "--pretty"].includes(t)))
       throw invalid("Usage: spotify connect [--restart] [--port N]");
@@ -59,7 +66,7 @@ try {
     const { serveMcp } = await import("./mcp.mjs");
     await serveMcp({ port });
   } else {
-    print({ ok: true, result: await execute(parsed.name, parsed.args, { port }) });
+    print(playbackResult(parsed.name, await execute(parsed.name, parsed.args, { port })));
   }
 } catch (error) {
   print({

@@ -1,5 +1,7 @@
 # Spotify runtime investigation
 
+This page describes the historical desktop bridge. The current default is the [standalone native protocol backend](native-protocol.md), which does not run the desktop app or Chromium.
+
 The investigation used the [REA repository](https://github.com/morluto/rea) at commit `6611bcf6e86630c775c24e6afa00d7239c64e70e`, package 6.4.0. `npm ci` and `npm run build:cached` succeeded using existing Node 24.19.0 and npm 10.9.2. REA's exact pins are Node 24.18.0 and npm 11.16.0; no global toolchain was upgraded.
 
 `bin/rea` selects the compatible bundled runtime. Set `REA_NODE` to override it and `REA_DIR` to select a separately built REA checkout. The shell's default Node 23 is unsupported by REA. Its MCP stdio smoke test listed 172 tools. Persistent Codex registration was not changed. See REA's [installation guide](https://github.com/morluto/rea/blob/6611bcf6e86630c775c24e6afa00d7239c64e70e/docs/installation.md). The CLI runs independently of REA. To reproduce the optional investigation setup:

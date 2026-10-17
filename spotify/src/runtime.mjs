@@ -365,6 +365,8 @@ export async function spotifyRuntime(operation, args) {
       case "seek": {
         const state = await status();
         if (!state.track) fail("NOT_PLAYING", "No current track to seek.");
+        if (args["track-uri"] !== undefined && state.track.uri !== uri(args["track-uri"]))
+          fail("STALE_TRACK", "Playback moved to another track. Refresh before seeking.");
         const position = args.seconds * 1000;
         if (position > state.durationMs)
           fail("INVALID_ARGUMENT", "Seek position exceeds the track duration.");

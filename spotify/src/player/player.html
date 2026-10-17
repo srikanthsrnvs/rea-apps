@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spotify player</title>
+<style>
+:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:light-dark(#17251c,#f2f8f3);background:transparent}*{box-sizing:border-box}body{margin:0;padding:16px}.player{max-width:560px;margin:auto;padding:30px;border:1px solid light-dark(#dfe8e0,#304438);border-radius:24px;background:light-dark(#f6faf5,#14221a)}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:light-dark(#536c5a,#a4bda9);display:flex;align-items:center;gap:8px}.dot{width:7px;height:7px;border-radius:50%;background:#1db954}h1{font-size:clamp(24px,5vw,36px);line-height:1.15;letter-spacing:-.04em;margin:26px 0 9px;overflow-wrap:anywhere}.artist{font-size:16px;margin:0;color:light-dark(#526658,#adbfaf)}.album{font-size:12px;min-height:18px;margin:7px 0 0;color:light-dark(#69806f,#879f8d)}.controls{display:flex;align-items:center;justify-content:center;gap:28px;margin:26px 0}button{font:inherit;border:0;cursor:pointer;color:inherit;background:transparent;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:48px;height:48px;transition:transform .12s,background .12s}button:hover:enabled{background:light-dark(#e3ede3,#263d2d);transform:scale(1.04)}button:active:enabled{transform:scale(.96)}button:focus-visible,input:focus-visible{outline:3px solid #1db954;outline-offset:5px}button:disabled{opacity:.35;cursor:default}.primary{width:88px;height:88px;background:#1ed760;color:#082713;box-shadow:0 8px 24px #1db95422}.primary:hover:enabled{background:#3de276}.primary svg{width:36px;height:36px}svg{width:25px;height:25px;fill:currentColor}.seek{width:100%;display:block;accent-color:#1db954;cursor:pointer;height:24px;margin:0}.seek:disabled{cursor:default}.times{display:flex;justify-content:space-between;font-size:11px;font-variant-numeric:tabular-nums;color:light-dark(#627769,#9fb6a5);margin-top:3px}.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px;min-height:28px;font-size:12px;color:light-dark(#526c5b,#a4bda9)}.device{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.refresh{width:28px;height:28px;border-radius:8px}.refresh svg{width:17px;height:17px}.error{font-size:12px;color:light-dark(#a33325,#ffb5a9);margin:12px 0 0;line-height:1.5}.error:empty{display:none}[hidden]{display:none!important}@media(max-width:350px){body{padding:8px}.player{padding:22px}.controls{gap:18px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="player" aria-label="Spotify playback controls">
+  <div class="eyebrow"><span class="dot" aria-hidden="true"></span>Spotify <span id="state">· Connecting</span></div>
+  <h1 id="title">Connecting to Spotify…</h1>
+  <p class="artist" id="artist"></p><p class="album" id="album"></p>
+  <div class="controls">
+    <button id="previous" aria-label="Previous track" title="Previous track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h3v16H5zm14 0v16L9 12z"/></svg></button>
+    <button id="play-pause" class="primary" aria-label="Pause" title="Pause" disabled><svg id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m8 3 14 9-14 9z"/></svg></button>
+    <button id="next" aria-label="Next track" title="Next track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4h3v16h-3zM5 4l10 8-10 8z"/></svg></button>
+  </div>
+  <input id="seek" class="seek" type="range" min="0" max="0" value="0" step="1" aria-label="Playback position" disabled>
+  <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
+  <div class="footer"><span id="device" class="device">Connecting…</span><button id="refresh" class="refresh" aria-label="Refresh playback" title="Refresh playback"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7V3l-2 2a9 9 0 1 0 3 10h-3a6 6 0 1 1-2-8l-3 3h9V3h-2z"/></svg></button></div>
+  <p id="error" class="error" role="status" aria-live="polite"></p>
+</main>
+<script>
+(() => {
+  "use strict";
+  const el = id => document.getElementById(id);
+  let playback = null, anchor = 0, busy = false, reading = false, stale = true;
+  let scrubbing = false, scrubUri = null, bridgeReady = false, disposed = false;
+  let nextId = 0, hostOrigin = null, newest = 0;
+  const requests = new Map();
+  const targets = { refresh:"spotify_status", pause:"spotify_pause", resume:"spotify_resume", previous:"spotify_previous", next:"spotify_next", seek:"spotify_seek" };
+  const time = ms => { const s = Math.max(0, Math.floor((Number(ms) || 0) / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2,"0"); };
+  const position = () => playback ? Math.min(playback.durationMs || 0, (playback.positionMs || 0) + (playback.state === "playing" && !stale ? performance.now() - anchor : 0)) : 0;
+  function controls() {
+    for (const id of ["play-pause","next","previous"]) el(id).disabled = busy || stale || !playback?.track || !playback.deviceId;
+    el("seek").disabled = busy || stale || !playback?.track || !playback.deviceId || !playback.durationMs;
+    const permissions = playback?.restrictions || {};
+    if (permissions[playback?.state === "playing" ? "canPause" : "canResume"] === false) el("play-pause").disabled = true;
+    if (permissions.canSkipNext === false) el("next").disabled = true;
+    if (permissions.canSkipPrevious === false) el("previous").disabled = true;
+    if (permissions.canSeek === false) el("seek").disabled = true;
+    el("refresh").disabled = busy || reading || !bridgeReady;
+    el("play-pause").setAttribute("aria-busy", String(busy));
+  }
+  function tick() {
+    if (scrubbing || !playback) return;
+    const ms = position(); el("seek").value = String(ms / 1000); el("elapsed").textContent = time(ms);
+    el("seek").setAttribute("aria-valuetext", time(ms) + " of " + time(playback.durationMs));
+  }
+  function render() {
+    if (!playback) { controls(); return; }
+    el("title").textContent = playback.track?.name || "Nothing playing";
+    el("artist").textContent = (playback.track?.artists || []).join(", ");
+    el("album").textContent = playback.track?.album || "";
+    el("state").textContent = "· " + (stale ? "Reconnecting" : playback.state === "playing" ? "Playing" : playback.state === "paused" ? "Paused" : "Stopped");
+    el("device").textContent = playback.device ? "Playing on " + playback.device : "No active device";
+    const paused = playback.state !== "playing";
+    el("play-icon").hidden = !paused; el("pause-icon").hidden = paused;
+    el("play-pause").setAttribute("aria-label", paused ? "Resume" : "Pause");
+    el("play-pause").title = paused ? "Resume" : "Pause";
+    if (!scrubbing) el("seek").max = String((playback.durationMs || 0) / 1000);
+    el("duration").textContent = time(playback.durationMs); controls(); tick();
+  }
+  function accept(response) {
+    const output = response?.structuredContent || response;
+    if (response?.isError || output?.ok === false) throw Error(output?.error?.message || "Spotify could not confirm that action. Refresh before trying again.");
+    const component = output?.component;
+    if (component?.id !== "spotify.player" || component.version !== 1) return;
+    const state = component.props?.playback;
+    if (!state || !["playing","paused","stopped"].includes(state.state)) return;
+    if (Number(state.observedAt) < newest) return;
+    newest = Number(state.observedAt) || 0; playback = state; anchor = performance.now(); stale = false; render();
+  }
+  function notify(method, params) {
+    window.parent.postMessage({jsonrpc:"2.0",method,params}, hostOrigin || "*");
+  }
+  function request(method, params) {
+    return new Promise((resolve,reject) => {
+      const id = ++nextId;
+      const timer = setTimeout(() => { requests.delete(id); reject(Error("Spotify did not respond. Refresh to check its current state; the action will not be repeated.")); }, 30000);
+      requests.set(id, {resolve,reject,timer});
+      window.parent.postMessage({jsonrpc:"2.0",id,method,params}, hostOrigin || "*");
+    });
+  }
+  async function call(action, args = {}) {
+    if (!bridgeReady) throw Error("This player needs a connected MCP Apps host.");
+    const result = await request("tools/call", { name: targets[action], arguments: args }); accept(result);
+  }
+  async function refresh() {
+    if (disposed || !bridgeReady || reading || busy || document.hidden) return;
+    reading = true; controls();
+    try { await call("refresh"); }
+    catch (error) { stale = true; el("error").textContent = error.message; render(); }
+    finally { reading = false; controls(); }
+  }
+  async function action(name, args) {
+    if (disposed || busy || stale) { scrubbing = false; render(); return; }
+    busy = true; el("error").textContent = ""; controls();
+    try { await call(name, args); }
+    catch (error) { stale = true; el("error").textContent = error.message; }
+    finally { busy = false; scrubbing = false; render(); await refresh(); }
+  }
+  window.addEventListener("message", event => {
+    if (event.source !== window.parent || disposed) return;
+    if (hostOrigin && event.origin !== hostOrigin) return;
+    const message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (typeof message.id === "number" && requests.has(message.id)) {
+      const pending = requests.get(message.id); requests.delete(message.id); clearTimeout(pending.timer);
+      if (!hostOrigin && event.origin !== "null") hostOrigin = event.origin;
+      if (message.error) pending.reject(Error(message.error.message || "Host rejected the request."));
+      else pending.resolve(message.result);
+    } else if (message.method === "ui/notifications/tool-result") {
+      try { accept(message.params); } catch (error) { el("error").textContent = error.message; }
+    } else if (message.method === "ui/notifications/host-context-changed") {
+      const theme = message.params?.theme;
+      if (["light","dark"].includes(theme)) document.documentElement.style.colorScheme = theme;
+    } else if (message.method === "ui/resource-teardown" && message.id !== undefined) {
+      dispose(); window.parent.postMessage({jsonrpc:"2.0",id:message.id,result:{}}, hostOrigin || "*");
+    }
+  });
+  el("play-pause").onclick = () => action(playback?.state === "playing" ? "pause" : "resume");
+  el("previous").onclick = () => action("previous"); el("next").onclick = () => action("next");
+  el("refresh").onclick = () => { el("error").textContent = ""; refresh(); };
+  el("seek").addEventListener("input", () => {
+    if (!scrubbing) scrubUri = playback?.track?.uri;
+    scrubbing = true; el("elapsed").textContent = time(Number(el("seek").value) * 1000);
+  });
+  el("seek").addEventListener("change", () => {
+    if (!scrubUri || scrubUri !== playback?.track?.uri) { scrubbing = false; render(); return; }
+    action("seek", {seconds:Number(el("seek").value), "track-uri":scrubUri});
+  });
+  el("seek").addEventListener("pointercancel", () => { scrubbing = false; render(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  const clock = setInterval(tick, 250), polling = setInterval(refresh, 3000);
+  const resize = new ResizeObserver(() => {
+    if (bridgeReady && !disposed) notify("ui/notifications/size-changed", {height:Math.ceil(document.body.getBoundingClientRect().height)});
+  });
+  resize.observe(document.body);
+  function dispose() {
+    disposed = true; clearInterval(clock); clearInterval(polling);
+    resize.disconnect();
+    for (const p of requests.values()) { clearTimeout(p.timer); p.reject(Error("Player closed.")); }
+    requests.clear();
+  }
+  window.addEventListener("pagehide", dispose, {once:true});
+  if (window.parent === window) {
+    el("title").textContent = "Spotify player"; el("error").textContent = "Open this component in a connected MCP Apps host to control Spotify."; controls();
+  } else {
+    request("ui/initialize", {appInfo:{name:"spotify-player",version:"1.0.0"},appCapabilities:{},protocolVersion:"2026-01-26"})
+      .then(result => {
+        if (disposed) return;
+        bridgeReady = true;
+        if (["light","dark"].includes(result?.hostContext?.theme)) document.documentElement.style.colorScheme = result.hostContext.theme;
+        notify("ui/notifications/initialized", {}); notify("ui/notifications/size-changed", {height:document.documentElement.scrollHeight}); refresh();
+      }).catch(error => { el("title").textContent = "Spotify player"; el("error").textContent = error.message; controls(); });
+  }
+})();
+</script>
+</body>
+</html>
