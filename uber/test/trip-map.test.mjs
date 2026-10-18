@@ -44,12 +44,12 @@ function legacy(overrides = {}) {
     legs: [{ encodedPolyline: encoded, locationEndRef: 'fixture-location' }],
     vehicle: {
       vehiclePath: structuredClone(path),
-      licensePlate: 'PRIVATE_PLATE',
+      licensePlate: 'TEST_PLATE',
     },
     driver: {
       status: 'Accepted',
       phone: 'PRIVATE_PHONE',
-      name: 'PRIVATE_NAME',
+      name: 'Test driver',
     },
     eta: 3,
     etaString: '3 min',

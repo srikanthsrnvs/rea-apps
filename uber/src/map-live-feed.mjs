@@ -6,6 +6,7 @@ import {
   decodeTripDriverPayload,
 } from './ramen-codec.mjs';
 import { MapLiveProjection } from './map-live.mjs';
+import { RideEvents } from './ride-events.mjs';
 
 export function createLiveMapFeed(
   {
@@ -23,7 +24,8 @@ export function createLiveMapFeed(
   } = {},
 ) {
   const projection = new MapLiveProjection(tripId, { now }),
-    listeners = new Set();
+    listeners = new Set(),
+    events = new RideEvents();
   let transport = null,
     closed = false,
     state = { state: 'not-started' };
@@ -37,7 +39,7 @@ export function createLiveMapFeed(
     }
   };
   const metadata = (scene) => ({
-    ...scene,
+    ...events.observe(scene),
     liveTransport: {
       ...scene.liveTransport,
       state: state.state,

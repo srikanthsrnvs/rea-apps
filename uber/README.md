@@ -178,6 +178,26 @@ use a reachable `--public-url` and HTTPS reverse proxy, with optional
 
 The native driver stream supplies pickup ETA in minutes, current road geometry and server-authored predictions. After six seconds without a new observation, prediction playback follows the native queue; it does not estimate movement from speed. Reconnects resume the stream cursor, and logout or account replacement revokes the viewer. A controlled real-trip test on the headless Orin verified native driver, ETA, road-route and prediction delivery; the user confirmed the ETA and motion looked right. The ride was cancelled and the final receipt reported no charge. Full Android visual parity remains unverified.
 
+Ride and Eats tracking now share the renderer, status/profile components, camera
+padding and iframe bridge. Ride snapshots retain the selected driver’s name,
+photo and rating, vehicle and plate, pickup/destination and native sharing status
+when available. Native visibility flags are respected. Approach focuses on the
+car and pickup; the destination layer becomes relevant on-trip. Fulfillment
+`IN_PROGRESS` is not treated as proof that the rider is in the car. Missing
+identity or ETA stays absent; modern provider display fields and destination ETA
+bindings still need further verification.
+
+Embed with `uber map serve --trip-id UUID --frame-origin https://client.example`.
+After `uber-ride:ready`, the explicitly allowed parent sends
+`uber-ride:subscribe`; the iframe returns `uber-ride:snapshot` followed by
+`uber-ride:ride` observations. Use `uber-ride:unsubscribe` to stop messages;
+`uber-ride:unavailable` reports revoked/expired access. Both source window and
+exact origin must match. Ride observations cover phase, assignment, ETA and car
+position changes; NDJSON scenes contain `rideEvents`, and SSE emits `event: ride`.
+The latest 128 ride events support `Last-Event-ID` resumption **within that
+viewer/feed lifetime**. A new viewer starts a new journal; scope deduplication to
+that lease. No additional agent tool or server browser is required.
+
 The viewer now includes the recovered native route reveal/pulse timing, a
 solid base line, persistent car sprites, queued road-following animation and
 remaining-route clipping at the animated car. A native Android recording

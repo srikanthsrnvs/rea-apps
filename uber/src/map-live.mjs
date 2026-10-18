@@ -85,7 +85,11 @@ export function applyDriverUpdate(
     source: 'native_driver_location_push',
   };
   const eta = { ...scene.eta };
-  if (['EnRoute', 'Accepted', 'Arriving', 'Arrived'].includes(scene.status)) {
+  if (
+    scene.ride
+      ? ['approaching', 'arriving', 'waiting'].includes(scene.ride.phase)
+      : ['EnRoute', 'Accepted', 'Arriving', 'Arrived'].includes(scene.status)
+  ) {
     if (Number.isSafeInteger(update.etaToPickup)) {
       eta.pickupMinutes = update.etaToPickup >= 0 ? update.etaToPickup : null;
       eta.pickupDisplay =

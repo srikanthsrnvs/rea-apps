@@ -32,6 +32,11 @@ const assets = new Map([
   ['/viewer.mjs', ['viewer.mjs', 'text/javascript; charset=utf-8']],
   ['/viewer.css', ['viewer.css', 'text/css; charset=utf-8']],
   ['/delivery.mjs', ['delivery.mjs', 'text/javascript; charset=utf-8']],
+  ['/ride.mjs', ['ride.mjs', 'text/javascript; charset=utf-8']],
+  [
+    '/tracking-panel.mjs',
+    ['tracking-panel.mjs', 'text/javascript; charset=utf-8'],
+  ],
   [
     '/live-stream.mjs',
     [new URL('./live-stream.mjs', directory), 'text/javascript; charset=utf-8'],
@@ -175,7 +180,7 @@ export async function startMapServer(
     readFailed = false,
     revoked = false;
   const peers = new Set();
-  const deliveryCursors = new WeakMap();
+  const trackingCursors = new WeakMap();
   let eventTimer = null,
     eventRead = false,
     unsubscribe = null,
@@ -195,15 +200,17 @@ export async function startMapServer(
     fidelity,
     viewer: { frameOrigins: config.origins },
   });
-  function deliveryEvents(peer, value) {
-    let cursor = deliveryCursors.get(peer) ?? 0;
+  function trackingEvents(peer, value) {
+    let cursor = trackingCursors.get(peer) ?? 0;
     for (const event of value.kind === 'eats'
       ? (value.deliveryEvents ?? [])
-      : []) {
+      : value.kind === 'ride'
+        ? (value.rideEvents ?? [])
+        : []) {
       if (event.sequence <= cursor) continue;
       if (
         !peer.write(
-          `id: ${event.id}\nevent: delivery\ndata: ${JSON.stringify(event)}\n\n`,
+          `id: ${event.id}\nevent: ${value.kind === 'ride' ? 'ride' : 'delivery'}\ndata: ${JSON.stringify(event)}\n\n`,
         )
       ) {
         peer.destroy();
@@ -211,13 +218,13 @@ export async function startMapServer(
       }
       cursor = event.sequence;
     }
-    deliveryCursors.set(peer, cursor);
+    trackingCursors.set(peer, cursor);
   }
   function broadcast(value) {
     const event = `event: scene\ndata: ${JSON.stringify(packet(value))}\n\n`;
     for (const peer of peers) {
       if (!peer.write(event)) peer.destroy();
-      else deliveryEvents(peer, value);
+      else trackingEvents(peer, value);
     }
   }
   function revokePeers(event = 'revoked') {
@@ -357,7 +364,7 @@ export async function startMapServer(
           let resume = 0,
             gap = null;
           if (
-            initial.kind === 'eats' &&
+            ['eats', 'ride'].includes(initial.kind) &&
             req.headers['last-event-id'] !== undefined
           ) {
             const match = /^([a-f\d-]{36}):([0-9]+)$/i.exec(
@@ -369,14 +376,18 @@ export async function startMapServer(
               !Number.isSafeInteger(Number(match[2]))
             )
               return send(400, {
-                error: 'Invalid delivery event cursor for this order',
+                error: 'Invalid tracking event cursor for this trip',
               });
             resume = Number(match[2]);
             if (resume > (initial.eventCursor ?? 0))
               return send(409, {
-                error: 'Delivery event cursor is ahead of this order',
+                error: 'Tracking event cursor is ahead of this trip',
               });
-            const oldest = initial.deliveryEvents?.[0]?.sequence;
+            const oldest = (
+              initial.kind === 'ride'
+                ? initial.rideEvents
+                : initial.deliveryEvents
+            )?.[0]?.sequence;
             if (oldest && resume < oldest - 1)
               gap = { after: resume, oldestAvailable: oldest };
           }
@@ -391,9 +402,9 @@ export async function startMapServer(
           res.write(
             `event: scene\ndata: ${JSON.stringify(packet(initial))}\n\n`,
           );
-          deliveryCursors.set(res, resume);
+          trackingCursors.set(res, resume);
           if (gap) res.write(`event: gap\ndata: ${JSON.stringify(gap)}\n\n`);
-          deliveryEvents(res, initial);
+          trackingEvents(res, initial);
           peers.add(res);
           res.once('close', () => {
             peers.delete(res);

@@ -1,5 +1,10 @@
-const text = (value) =>
-  typeof value === 'string' ? value.trim().slice(0, 2000) : '';
+import {
+  trackingText as text,
+  trackingImageUrl as imageUrl,
+  trackingMapPadding,
+  panelElements,
+  createTrackingBridge,
+} from './tracking-panel.mjs';
 
 // Retain native status text and counts. Missing estimates remain missing rather
 // than turning a polling interval into a promised delivery time.
@@ -55,142 +60,9 @@ export function deliveryPresentation(scene) {
   };
 }
 
-export function deliveryMapPadding({ width, height, panelWidth, panelHeight }) {
-  if (height <= 500 && width >= 600)
-    return {
-      top: 24,
-      right: 24,
-      bottom: 24,
-      left: Math.min(panelWidth + 40, width - 120),
-    };
-  return {
-    top: Math.min(64, height * 0.15),
-    right: 24,
-    bottom: Math.max(24, Math.min(panelHeight + 40, height - 120)),
-    left: 24,
-  };
-}
-
-function imageUrl(value) {
-  try {
-    const url = new URL(value);
-    if (
-      url.protocol === 'https:' &&
-      !url.username &&
-      !url.password &&
-      (url.hostname === 'uber.com' ||
-        url.hostname.endsWith('.uber.com') ||
-        [
-          'd1a3f4spazzrp4.cloudfront.net',
-          'd1w2poirtb3as9.cloudfront.net',
-        ].includes(url.hostname))
-    )
-      return url.href;
-  } catch {
-    /* An absent image must not prevent order tracking. */
-  }
-  return null;
-}
-
-// The viewer key stays in the child. A parent must both match the server's
-// explicit embedding policy and initiate the handshake before receiving data.
-export function createDeliveryBridge({ window: win, frameOrigins = [] }) {
-  let origins = new Set();
-  let subscriber = null;
-  let latest = null;
-  let identity = null;
-  let closed = false;
-  const eventIds = new Set();
-  function send(packet, origin = subscriber) {
-    if (!origin || closed) return;
-    try {
-      win.parent.postMessage(packet, origin);
-    } catch {
-      // A parent can navigate or close between the handshake and an update.
-      subscriber = null;
-    }
-  }
-  function configure(values) {
-    origins = new Set(
-      (Array.isArray(values) ? values : []).slice(0, 32).filter((value) => {
-        try {
-          const url = new URL(value);
-          return (
-            ['https:', 'http:'].includes(url.protocol) && url.origin === value
-          );
-        } catch {
-          return false;
-        }
-      }),
-    );
-    if (subscriber && !origins.has(subscriber)) {
-      send({ type: 'uber-eats:unavailable' });
-      subscriber = null;
-    }
-  }
-  function clear() {
-    send({ type: 'uber-eats:unavailable' });
-    subscriber = latest = identity = null;
-    eventIds.clear();
-  }
-  function receive(event) {
-    if (
-      closed ||
-      win.parent === win ||
-      event.source !== win.parent ||
-      !origins.has(event.origin)
-    )
-      return;
-    if (event.data?.type === 'uber-eats:subscribe') {
-      subscriber = event.origin;
-      if (latest) send({ type: 'uber-eats:snapshot', scene: latest });
-    } else if (
-      event.data?.type === 'uber-eats:unsubscribe' &&
-      subscriber === event.origin
-    ) {
-      subscriber = null;
-    }
-  }
-  configure(frameOrigins);
-  win.addEventListener('message', receive);
-  return {
-    update(scene, nextOrigins) {
-      if (closed) return;
-      if (nextOrigins !== undefined) configure(nextOrigins);
-      if (scene?.kind !== 'eats' || !scene.delivery) {
-        clear();
-        return;
-      }
-      // The server provides a closed public scene. Copy only that value, never
-      // the enclosing response, viewer configuration, location or fragment.
-      const first = latest === null;
-      latest = structuredClone(scene);
-      if (first && win.parent !== win)
-        for (const origin of origins) send({ type: 'uber-eats:ready' }, origin);
-      if (first) send({ type: 'uber-eats:snapshot', scene: latest });
-      const nextIdentity = scene.delivery.workflowId || scene.delivery.orderId;
-      if (identity !== nextIdentity) eventIds.clear();
-      identity = nextIdentity;
-      for (const event of (Array.isArray(latest.deliveryEvents)
-        ? latest.deliveryEvents
-        : []
-      ).slice(-1000)) {
-        if (typeof event?.id !== 'string' || eventIds.has(event.id)) continue;
-        eventIds.add(event.id);
-        if (eventIds.size > 1000)
-          eventIds.delete(eventIds.values().next().value);
-        send({ type: 'uber-eats:delivery', event });
-      }
-    },
-    close() {
-      if (closed) return;
-      clear();
-      origins.clear();
-      closed = true;
-      win.removeEventListener('message', receive);
-    },
-  };
-}
+export const deliveryMapPadding = trackingMapPadding;
+export const createDeliveryBridge = (options) =>
+  createTrackingBridge({ ...options, kind: 'eats' });
 
 export function createDeliveryView(
   container,
@@ -200,12 +72,7 @@ export function createDeliveryView(
   let stage = null;
   let rendered = null;
   const eventIds = new Set();
-  const element = (tag, className, value) => {
-    const node = doc.createElement(tag);
-    if (className) node.className = className;
-    if (value) node.textContent = value;
-    return node;
-  };
+  const { element, status: statusBlock, profile } = panelElements(doc);
   return {
     render(scene) {
       const view = deliveryPresentation(scene);
@@ -239,20 +106,12 @@ export function createDeliveryView(
       if (signature === rendered) return;
       rendered = signature;
       container.dataset.stage = view.stage;
-      const heading = element('div', 'delivery-heading');
-      heading.append(
-        element('h1', 'delivery-title', view.title || view.storeName),
-      );
-      if (view.eta) heading.append(element('p', 'delivery-eta', view.eta));
-      const status = element('div', 'delivery-live');
-      status.setAttribute('role', 'status');
-      status.setAttribute('aria-live', 'polite');
-      status.setAttribute('aria-atomic', 'true');
-      status.append(heading);
-      if (view.etaDetail)
-        status.append(element('p', 'delivery-secondary', view.etaDetail));
-      if (view.detail)
-        status.append(element('p', 'delivery-detail', view.detail));
+      const status = statusBlock({
+        title: view.title || view.storeName,
+        eta: view.eta,
+        detail: view.detail,
+        etaDetail: view.etaDetail,
+      });
       if (view.progress.total) {
         const progress = element('div', 'delivery-progress');
         progress.setAttribute('role', 'progressbar');
@@ -286,26 +145,16 @@ export function createDeliveryView(
           view.courier.description ||
           view.courier.vehicleDescription)
       ) {
-        const courier = element('div', 'delivery-courier');
-        if (view.courier.photoUrl) {
-          const photo = element('img', 'delivery-courier-photo');
-          photo.alt = '';
-          photo.referrerPolicy = 'no-referrer';
-          photo.src = view.courier.photoUrl;
-          courier.append(photo);
-        }
-        const profile = element('div');
-        if (view.courier.name)
-          profile.append(
-            element('p', 'delivery-courier-name', view.courier.name),
-          );
-        for (const value of [
-          view.courier.description,
-          view.courier.vehicleDescription,
-        ])
-          if (value) profile.append(element('p', 'delivery-secondary', value));
-        courier.append(profile);
-        content.push(courier);
+        content.push(
+          profile({
+            name: view.courier.name,
+            photoUrl: view.courier.photoUrl,
+            details: [
+              view.courier.description,
+              view.courier.vehicleDescription,
+            ],
+          }),
+        );
       }
       const details = element('details', 'delivery-order');
       const summary = element('summary');

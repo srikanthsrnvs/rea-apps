@@ -250,3 +250,38 @@ no charge and a removed temporary hold; account status confirmed zero active
 orders, and the final map scene was ClientCanceled with no car. The temporary
 viewer and tunnel were then stopped. Raw scenes, account identifiers, endpoints
 with viewer credentials and receipts remain private outside Git.
+
+## Ride presentation correction — 2026-10-17
+
+The ride viewer and Eats viewer already shared MapLibre, Uber map styling,
+vehicle artwork, native path prediction and route animation. Their quality gap
+came from the ride adapter discarding presentation data and fitting future
+trip geometry during the driver's approach. The correction shares panel and
+iframe primitives, retains selected-trip display fields and adds phase-focused
+map geometry without replacing native motion.
+
+REA inspection of Rider 4.652.10004, APK SHA256
+`0cff00bf973ff4fba891966a624b5717b186a1dae04ad9355abc74044bf2b2b3`,
+confirmed the default destination layer is gated on `ON_TRIP`, adds its point to
+`MapBoundsListener` under `DROPOFF`, and removes both marker and bounds together.
+Evidence: `ev_a760a2f67b1dbb1d7a059680ca56f3a71fc045e637fe4fc56937b08218eb9830`,
+`ev_256c66db8e1b10624fb0728cd98806c32b2d34adbec383db28df7ef578898447`,
+`ev_0fff34b2e1638a8272b306824c7572905ca708b8cf98db45b861913deb37b1f5`.
+The adapter preserves full trip geometry in JSON while filtering the visible
+map and camera bounds by phase. Exact native camera priority/override rules
+remain unverified.
+
+The selected-trip sharing DTO supplies string rating, first name, image, car
+make/model/color/plate, waypoint address strings and `tripStatusText`. Those
+paths are verified against retained real responses; they are not assumed to be
+the richer modern TransportJob provider model. Legacy marketplace driver
+visibility flags suppress name/photo/rating. Modern provider presentation and
+complete active native status-template bindings remain unverified. Shared-trip
+status text is source text, not a claim of native app typography or templates.
+No rider, phone, payment or sharing credentials are projected.
+
+Recorded real rides verified the panel, exact-origin iframe handoff, car
+artwork, route and native pickup ETA in desktop Chrome. Separate recordings
+retain their own trip identity; no driver identity was borrowed between rides.
+Synthetic tests cover transitions/cancellation and cannot establish live visual
+parity. No new ride was booked for this correction.

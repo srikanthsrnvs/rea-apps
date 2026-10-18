@@ -2,6 +2,7 @@ import { authenticatedRequest } from './client.mjs';
 import { loadTripMapIcons } from './map-vehicle.mjs';
 import { fetchSharedTrip } from './trip-share.mjs';
 import { fetchRouteline } from './routing.mjs';
+import { withRidePresentation } from './ride-presentation.mjs';
 
 const UUID = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const object = (value) =>
@@ -132,6 +133,7 @@ function addWaypoint(result, kind, location, extra = {}) {
     ...point,
     ...extra,
     title: text(location.title) ?? text(location.shortAddress),
+    address: text(location.address),
   });
 }
 function modernWaypoints(job, warnings) {
@@ -447,57 +449,70 @@ export function normalizeTripMap(payload, { tripId, now = Date.now() } = {}) {
   const rawPath = hasModernPath ? modernPath : trip?.vehicle?.vehiclePath;
   const path = pathPoints(rawPath, warnings),
     position = driverPosition(path, now, warnings);
+  const selectedStatus = text(trip?.driver?.status);
+  // Account-wide clientStatus is safe only when the response has one trip.
+  // Modern order IN_PROGRESS describes fulfillment, not an on-trip rider.
+  const endStatuses = [
+    'ClientCanceled',
+    'DriverCanceled',
+    'Completed',
+    'Canceled',
+    'COMPLETED',
+    'CANCELED',
+  ];
   const status =
-    selected.orderState ?? clientStatus ?? text(trip?.driver?.status);
-  const terminal = [status, clientStatus].some((value) =>
     [
-      'ClientCanceled',
-      'DriverCanceled',
-      'Completed',
-      'Canceled',
-      'COMPLETED',
-      'CANCELED',
-    ].includes(value),
-  );
+      selectedStatus,
+      selected.orderState,
+      ...(candidates.length === 1 ? [clientStatus] : []),
+    ].find((value) => endStatuses.includes(value)) ??
+    selectedStatus ??
+    (candidates.length === 1 ? clientStatus : null) ??
+    selected.orderState;
+  const terminal = endStatuses.includes(status);
   const dispatching =
-    clientStatus === 'Dispatching' || status === 'Dispatching';
+    (candidates.length === 1 && clientStatus === 'Dispatching') ||
+    status === 'Dispatching';
   if (!path.length)
     warnings.add(
       'No assigned-driver coordinates are present in this status snapshot.',
     );
-  return {
-    ...base,
-    state: terminal ? 'ended' : dispatching ? 'dispatching' : 'active',
-    tripId: selected.tripId,
-    fulfillmentOrderId: selected.fulfillmentOrderId,
-    status,
-    source: selected.source,
-    driver: {
-      path,
-      position: terminal ? null : position,
-      positionAgeMs: position ? Math.max(0, now - position.epoch) : null,
-      source: hasModernPath
-        ? 'transport_provider_vehicle_path'
-        : trip?.vehicle?.vehiclePath
-          ? 'legacy_vehicle_path'
-          : null,
+  return withRidePresentation(
+    {
+      ...base,
+      state: terminal ? 'ended' : dispatching ? 'dispatching' : 'active',
+      tripId: selected.tripId,
+      fulfillmentOrderId: selected.fulfillmentOrderId,
+      status,
+      source: selected.source,
+      driver: {
+        path,
+        position: terminal ? null : position,
+        positionAgeMs: position ? Math.max(0, now - position.epoch) : null,
+        source: hasModernPath
+          ? 'transport_provider_vehicle_path'
+          : trip?.vehicle?.vehiclePath
+            ? 'legacy_vehicle_path'
+            : null,
+      },
+      routes,
+      waypoints,
+      eta: {
+        display: text(trip?.etaString) ?? text(trip?.etaStringShort),
+        pickupMinutes: pickupEta(trip),
+        pickupDisplay: text(trip?.etaString) ?? text(trip?.etaStringShort),
+        destinationSeconds: null,
+      },
+      vehicleMapIconUrl: safeIcon(
+        feature?.vehicleMapIconUrl ?? trip?.vehicleMapIconUrl,
+      ),
+      warnings: [...warnings],
     },
-    routes,
-    waypoints,
-    eta: {
-      display: text(trip?.etaString) ?? text(trip?.etaStringShort),
-      pickupMinutes: pickupEta(trip),
-      pickupDisplay: text(trip?.etaString) ?? text(trip?.etaStringShort),
-      destinationSeconds: null,
-    },
-    vehicleMapIconUrl: safeIcon(
-      feature?.vehicleMapIconUrl ?? trip?.vehicleMapIconUrl,
-    ),
-    warnings: [...warnings],
-  };
+    { trip },
+  );
 }
 
-/** Native sharing projection; no share tokens, rider/driver identity or contact fields. */
+/** Native sharing projection; selected driver/vehicle display, no rider, share token or contacts. */
 export function normalizeSharedTripMap(payload, options = {}) {
   const body = object(payload?.body) ? payload.body : payload;
   if (!uuid(body?.uuid) || typeof body.status !== 'string')
@@ -545,7 +560,7 @@ export function normalizeSharedTripMap(payload, options = {}) {
     scene.warnings.push(
       'Some shared location timestamps could not be verified as recent milliseconds.',
     );
-  return scene;
+  return withRidePresentation(scene, { shared: body });
 }
 
 export async function enrichTripRoutes(
@@ -591,9 +606,17 @@ export async function enrichTripRoutes(
       );
     }
   }
-  if (['EnRoute', 'Accepted', 'Arriving', 'Arrived'].includes(scene.status))
+  if (
+    scene.ride
+      ? ['approaching', 'arriving', 'waiting'].includes(scene.ride.phase)
+      : ['EnRoute', 'Accepted', 'Arriving', 'Arrived'].includes(scene.status)
+  )
     await add(scene.driver.position, pickup, 'provider_recommended');
-  if (['OnTrip', 'InProgress'].includes(scene.status))
+  if (
+    scene.ride
+      ? scene.ride.phase === 'riding'
+      : ['OnTrip', 'InProgress'].includes(scene.status)
+  )
     await add(scene.driver.position, dropoff, 'provider_recommended');
   else await add(pickup, dropoff, 'trip_recommended');
   if (routes.length)

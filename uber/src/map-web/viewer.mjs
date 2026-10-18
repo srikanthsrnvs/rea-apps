@@ -17,11 +17,13 @@ import {
 } from './route-animation.mjs';
 import { MapMotion, trimRouteAt } from './map-motion.mjs';
 import { createWaypoint, updateWaypoint } from './waypoint.mjs';
+import { createDeliveryView } from './delivery.mjs';
+import { createRideView, displayMapScene } from './ride.mjs';
 import {
-  createDeliveryBridge,
-  createDeliveryView,
-  deliveryMapPadding,
-} from './delivery.mjs';
+  createTrackingBridge,
+  trackingMapPadding,
+  replayNotice,
+} from './tracking-panel.mjs';
 
 const key = new URLSearchParams(location.hash.slice(1)).get('key');
 // A renewed viewer lease can change only the fragment in an existing browser tab.
@@ -30,7 +32,9 @@ addEventListener('hashchange', () => location.reload());
 const status = document.querySelector('#status');
 const deliveryPanel = document.querySelector('#delivery');
 const deliveryView = createDeliveryView(deliveryPanel);
-const deliveryBridge = createDeliveryBridge({ window });
+const rideView = createRideView(deliveryPanel);
+const trackingBridge = createTrackingBridge({ window });
+let panelKind = null;
 const night = matchMedia('(prefers-color-scheme: dark)');
 let map,
   latest,
@@ -120,6 +124,7 @@ async function decorateVehicle(node, scene, generation) {
   }
 }
 function points(scene) {
+  scene = displayMapScene(scene);
   return [
     ...(scene.waypoints ?? []),
     ...(scene.driver?.position ? [scene.driver.position] : []),
@@ -136,20 +141,20 @@ function recenter() {
   );
   const northeast = bounds.getNorthEast(),
     southwest = bounds.getSouthWest();
-  const padding =
-    latest.kind === 'eats'
-      ? deliveryMapPadding({
-          width: map.getContainer().clientWidth,
-          height: map.getContainer().clientHeight,
-          panelWidth: deliveryPanel.getBoundingClientRect().width,
-          panelHeight: deliveryPanel.getBoundingClientRect().height,
-        })
-      : 16;
+  const padding = panelKind
+    ? trackingMapPadding({
+        width: map.getContainer().clientWidth,
+        height: map.getContainer().clientHeight,
+        panelWidth: deliveryPanel.getBoundingClientRect().width,
+        panelHeight: deliveryPanel.getBoundingClientRect().height,
+      })
+    : 16;
   if (northeast.lng === southwest.lng && northeast.lat === southwest.lat)
     map.easeTo({ center: coordinate(items[0]), zoom: 15, padding });
   else map.fitBounds(bounds, { padding, maxZoom: 16, duration: 500 });
 }
 function routeData(scene, position) {
+  scene = displayMapScene(scene);
   return {
     type: 'FeatureCollection',
     features: (scene.routes ?? [])
@@ -228,9 +233,26 @@ function render(scene) {
   const changedTrip =
     latest?.tripId !== scene.tripId || latest?.kind !== scene.kind;
   latest = scene;
-  deliveryView.render(scene);
-  deliveryBridge.update(scene);
+  const nextPanelKind =
+    scene.kind === 'eats' && scene.delivery
+      ? 'eats'
+      : scene.kind === 'ride' && scene.ride
+        ? 'ride'
+        : null;
+  if (panelKind !== nextPanelKind) {
+    deliveryView.render(null);
+    rideView.render(null);
+    panelKind = nextPanelKind;
+  }
+  if (panelKind === 'eats') deliveryView.render(scene);
+  else if (panelKind === 'ride') rideView.render(scene);
+  trackingBridge.update(scene);
+  deliveryPanel.setAttribute(
+    'aria-label',
+    panelKind === 'ride' ? 'Ride tracking' : 'Delivery tracking',
+  );
   document.body.classList.toggle('delivery-view', scene.kind === 'eats');
+  document.body.classList.toggle('tracking-view', panelKind !== null);
   document
     .querySelector('#map')
     .setAttribute(
@@ -250,10 +272,11 @@ function render(scene) {
     motion.reset();
     removeVehicle();
   }
-  motion.update(scene, animationTime());
+  const mapScene = displayMapScene(scene);
+  motion.update(mapScene, animationTime());
   if (!map || (!map.getLayer('ride-route') && !map.isStyleLoaded())) return;
   const ids = new Set();
-  for (const [index, point] of (scene.waypoints ?? []).entries()) {
+  for (const [index, point] of (mapScene.waypoints ?? []).entries()) {
     const id = `${point.kind}:${point.uuid ?? index}`;
     ids.add(id);
     let marker = waypoints.get(id);
@@ -335,7 +358,10 @@ function render(scene) {
     map.resize();
     if (changedTrip || follow) recenter();
   }
-  if (scene.kind === 'eats') {
+  const recorded = replayNotice(scene);
+  if (recorded !== null) {
+    show(recorded);
+  } else if (scene.kind === 'eats') {
     show(
       scene.state === 'unavailable'
         ? 'Delivery details are unavailable'
@@ -367,6 +393,7 @@ function render(scene) {
         scene.state === 'replay' && typeof scene.status === 'string'
           ? scene.status
           : null,
+        scene.state !== 'replay' &&
         Number.isFinite(scene.driver?.positionAgeMs) &&
         scene.driver.positionAgeMs > 30000
           ? `Driver location ${Math.floor(scene.driver.positionAgeMs / 1000)}s old`
@@ -389,10 +416,12 @@ async function loadStyle() {
   return result.style;
 }
 function unavailable(code) {
-  deliveryBridge.close();
+  trackingBridge.close();
   document.querySelector('#map').hidden = true;
   document.querySelector('#recenter').hidden = true;
   deliveryView.render(null);
+  rideView.render(null);
+  panelKind = null;
   stopped = true;
   if (animationFrameId !== null) {
     cancelAnimationFrame(animationFrameId);
@@ -448,7 +477,7 @@ async function poll() {
     }
     if (!response.ok) throw new Error('Trip refresh failed');
     const payload = await response.json();
-    deliveryBridge.update(payload.scene, payload.viewer?.frameOrigins ?? []);
+    trackingBridge.update(payload.scene, payload.viewer?.frameOrigins ?? []);
     interval = Math.max(
       8000,
       Math.min(3600000, payload.scene.pollingIntervalMs ?? 8000),
@@ -474,17 +503,17 @@ document.querySelector('#recenter').addEventListener('click', () => {
 });
 const panelObserver = new ResizeObserver(() => {
   document.body.style.setProperty(
-    '--delivery-panel-height',
+    '--tracking-panel-height',
     `${deliveryPanel.hidden ? 0 : deliveryPanel.getBoundingClientRect().height}px`,
   );
-  if (follow && latest?.kind === 'eats') recenter();
+  if (follow && panelKind) recenter();
 });
 panelObserver.observe(deliveryPanel);
 addEventListener('resize', () => {
-  if (follow && latest?.kind === 'eats') recenter();
+  if (follow && panelKind) recenter();
 });
 addEventListener('pagehide', () => {
-  deliveryBridge.close();
+  trackingBridge.close();
   panelObserver.disconnect();
   stopped = true;
   clearTimeout(timer);

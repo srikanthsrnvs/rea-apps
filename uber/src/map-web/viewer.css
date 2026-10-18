@@ -141,8 +141,8 @@ body {
   color: #000;
   box-shadow: 0 4px 24px #0003;
 }
-.delivery-view #recenter {
-  bottom: calc(var(--delivery-panel-height, 240px) + 36px);
+.tracking-view #recenter {
+  bottom: calc(var(--tracking-panel-height, 240px) + 36px);
 }
 .delivery-heading {
   display: flex;
@@ -253,12 +253,78 @@ body {
   font-size: 14px;
   line-height: 1.6;
 }
+.tracking-profile-detail {
+  flex: 1;
+  min-width: 0;
+}
+.ride-license-plate {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #eee;
+  font-size: 16px;
+  line-height: 1.3;
+  letter-spacing: 1px;
+}
+.ride-vehicle-image {
+  width: 88px;
+  max-width: 28%;
+  height: 56px;
+  object-fit: contain;
+}
+.ride-product {
+  margin-top: 12px;
+}
+.ride-stops {
+  list-style: none;
+  padding: 14px 0 0;
+  margin: 16px 0 0;
+  border-top: 1px solid #e2e2e2;
+}
+.ride-stop {
+  position: relative;
+  padding: 0 0 16px 22px;
+}
+.ride-stop:last-child {
+  padding-bottom: 0;
+}
+.ride-stop::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22px;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+}
+.ride-stop-pickup::before {
+  border-radius: 50%;
+}
+.ride-stop-label {
+  margin: 0 0 4px;
+  color: #545454;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ride-stop-title {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.ride-stop .delivery-secondary {
+  margin-top: 3px;
+}
 @media (max-height: 500px) and (min-width: 600px) {
   #delivery {
     max-height: calc(100% - 32px);
     width: 320px;
     left: 16px;
     transform: none;
+  }
+  .tracking-view #recenter {
+    bottom: 24px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -289,11 +355,13 @@ body {
     border-color: #fff;
   }
   .delivery-secondary,
-  .delivery-order-id {
+  .delivery-order-id,
+  .ride-stop-label {
     color: #afafaf;
   }
   .delivery-courier,
-  .delivery-order {
+  .delivery-order,
+  .ride-stops {
     border-color: #333;
   }
   .delivery-progress-segment {
@@ -301,6 +369,9 @@ body {
   }
   .delivery-progress-segment[data-state='complete'] {
     background: var(--delivery-progress-color);
+  }
+  .ride-license-plate {
+    background: #333;
   }
 }
 

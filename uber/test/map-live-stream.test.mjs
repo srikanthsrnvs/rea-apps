@@ -133,3 +133,65 @@ test('terminal push cannot be overwritten by queued active events and close ends
     await watching;
   }
 });
+
+test('ride SSE resumes events within the current lease and rejects a different selected trip', async (t) => {
+  const tripId = '11111111-1111-4111-8111-111111111111';
+  const viewer = await startMapServer(
+    {},
+    {
+      getScene: async () => ({
+        ...initial,
+        kind: 'ride',
+        tripId,
+        state: 'ended',
+        eventCursor: 3,
+        rideEvents: [
+          { id: `${tripId}:2`, sequence: 2, type: 'ride.eta_changed' },
+          {
+            id: `${tripId}:3`,
+            sequence: 3,
+            type: 'ride.phase_changed',
+            phase: 'cancelled',
+          },
+        ],
+      }),
+    },
+  );
+  t.after(() => viewer.close());
+  const url = new URL(viewer.mapUrl),
+    key = new URLSearchParams(url.hash.slice(1)).get('key');
+  const events = new URL('events', url),
+    headers = { authorization: `Bearer ${key}` };
+  assert.equal(
+    (
+      await fetch(events, {
+        headers: {
+          ...headers,
+          'last-event-id': '22222222-2222-4222-8222-222222222222:2',
+        },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await fetch(events, {
+        headers: { ...headers, 'last-event-id': `${tripId}:9` },
+      })
+    ).status,
+    409,
+  );
+  const abort = new AbortController();
+  try {
+    const response = await fetch(events, {
+      signal: abort.signal,
+      headers: { ...headers, 'last-event-id': `${tripId}:2` },
+    });
+    const reader = response.body.getReader();
+    const value = new TextDecoder().decode((await reader.read()).value);
+    assert.match(value, /event: ride\ndata: .*"phase":"cancelled"/);
+    assert.ok(!value.includes(`id: ${tripId}:2\nevent: ride`));
+  } finally {
+    abort.abort();
+  }
+});
