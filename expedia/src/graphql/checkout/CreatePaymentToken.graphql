@@ -1,0 +1,14 @@
+
+  mutation CreatePaymentToken($context: ContextInput!, $paymentTokenRequest: PaymentTokenRequestInput!, $clientId: String) {
+    createPaymentTokenization(context: $context, paymentTokenRequest: $paymentTokenRequest, clientId: $clientId) {
+      __typename
+      ...PaymentTokenFragment
+    }
+  }
+  
+  
+fragment PaymentTokenFragment on PaymentTokenResponse {
+    __typename
+    storedInstrumentToken
+  }
+

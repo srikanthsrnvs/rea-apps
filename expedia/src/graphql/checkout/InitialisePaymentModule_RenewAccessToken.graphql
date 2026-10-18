@@ -1,0 +1,6 @@
+
+  query InitialisePaymentModule_RenewAccessToken($context: ContextInput!, $paymentModuleConfiguration: PaymentModuleConfigurationInput!) {
+    initialisePaymentModule(context: $context, paymentModuleConfiguration: $paymentModuleConfiguration) {
+      accessTokenForCardTokenization
+    }
+  }

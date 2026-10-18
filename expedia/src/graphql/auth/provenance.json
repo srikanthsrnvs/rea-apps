@@ -1,0 +1,86 @@
+{
+  "package": "com.expedia.bookings",
+  "version": "2026.41.0",
+  "apkSha256": "dfd7bbfdf10976740cbf7b4a74e359358871479766d0705d1e9b5ff633a7700f",
+  "kind": "Exact shipped GraphQL constants decoded from DEX instructions with bundled dexlib2. Static observation only; server acceptance requires live verification.",
+  "dex": "classes7.dex",
+  "operations": [
+    {
+      "operation": "IdentityLayoutQuery",
+      "file": "IdentityLayoutQuery.graphql",
+      "documentSha256": "bf01f974ca0275c9836e959de3ad277eeb159a176271b7db036892084b7c3b39",
+      "class": "ax4.c$a.a"
+    },
+    {
+      "operation": "identityFormSubmit",
+      "file": "identityFormSubmit.graphql",
+      "documentSha256": "b4c8b194de883bb1491b42409844ac0f5423c4c72cbc896413f516aad61fa36a",
+      "class": "ax4.b$a.a"
+    },
+    {
+      "operation": "identityRefresh",
+      "file": "identityRefresh.graphql",
+      "documentSha256": "4062ef873321f72eb4c98e6a9e0f871bea9db25b8816d13d7fefe5b3b86019ab",
+      "class": "ax4.d$a.a"
+    },
+    {
+      "operation": "identityAuthenticateByOTPForm",
+      "file": "identityAuthenticateByOTPForm.graphql",
+      "documentSha256": "f92c63ce0996779cefef8a83fc06881f559503d2fc19ec70866202f4886cac80",
+      "class": "t10.j$a.a",
+      "dex": "classes22.dex"
+    },
+    {
+      "operation": "identitySendOTPSubmitMutation",
+      "file": "identitySendOTPSubmitMutation.graphql",
+      "documentSha256": "64718e8ef637c136f152c4c18faef9f8b6dc3d4309be5c4f9599fbcfac58c227",
+      "class": "t10.o$a.a",
+      "dex": "classes22.dex"
+    },
+    {
+      "operation": "identityVerifyOTPAuthenticationSubmit",
+      "file": "identityVerifyOTPAuthenticationSubmit.graphql",
+      "documentSha256": "889653dbe371795b612e169b92d9e6f7791fea3626e65bbeed6cfdf4c5760af4",
+      "class": "t10.s$a.a",
+      "dex": "classes22.dex"
+    },
+    {
+      "operation": "identityResendOTPAuthenticateSubmit",
+      "file": "identityResendOTPAuthenticateSubmit.graphql",
+      "documentSha256": "b82c3687b11fa7e1e46f68138ef20a144e7be82f45dc19a4e89cd7aade0818ec",
+      "class": "t10.n$a.a",
+      "dex": "classes22.dex"
+    },
+    {
+      "operation": "initialAuthForm",
+      "file": "initialAuthForm.graphql",
+      "documentSha256": "aa64636afef83f25753cdaddb81179750118c4798365d81a326f09383fa4ef16",
+      "class": "t10.u$a.a",
+      "dex": "classes22.dex"
+    },
+    {
+      "operation": "passkeyAuthChallenge",
+      "file": "passkeyAuthChallenge.graphql",
+      "documentSha256": "a12982d551cb552b96deb3c24224ce83a0d1a8b93b03c900d4f2ebe2dfc077b3",
+      "class": "t10.z$a.a",
+      "dex": "classes22.dex",
+      "verification": "Challenge/form retrieval inspected only; authentication completion unverified."
+    },
+    {
+      "operation": "identityCompletePasskeyAuthenticationSubmit",
+      "file": "identityCompletePasskeyAuthenticationSubmit.graphql",
+      "documentSha256": "cb8235119ead6ec5d8c0d0be80cc39c21105c39030f2a5d6ce07835d2938cab5",
+      "class": "t10.l$a.a",
+      "dex": "classes22.dex",
+      "verification": "Challenge/form retrieval inspected only; authentication completion unverified."
+    },
+    {
+      "operation": "identityAuthenticateByPasswordForm",
+      "file": "identityAuthenticateByPasswordForm.graphql",
+      "documentSha256": "7347dc3c937fe1261f31c03c275b5e2ff650f1323802b610611c0181045f6f82",
+      "class": "t10.k$a.a",
+      "dex": "classes22.dex",
+      "verification": "Challenge/form retrieval inspected only; authentication completion unverified."
+    }
+  ]
+}

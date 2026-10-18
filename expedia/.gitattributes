@@ -1,0 +1,2 @@
+# Preserve recovered GraphQL documents: whitespace participates in APQ hashes.
+src/graphql/**/*.graphql -whitespace

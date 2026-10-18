@@ -1,0 +1,6 @@
+
+  mutation PostPaymentNotifyMutation($context: ContextInput!, $postPaymentNotifyConfiguration: PostPaymentNotifyConfigurationInput!) {
+    postPaymentNotify(context: $context, postPaymentNotifyConfiguration: $postPaymentNotifyConfiguration) {
+      paymentSessionId
+    }
+  }

@@ -1,0 +1,2366 @@
+
+  mutation UpdatePaymentMethodMutation(
+    $updatePaymentMethodRequest: UpdatePaymentMethodMutationRequestInput!
+    $context: ContextInput
+    $templateConfig: TemplateConfigInput
+    $clientId: String
+  ) {
+    updatePaymentMethod(
+      updatePaymentMethodRequest: $updatePaymentMethodRequest
+      context: $context
+      templateConfig: $templateConfig
+      clientId: $clientId
+    ) {
+      __typename
+      updatedFops {
+        ...CreditCardPaymentFopFragment
+        ...ApplePayPaymentFopFragment
+        ...GooglePayPaymentFopFragment
+      }
+      checkoutIdentifier {
+        __typename
+        sessionId
+        sessionToken
+      }
+      updatedPaymentCheckoutElement {
+        __typename
+        ...PaymentCheckoutViewFragment
+      }
+      actions {
+        ...PaymentPublishSignalActionUpdatePaymentMutationFragment
+        ...PaymentShowErrorMessageActionFragment
+        __typename
+      }
+    }
+  }
+
+  
+fragment PaymentPublishSignalActionUpdatePaymentMutationFragment on PaymentPublishSignalAction {
+    __typename
+    serverSignals {
+      ...UISignalSharedTypeFragment
+    }
+    signals {
+      __typename
+      mappedUiSignal
+      signal {
+        __typename
+        domainInfoList {
+          __typename
+          name
+          refId
+        }
+        signalDetails {
+          __typename
+          detailedDescription
+          reasonUrn
+          summary
+        }
+        type
+        urn
+      }
+    }
+    analytics {
+      ...PaymentAnalyticsFragment
+      __typename
+    }
+  }
+
+  
+fragment UISignalSharedTypeFragment on UISignalSharedType {
+    __typename
+    topic
+    payload {
+      ...UISignalPayloadSharedTypeFragment
+    }
+  }
+  
+fragment UISignalPayloadSharedTypeFragment on UISignalPayloadSharedType {
+    publisherModule
+    signalUrn
+    signalDetails {
+      ...UISignalSummaryFragment
+    }
+  }
+  
+fragment UISignalSummaryFragment on UISignalSummary {
+    description
+    reasonUrn
+    summary
+    signalAdditionalDetails {
+      ...UISignalAdditionalDetailFragment
+    }
+  }
+  
+fragment UISignalAdditionalDetailFragment on UISignalAdditionalDetail {
+    urn
+    stringSignalAdditionalDetail
+    linkSignalAdditionalDetail {
+      ...UISignalLinkDetailsFragment
+    }
+  }
+  
+fragment UISignalLinkDetailsFragment on UISignalLinkDetails {
+    title
+    url
+    urn
+  }
+
+  
+fragment PaymentAnalyticsFragment on PaymentClickstreamAnalyticsData {
+    __typename
+    eventName
+    eventVersion
+    payload
+  }
+  
+  
+fragment CreditCardPaymentFopFragment on CreditCardPaymentFop {
+    __typename
+    id
+    paymentAmount {
+      __typename
+      amount
+      currencyCode
+      decimalPlaces
+    }
+    state
+    paymentMethod
+    paymentSubMethods
+    rank
+    splittable
+    paymentMethodAttribute {
+      __typename
+      ...CreditCardPaymentMethodAttributeFragment
+    }
+  }
+
+  
+  
+fragment CreditCardPaymentMethodAttributeFragment on CreditCardPaymentMethodAttribute {
+    etzToken
+    authenticationSpec {
+      ...PaymentThreeDSAuthenticationSpecFragment
+    }
+    binSpec {
+      brand
+      issuerCountry
+      cardFee {
+        ...PaymentPriceDetailsFragment
+      }
+      cardLogo {
+        __typename
+        id
+        description
+        url {
+          value
+        }
+      }
+      cardConfig {
+        __typename
+        maxLength
+        pattern
+      }
+      cvvConfig {
+        maxLength
+        minLength
+      }
+    }
+  }
+
+  
+  
+fragment PaymentThreeDSAuthenticationSpecFragment on PaymentThreeDSAuthenticationSpec {
+    __typename
+    authenticationMethod
+    pasSessionId
+    encodedInitConfig
+  }
+
+  
+  
+fragment PaymentPriceDetailsFragment on PaymentPriceDetails {
+    amount
+    amountText
+    currencyCode
+    decimalPlaces
+  }
+
+
+
+  
+  
+fragment ApplePayPaymentFopFragment on ApplePayPaymentFop {
+    __typename
+    id
+    paymentAmount {
+      __typename
+      amount
+      currencyCode
+      decimalPlaces
+    }
+    state
+    paymentMethod
+    paymentSubMethods
+    rank
+    splittable
+    paymentMethodAttribute {
+      __typename
+      ...ApplePayPaymentAttributeFragment
+    }
+  }
+  
+fragment ApplePayPaymentAttributeFragment on ApplePayPaymentAttribute {
+    merchantSession
+  }
+
+  
+  
+fragment GooglePayPaymentFopFragment on GooglePayPaymentFop {
+    __typename
+    id
+    paymentMethod
+    state
+    gpayAttributes: paymentMethodAttribute {
+      __typename
+      ...GooglePayPaymentAttributeFragment
+    }
+  }
+
+  
+  
+fragment GooglePayPaymentAttributeFragment on GooglePayPaymentAttribute {
+    encodedInitConfig
+    pasPaymentSessionId
+  }
+
+
+  
+  
+fragment PaymentCheckoutViewFragment on PaymentCheckoutElement {
+    __typename
+    fopModule {
+      __typename
+      ...PaymentFOPSelectorFragment
+      ...PaymentInlineMessageModuleFragment
+      ...PaymentInlineMessageModuleV2Fragment
+      ...PaymentCardFragment
+      ...PaymentFopModuleDetailFragment
+    }
+    paymentClickstreamAnalytics {
+      ...PaymentClickstreamPaymentListDataFragment
+    }
+  }
+
+  
+fragment PaymentInlineMessageModuleFragment on PaymentInlineMessageModule {
+    __typename
+    visible
+  }
+
+  
+fragment PaymentInlineMessageModuleV2Fragment on PaymentInlineMessageModuleV2 {
+    __typename
+    visible
+    location
+  }
+
+  
+fragment PaymentFopModuleDetailFragment on PaymentFopModuleDetail {
+    __typename
+    fopSpecificDetails {
+      __typename
+      ...PaymentCreditCardDetailsFragment
+      ...PaymentNaverPayDetailsFragment
+      ...PaymentKcpDetailsFragment
+      ...PaymentApplePayDetailsFragment
+      ...PaymentAffirmDetailsFragment
+      ...PaymentAdyenDetailsFragment
+      ...PaymentPayPalDetailsFragment
+      ...PaymentKlarnaDetailsFragment
+      ...PaymentAfterpayDetailsFragment
+      ...PaymentBraintreeDetailsFragment
+      ...PaymentGooglepayDetailsFragment
+      ...PaymentAntomDetailsFragment
+      ...PaymentCheckoutDotComDetailsFragment
+    }
+  }
+
+  
+  
+fragment PaymentFOPSelectorFragment on PaymentFOPSelector {
+    __typename
+    actionText {
+      __typename
+      inlineContent {
+        __typename
+        ... on EGDSStylizedText {
+          text
+        }
+      }
+    }
+    label
+    bottomPopoverTitle
+    fopOptionsCollapsibleElement {
+      ...PaymentFopOptionsCollapsibleElementFragment
+    }
+    selectorLayoutConfiguration {
+      ...PaymentSelectorLayoutConfigurationFragment
+    }
+    selectOptions {
+      __typename
+      ...PaymentInstrumentContainerFragment
+    }
+  }
+  
+  
+fragment PaymentSelectorLayoutConfigurationFragment on PaymentFopSelectorLayoutConfiguration {
+    desktopConfig {
+      maxInstrumentsDisplayed
+      maxInstrumentsInRow
+    }
+    mobileConfig {
+      maxInstrumentsDisplayed
+      maxInstrumentsInRow
+    }
+  }
+
+  
+  
+fragment PaymentFopOptionsCollapsibleElementFragment on PaymentFopOptionsCollapsibleElement {
+    moreOptionsText {
+      accessibility
+      text
+    }
+    moreOptionsIcon {
+      icon {
+        id
+        description
+        token
+      }
+    }
+  }
+
+  
+  
+fragment PaymentInstrumentContainerFragment on PaymentInstrumentContainer {
+    __typename
+    title
+    instruments {
+      __typename
+      ...PaymentInstrumentElementFragment
+    }
+  }
+  
+  
+fragment PaymentInstrumentElementFragment on PaymentInstrument {
+    __typename
+    elementId
+    fopId
+    cardFee {
+      ...PaymentPriceDetailsFragment
+    }
+    logo {
+      __typename
+      ...PaymentTypeLogoFragment
+    }
+    fopText {
+      __typename
+      text
+      accessibility
+    }
+    storedCardConfig {
+      addressLine1
+      addressLine2
+      city
+      countryCode
+      stateOrProvinceCode
+      bin
+      postalCode
+      storedPaymentInstrumentId
+      paymentType
+      cvvConfig {
+        maxLength
+        minLength
+      }
+      issuingCountryCode
+      firstName
+      lastName
+    }
+    isDefault
+    state
+    isStoredCard
+    isExpired
+    component
+    paymentMethod
+    paymentInstrumentType
+    viewType
+    paymentMethodUrn
+    paymentSubMethodUrn
+    tag {
+      paymentCategory
+    }
+    isCollectorRequired
+    inlineSubtext {
+      __typename
+      isInlineTextEnabled
+      fallbackText
+    }
+  }
+
+  
+  
+fragment PaymentTypeLogoFragment on PaymentTypeLogo {
+    __typename
+    icon {
+      __typename
+      id
+      description
+    }
+    mark {
+      __typename
+      id
+      description
+      url {
+        __typename
+        value
+      }
+    }
+    size
+    paymentMethod
+    tag {
+      __typename
+      paymentCategory
+    }
+  }
+
+  
+  
+fragment PaymentCardFragment on PaymentCard {
+    __typename
+    identifier
+    card {
+      ...EGDSStandardMessagingCardFragment
+    }
+    clickAction {
+      ...PaymentMethodSwitchActionFragment
+    }
+    leftMark {
+      ...MarkFragment
+    }
+  }
+
+  
+fragment EGDSStandardMessagingCardFragment on EGDSStandardMessagingCard {
+    __typename
+    heading
+    message
+    graphic {
+      ...MarkFragment
+    }
+    buttons {
+      ... on UISecondaryButton {
+        __typename
+        primary
+        accessibility
+      }
+    }
+  }
+
+  
+fragment MarkFragment on Mark {
+    __typename
+    id
+    description
+  }
+
+  
+  
+fragment PaymentMethodSwitchActionFragment on PaymentMethodSwitchAction {
+    __typename
+    uiSignal
+    paymentMethodUrn
+  }
+
+
+  
+  
+fragment PaymentCreditCardDetailsFragment on PaymentCreditCardDetails {
+    __typename
+    title
+    uiExperienceOptions {
+      __typename
+      cvvFocus
+      isClientCHNPrefillEnabled
+    }
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+    priceDetails {
+      amount
+      currencyCode
+      decimalPlaces
+    }
+    authenticationMethods
+    authenticationResources {
+      ...PaymentThreeDSResourceWebFragment
+    }
+    mutationActions {
+      resumeActions
+    }
+  }
+  
+  
+fragment PaymentCardDetailsNameFieldFragment on PaymentCardDetailsNameField {
+    __typename
+    config {
+      __typename
+      url
+      visible
+    }
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+    configurationInfo {
+      entryUrn
+      key
+    }
+  }
+
+  
+  
+fragment EGDSTextInputFieldFragment on EGDSTextInputField {
+    __typename
+    identifier: egdsElementId
+    label
+    value
+    placeholder
+    leftIcon {
+      id
+      token
+      description
+      size
+    }
+    validations {
+      __typename
+      ...EGDSRequiredInputValidationFragment
+      ...EGDSRegexInputValidationFragment
+      ...EGDSMaxLengthInputValidationFragment
+      ...EGDSMinLengthInputValidationFragment
+      ...PaymentCardNumberLuhnValidationFragment
+      ...PaymentCardExpirationDateValidationFragment
+    }
+    required
+    readOnly
+  }
+
+  
+  
+fragment EGDSRequiredInputValidationFragment on EGDSRequiredInputValidation {
+    __typename
+    errorMessage
+  }
+
+  
+fragment EGDSRegexInputValidationFragment on EGDSRegexInputValidation {
+    __typename
+    errorMessage
+    pattern
+  }
+
+  
+fragment EGDSMinLengthInputValidationFragment on EGDSMinLengthInputValidation {
+    __typename
+    errorMessage
+    minLength
+  }
+
+  
+fragment EGDSMaxLengthInputValidationFragment on EGDSMaxLengthInputValidation {
+    __typename
+    errorMessage
+    maxLength
+  }
+
+  
+fragment PaymentCardNumberLuhnValidationFragment on PaymentCardNumberLuhnValidation {
+    __typename
+    errorMessage
+  }
+
+  
+fragment PaymentAllowedBrandValidationFragment on PaymentAllowedBrandValidation {
+    __typename
+    errorMessage
+    allowedValues
+  }
+  
+fragment PaymentCardExpirationDateValidationFragment on PaymentCardExpirationDateValidation {
+    __typename
+    errorMessage
+    expirationMonthId
+    expirationYearId
+  }
+
+
+  
+  
+fragment PaymentCreditCardOptionsLogoListFragment on PaymentCreditCardOptionsLogoList {
+    __typename
+    paymentLogos {
+      __typename
+      ...PaymentTypeLogoFragment
+    }
+  }
+  
+  
+fragment PaymentPANIframeFragment on PaymentCardDetailsNumberField {
+    config {
+      __typename
+      url
+      visible
+    }
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+    brandNameValidations {
+      __typename
+      ...EGDSRegexInputValidationFragment
+      ...PaymentAllowedBrandValidationFragment
+    }
+    cardConfig {
+      pattern
+      maxLength
+      cardPatterns {
+        ...PaymentCardFormatPatternsFragment
+      }
+    }
+  }
+
+  
+fragment PaymentCardFormatPatternsFragment on PaymentCardFormatPatterns {
+    __typename
+    patterns {
+      ...PaymentCardTypePatternFragment
+    }
+    default
+  }
+  
+fragment PaymentCardTypePatternFragment on PaymentCardTypePattern {
+    __typename
+    regex
+    pattern
+  }
+
+  
+  
+fragment PaymentEvenColumnsFragment on PaymentEvenColumnsField {
+    __typename
+    components {
+      __typename
+      ...PaymentInputTextFieldFragment
+      ...PaymentCardDetailsCVVFieldFragment
+      ...PaymentCardDetailsBillingZipCodeFieldFragment
+      ...PaymentMethodCountryFieldFragment
+      ...PaymentMethodTaxIdFieldFragment
+    }
+    elements {
+      __typename
+    }
+  }
+  
+  
+fragment PaymentInputTextFieldFragment on PaymentInputTextField {
+    __typename
+    config {
+      __typename
+      url
+      visible
+    }
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+  }
+  
+  
+fragment PaymentCardDetailsCVVFieldFragment on PaymentCardDetailsCVVField {
+    __typename
+    config {
+      __typename
+      ...PaymentEmbeddedElementConfigFragment
+    }
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+    interactiveIcon {
+      __typename
+      ...PaymentIconDialogFragemnt
+    }
+  }
+
+  
+fragment PaymentIconDialogFragemnt on PaymentIconDialog {
+    __typename
+    icon {
+      __typename
+      id
+      description
+      token
+    }
+    dialog {
+      __typename
+      ...PaymentDialogElementFragment
+    }
+    label
+  }
+
+  
+  
+fragment PaymentDialogElementFragment on PaymentDialogElement {
+    identifier
+    buttons {
+      text
+      type
+    }
+    content {
+      ...PaymentCvvDialogImageFragment
+    }
+    closeButton {
+      primary
+      icon {
+        id
+        token
+        description
+        size
+        title
+      }
+    }
+  }
+
+  
+  
+fragment PaymentCvvDialogImageFragment on PaymentTitledImageDialogContent {
+    identifier
+    imageContent {
+      description
+      url
+    }
+    textContent
+  }
+
+
+  
+  
+fragment PaymentEmbeddedElementConfigFragment on PaymentEmbeddedElementConfig {
+    __typename
+    url
+    visible
+  }
+
+
+  
+  
+fragment PaymentCardDetailsBillingZipCodeFieldFragment on PaymentCardDetailsBillingZipCodeField {
+    __typename
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+    configurationInfo {
+      entryUrn
+      key
+    }
+    inputMode
+    visibleForCountryCodes {
+      countryCode
+    }
+  }
+  
+  
+fragment PaymentMethodCountryFieldFragment on PaymentMethodCountryField {
+    __typename
+    content {
+      __typename
+      ... on EGDSBasicSelect {
+        ...EGDSBasicSelectFragment
+      }
+    }
+    validations {
+      __typename
+    }
+  }
+  
+  
+fragment EGDSBasicSelectFragment on EGDSBasicSelect {
+    __typename
+    egdsElementId
+    label
+    value
+    options {
+      ...EgdsBasicOptionFragment
+    }
+  }
+  
+  
+fragment EgdsBasicOptionFragment on EGDSBasicOption {
+    __typename
+    egdsElementId
+    label
+    value
+    selected
+  }
+
+
+
+  
+  
+fragment PaymentMethodTaxIdFieldFragment on PaymentMethodTaxIdField {
+    __typename
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+    visibleForCountryCodes {
+      countryCode
+      label
+    }
+    # Aliased: PaymentEvenColumnsField also spreads CVV's non-null interactiveIcon in the same selection set.
+    taxIdInteractiveIcon: interactiveIcon {
+      __typename
+      ...PaymentTaxIdIconDialogFragment
+    }
+  }
+
+  
+fragment PaymentTaxIdIconDialogFragment on PaymentIconDialog {
+    __typename
+    icon {
+      __typename
+      id
+      description
+      token
+    }
+    dialog {
+      __typename
+      ...PaymentTaxIdInfoDialogFragment
+    }
+  }
+
+  
+  
+fragment PaymentTaxIdInfoDialogFragment on PaymentDialogElement {
+    identifier
+    buttons {
+      text
+      type
+    }
+    content {
+      __typename
+      ... on PaymentBulletedListDialogContent {
+        identifier
+        list {
+          __typename
+          listItems {
+            __typename
+            ... on EGDSTextStandardListItem {
+              text
+            }
+          }
+        }
+      }
+    }
+    closeButton {
+      primary
+      icon {
+        id
+        token
+        description
+        size
+        title
+      }
+    }
+  }
+
+
+
+  
+  
+fragment PaymentCollectorIframeFragment on PaymentCardDetailsTokenizationField {
+    __typename
+    config {
+      __typename
+      ...PaymentEmbeddedElementConfigFragment
+    }
+    accessTokenForCardTokenization
+    cardTokenizationServiceURI
+  }
+
+  
+  
+fragment PaymentInstrumentViewFragment on PaymentInstrumentView {
+    components {
+      __typename
+      ...PaymentCreditCardOptionsLogoListFragment
+      ...PaymentCardDetailsNameFieldFragment
+      ...PaymentPANIframeFragment
+      ...PaymentInputTextFieldFragment
+      ...PaymentEvenColumnsFragment
+      ...PaymentMethodTaxIdFieldFragment
+      ...PaymentInstallmentSelectFieldFragment
+      ...PaymentCardDetailsBillingZipCodeFieldFragment
+      ...PaymentCardDetailsCVVFieldFragment
+      ...PaymentCheckboxFieldFragment
+      ...PaymentEvenColumnsFieldSavedCardFragment
+      ...StoredInstrumentBillingZipCodeFieldFragment
+      ...PaymentCollectorIframeFragment
+      ...PaymentNaverPayFormFragment
+      ...PaymentRadioButtonGroupFragment
+      ...PaymentFopDetailsMessageCardFragment
+      ...PaymentAffirmDetailsMessageCardFragment
+      ...PaymentKlarnaDetailsMessageCardFragment
+      ...PaymentAfterpayDetailsMessageCardFragment
+      ...PaymentAfterpayButtonFragment
+      ...PaymentAdyenComponentFragment
+      ...PaymentAdyenSheetFragment
+      ...PaymentAdyenInputFieldsFragment
+      ...PaymentCreditCardRecommendationTextFragment
+      ...PaymentNewCardFeeContainerFragment
+      ...PaymentStoredCardFeeContainerFragment
+      ...PaymentFeeBannerFragment
+    }
+    viewLabel: label
+    required
+    viewType
+  }
+  
+  
+fragment PaymentCheckboxFieldFragment on PaymentCheckboxField {
+    __typename
+    content {
+      __typename
+      identifier: egdsElementId
+      checkboxLabel: label {
+        __typename
+        text
+      }
+      name
+      description
+      state
+      errorMessage
+      enabled
+      required1: required
+      value
+      checkedAnalytics {
+        linkName
+      }
+      uncheckedAnalytics {
+        linkName
+      }
+    }
+  }
+
+  
+  
+fragment PaymentEvenColumnsFieldSavedCardFragment on PaymentEvenColumnsField {
+    __typename
+    elements {
+      __typename
+      ...PaymentCardDetailsCVVFieldFragment
+      ...StoredInstrumentBillingZipCodeFieldFragment
+    }
+    components {
+      __typename
+      ...PaymentCardDetailsCVVFieldFragment
+      ...StoredInstrumentBillingZipCodeFieldFragment
+    }
+  }
+  
+  
+fragment StoredInstrumentBillingZipCodeFieldFragment on StoredInstrumentBillingZipCodeField {
+    __typename
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+    configurationInfo {
+      entryUrn
+      key
+    }
+  }
+  
+  
+fragment PaymentNaverPayFormFragment on PaymentNaverPayForm {
+    name
+    method
+    action
+    formElements {
+      ...EGDSTextInputFieldFragment
+    }
+    clientSuppliedElements {
+      ...EGDSTextInputFieldFragment
+    }
+  }
+  
+  
+fragment PaymentRadioButtonGroupFragment on PaymentRadioButtonGroup {
+    content {
+      __typename
+      ...EGDSRadioGroupFragment
+    }
+  }
+  
+  
+fragment EGDSRadioGroupFragment on EGDSRadioGroup {
+    options {
+      label
+      value
+      disabled
+      description
+      labelSuffix
+    }
+    radioLabel: label
+    errorMessage
+    selected
+    groupName
+  }
+
+
+  
+  
+fragment PaymentFopDetailsMessageCardFragment on PaymentInstrumentMessagingCard {
+    __typename
+    content {
+      ...EGDSUIMessagingCardFragment
+    }
+  }
+
+  
+  
+fragment EGDSUIMessagingCardFragment on UIMessagingCard {
+    __typename
+    egdsElementId
+    primary
+    secondaries
+    graphic {
+      __typename
+      ... on Mark {
+        description
+        id
+        size
+      }
+    }
+  }
+
+
+  
+  
+fragment PaymentAffirmDetailsMessageCardFragment on PaymentAffirmDetailsMessageCard {
+    __typename
+    content {
+      ...EGDSUIMessagingCardFragment
+    }
+  }
+
+  
+  
+fragment PaymentKlarnaDetailsMessageCardFragment on PaymentKlarnaDetailsMessageCard {
+    __typename
+    logo {
+      __typename
+      ...PaymentTypeLogoFragment
+    }
+    banner: text {
+      __typename
+      ... on EGDSPlainText {
+        __typename
+        text
+        accessibility
+      }
+    }
+    infoLink {
+      __typename
+      ...EGDSInlineLinkFragment
+    }
+  }
+  
+  
+fragment EGDSInlineLinkFragment on EGDSInlineLink {
+    action {
+      resource {
+        value
+      }
+    }
+    text
+  }
+
+
+  
+  
+fragment PaymentAfterpayDetailsMessageCardFragment on PaymentAfterpayDetailsMessageCard {
+    __typename
+    content {
+      ...EGDSUIMessagingCardFragment
+    }
+    infoLink {
+      ...EGDSInlineLinkFragment
+    }
+  }
+
+  
+  
+fragment PaymentAfterpayButtonFragment on PaymentAfterpayButton {
+    __typename
+    id
+    merchantPublicKey
+    region
+    text
+    theme
+  }
+
+  
+  
+fragment PaymentAdyenComponentFragment on PaymentAdyenComponent {
+    __typename
+    containerId
+    stylesheet
+    cssIntegrityHash
+    sheetContent: content {
+      ...PaymentTextFragment
+    }
+  }
+  
+  
+fragment PaymentTextFragment on PaymentText {
+    egdsText {
+      ... on EGDSPlainText {
+        ...EGDSPlainTextFragment
+      }
+      ... on EGDSHeading {
+        ...EGDSHeadingFragment
+      }
+    }
+  }
+
+  
+fragment EGDSPlainTextFragment on EGDSPlainText {
+    __typename
+    text
+  }
+
+  
+fragment EGDSHeadingFragment on EGDSHeading {
+    __typename
+    text
+  }
+
+
+  
+  
+fragment PaymentAdyenSheetFragment on PaymentAdyenSheet {
+    __typename
+    sheet {
+      __typename
+      ...PaymentSheetFragment
+    }
+  }
+  
+  
+fragment PaymentSheetFragment on PaymentSheet {
+    __typename
+    sheetId
+    isVisible
+    hideOnAction
+    header {
+      ...PaymentToolbarFragment
+    }
+    content {
+      ...PaymentTextFragment
+      ...PaymentIframeFragment
+      ...PaymentAdyenComponentFragment
+    }
+  }
+
+  
+  
+fragment PaymentToolbarFragment on PaymentToolbar {
+    __typename
+    leftIcon {
+      ...PaymentIconFragment
+    }
+    title {
+      ...PaymentTextFragment
+    }
+  }
+
+  
+fragment PaymentIconFragment on PaymentIcon {
+    __typename
+    icon {
+      ...IconFragment
+    }
+    action {
+      ...PaymentHideHelpSheetActionFragment
+    }
+  }
+
+  
+fragment IconFragment on Icon {
+    __typename
+    id
+    description
+    token
+  }
+
+  
+fragment PaymentHideHelpSheetActionFragment on PaymentHideHelpSheetAction {
+    __typename
+    analytics {
+      ...PaymentClickstreamAnalyticsDataFragment
+    }
+  }
+
+  
+  
+fragment PaymentClickstreamAnalyticsDataFragment on PaymentClickstreamAnalyticsData {
+    __typename
+    eventName
+    eventVersion
+    payload
+  }
+
+  
+  
+fragment PaymentIframeFragment on PaymentIframe {
+    __typename
+    src
+    id
+    visible
+  }
+
+  
+  
+fragment PaymentCreditCardRecommendationTextFragment on PaymentCreditCardRecommendationText {
+    __typename
+    recommendationContent: content
+  }
+
+  
+  
+fragment PaymentInstallmentSelectFieldFragment on PaymentInstallmentSelectField {
+    __typename
+    content {
+      __typename
+      ... on EGDSBasicSelect {
+        ...EGDSBasicSelectFragment
+      }
+    }
+    validations {
+      __typename
+    }
+    visibleForCountryCodes {
+      ...PaymentInstallmentSelectFieldCountryConfigurationFragment
+    }
+  }
+  
+  
+fragment PaymentInstallmentSelectFieldCountryConfigurationFragment on PaymentInstallmentSelectFieldCountryConfiguration {
+    __typename
+    countryCode
+  }
+
+
+  
+  
+fragment PaymentNewCardFeeContainerFragment on PaymentNewCardFeeContainer {
+    __typename
+    cardFee {
+      ...CardFeeDetailsFragment
+    }
+  }
+  
+  
+fragment CardFeeDetailsFragment on CardFeeDetails {
+    feeAmount {
+      ...PaymentPriceDetailsFragment
+    }
+    formattedText
+    visible
+  }
+  
+  
+fragment PaymentStoredCardFeeContainerFragment on PaymentStoredCardFeeContainer {
+    __typename
+    cardFee {
+      ...CardFeeDetailsFragment
+    }
+  }
+  
+  
+fragment PaymentFeeBannerFragment on PaymentFeeBanner {
+    __typename
+    buttonText
+    feeRangeBanner {
+      message {
+        ...PaymentFeeBannerMessageFragment
+      }
+    }
+  }
+  
+  
+fragment PaymentFeeBannerMessageFragment on PaymentFeeBannerMessage {
+    type
+    layout
+    rows {
+      ...PaymentFeeBannerRowFragment
+    }
+    components {
+      ...PaymentFeeBannerComponentsFragment
+    }
+  }
+  
+  
+fragment PaymentFeeBannerRowFragment on PaymentFeeBannerRow {
+    id
+    type
+    segments {
+      ...PaymentFeeBannerSegmentFragment
+    }
+  }
+  
+  
+fragment PaymentFeeBannerSegmentFragment on PaymentFeeBannerSegment {
+    type
+    content
+    style
+    theme
+    dynamicContents {
+      ...PaymentDynamicContentFragment
+    }
+  }
+  
+  
+fragment PaymentDynamicContentFragment on PaymentDynamicContent {
+    id
+    component
+    placeholder
+  }
+
+
+
+  
+  
+fragment PaymentFeeBannerComponentsFragment on PaymentFeeBannerComponents {
+    links {
+      ...PaymentFeeBannerLinkFragment
+    }
+    tooltips {
+      ...PaymentFeeBannerTooltipFragment
+    }
+  }
+  
+  
+fragment PaymentFeeBannerLinkFragment on PaymentFeeBannerLink {
+    id
+    type
+    content
+    style
+    theme
+    interaction {
+      ...PaymentComponentInteractionFragment
+    }
+  }
+  
+  
+fragment PaymentComponentInteractionFragment on PaymentComponentInteraction {
+    id
+    type
+    trigger
+  }
+
+
+  
+  
+fragment PaymentFeeBannerTooltipFragment on PaymentFeeBannerTooltip {
+    id
+    placement
+    layout
+    rows {
+      ...PaymentFeeBannerRowFragment
+    }
+  }
+  
+  
+fragment PaymentAdyenInputFieldsFragment on PaymentAdyenInputFields {
+    __typename
+    inputFields {
+      __typename
+      ...PaymentMethodInputFieldsFragment
+    }
+  }
+  
+  
+fragment PaymentMethodInputFieldsFragment on PaymentMethodInputFields {
+    __typename
+    identifier
+    content {
+      __typename
+      ...EGDSTextInputFieldFragment
+    }
+  }
+  
+  
+fragment PaymentThreeDSResourceWebFragment on PaymentThreeDSResourceWeb {
+    __typename
+    authenticateMethod
+    javascriptUrl
+    iframeId
+    iframeOriginUrl
+    pasSessionId
+    challengeConfig
+    components {
+      ...PaymentSheetFragment
+      ...PaymentAdditionalMessageFragment
+    }
+    challengeResultUpdateFallbackAction {
+      ...PaymentPublishSignalActionFragment
+    }
+  }
+
+  
+  
+fragment PaymentAdditionalMessageFragment on PaymentAdditionalMessage {
+    __typename
+    messages {
+      ...PaymentTypeMessageFragment
+    }
+  }
+
+  
+  
+fragment PaymentTypeMessageFragment on PaymentTypeMessage {
+    __typename
+    paymentType
+    visible
+    components {
+      ...PaymentCardFragment
+    }
+  }
+
+  
+  
+fragment PaymentPublishSignalActionFragment on PaymentPublishSignalAction {
+    __typename
+    serverSignals {
+      ...ServerSignalsFragment
+    }
+    signals {
+      signal {
+        domainInfoList {
+          ...DomainIfoFragment
+        }
+        signalDetails {
+          ...CpmSignalDetailsFragment
+        }
+        urn
+      }
+      mappedUiSignal
+    }
+    analytics {
+      ...PaymentClickstreamAnalyticsDataFragment
+    }
+  }
+
+  
+fragment CpmSignalDetailsFragment on SignalDetails {
+    __typename
+    detailedDescription
+    reasonUrn
+    summary
+  }
+
+  
+fragment DomainIfoFragment on DomainInfo {
+    __typename
+    name
+    refId
+  }
+
+  
+  
+fragment ServerSignalsFragment on UISignalSharedType {
+    topic
+    payload {
+      ...UISignalPayloadSharedTypeFragment
+    }
+  }
+  
+  
+fragment PaymentNaverPayDetailsFragment on PaymentNaverPayDetail {
+    __typename
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+    naverPayMetadata {
+      flowType
+      script
+    }
+  }
+  
+  
+fragment PaymentKcpDetailsFragment on PaymentKcpDetails {
+    __typename
+    title
+    paymentMethodUrn
+    kcpPaymentConfig {
+      ...KcpPaymentConfigFragment
+    }
+    paymentSubMethods {
+      ...KcpPaymentSubMethodFragment
+    }
+    views {
+      ...KcpPaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment KcpPaymentConfigFragment on KcpPaymentConfig {
+    flow
+    scriptUrl
+  }
+
+  
+fragment KcpPaymentSubMethodFragment on PaymentSubMethod {
+    paymentSubMethodUrn
+    subMethodAttribute {
+      ...KcpPaymentSubMethodAttributeFragment
+    }
+    views {
+      ...KcpPaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment KcpPaymentSubMethodAttributeFragment on PaymentSubMethodAttribute {
+    ...KcpSubMethodAttributeFragment
+  }
+
+  
+fragment KcpSubMethodAttributeFragment on KcpSubMethodAttribute {
+    componentPaymentMethod
+  }
+
+  
+fragment KcpPaymentInstrumentViewFragment on PaymentInstrumentView {
+    components {
+      __typename
+      ...PaymentKcpFormFragment
+      ...PaymentFopDetailsMessageCardFragment
+    }
+    viewLabel: label
+    required
+    viewType
+  }
+
+  
+  
+fragment PaymentKcpFormFragment on PaymentKcpForm {
+    name
+    method
+    action
+    formElements {
+      ...EGDSTextInputFieldFragment
+    }
+    clientSuppliedElements {
+      ...EGDSTextInputFieldFragment
+    }
+  }
+  
+  
+fragment PaymentApplePayDetailsFragment on PaymentApplePayDetails {
+    __typename
+    title
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+    priceDetails {
+      ...PaymentPriceDetailsFragment
+    }
+    paymentRequest {
+      ...PaymentApplePayRequestFragment
+    }
+    metaData {
+      applePayJsVersion
+      applePaySdk
+    }
+    bookingParameters {
+      entryUrn
+      key
+    }
+    applePayValidations {
+      ...PaymentApplePayValidationsFragment
+    }
+  }
+
+  
+fragment PaymentApplePayRequestFragment on PaymentApplePayRequest {
+    countryCode
+    currencyCode
+    merchantDetails {
+      ...PaymentApplePayMerchantDetailsFragment
+    }
+    paymentSummaryItems {
+      ...PaymentSummaryApplePayFragment
+    }
+    requiredBillingContactFields
+    requiredShippingContactFields
+    supportedNetworks
+  }
+
+  
+fragment PaymentApplePayMerchantDetailsFragment on PaymentApplePayMerchantDetails {
+    merchantCapabilities
+    merchantIdentifier
+  }
+  
+fragment PaymentSummaryApplePayFragment on PaymentPriceDetails {
+    __typename
+    type
+    label
+    amountText
+    fieldType
+  }
+
+  
+fragment PaymentApplePayValidationsFragment on PaymentApplePayValidations {
+    name {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    countryCode {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    postalCode {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    emailAddress {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    phoneNumber {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    addressLine1 {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    addressLine2 {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    city {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    state {
+      ...PaymentApplePayValidationStructureFragment
+    }
+    billingCountryMismatch {
+      ...PaymentApplePayValidationStructureFragment
+    }
+  }
+  
+fragment PaymentApplePayValidationStructureFragment on PaymentApplePayValidationStructure {
+    __typename
+    errorCode
+    fieldValidations {
+      ...PaymentAppleBillingFieldValidationsFragment
+    }
+  }
+  
+fragment PaymentAppleBillingFieldValidationsFragment on PaymentAppleBillingFieldValidations {
+    __typename
+    regex
+    errorMessage
+  }
+  
+  
+fragment PaymentAffirmDetailsFragment on PaymentAffirmDetails {
+    __typename
+    title
+    priceDetails {
+      ...PaymentPriceDetailsFragment
+    }
+    metadata {
+      ...ContextualInfoFragment
+    }
+    checkoutDetails {
+      ...AffirmCheckoutDetailsFragment
+    }
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment ContextualInfoFragment on ContextualInfo {
+    publicApiKey
+    script
+    affirmLocale
+  }
+
+  
+fragment AffirmCheckoutDetailsFragment on AffirmCheckoutDetails {
+    merchant {
+      ...MerchantDetailsFragment
+    }
+    currency
+    total
+    financing_program
+    promoId
+    items {
+      ...ItemDetailsFragment
+    }
+    billing {
+      ...BillingDetailsFragment
+    }
+    metadata {
+      ...CheckoutDetailsMetadataFragment
+    }
+  }
+
+  
+fragment MerchantDetailsFragment on MerchantDetails {
+    name
+    public_api_key
+    use_vcn
+    card_auth_window
+  }
+
+  
+fragment ItemDetailsFragment on ItemDetails {
+    display_name
+    sku
+    unit_price
+    qty
+    item_url
+    item_image_url
+  }
+
+  
+fragment BillingDetailsFragment on BillingDetails {
+    name {
+      ...PersonalDetailsFragment
+    }
+    phone_number
+    email
+  }
+
+  
+fragment PersonalDetailsFragment on PersonalDetails {
+    first
+    last
+  }
+
+  
+fragment CheckoutDetailsMetadataFragment on Metadata {
+    entity_name
+    mode
+    program_type
+  }
+
+  
+  
+fragment PaymentAdyenDetailsFragment on PaymentAdyenDetails {
+    title
+    priceDetails {
+      ...PaymentPriceDetailsFragment
+    }
+    paymentMethodAttribute {
+      ...AdyenPaymentAttributeFragment
+    }
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+    adyenPaymentConfig {
+      ...PaymentProviderConfigFragment
+    }
+    paymentMethodUrn
+    paymentSubMethods {
+      ...PaymentSubMethodFragment
+    }
+  }
+
+  
+fragment AdyenPaymentAttributeFragment on AdyenPaymentAttribute {
+    paymentSubMethodUrn
+    paymentType
+    containerId
+    scriptUrl
+    paymentOptionsInitConfig
+    pendingActionConfig
+    componentType
+    componentPaymentMethod
+  }
+
+  
+fragment PaymentProviderConfigFragment on PaymentProviderConfig {
+    ...AdyenPaymentConfigFragment
+  }
+
+  
+fragment AdyenPaymentConfigFragment on AdyenPaymentConfig {
+    containerId
+    scriptUrl
+  }
+
+  
+fragment PaymentSubMethodFragment on PaymentSubMethod {
+    paymentSubMethodUrn
+    subMethodAttribute {
+      ...PaymentSubMethodAttributeFragment
+    }
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment PaymentSubMethodAttributeFragment on PaymentSubMethodAttribute {
+    ...AdyenSubMethodAttributeFragment
+  }
+
+  
+fragment AdyenSubMethodAttributeFragment on AdyenSubMethodAttribute {
+    paymentType
+    paymentOptionsInitConfig
+    pendingActionConfig
+    componentType
+    componentPaymentMethod
+  }
+
+  
+  
+fragment PaymentPayPalDetailsFragment on PaymentPayPalDetails {
+    __typename
+    title
+    redirectUrl
+  }
+
+  
+  
+fragment PaymentKlarnaDetailsFragment on PaymentKlarnaDetails {
+    __typename
+    title
+    priceDetails {
+      ...PaymentPriceDetailsFragment
+    }
+    klarnaMetadata {
+      ...KlarnaMetadataFragment
+    }
+    klarnaExtraMerchantData {
+      ...KlarnaExtraMerchantDataFragment
+    }
+    checkoutDetails {
+      ...KlarnaCheckoutDetailsFragment
+    }
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment KlarnaExtraMerchantDataFragment on KlarnaExtraMerchantData {
+    hotel_reservation_details {
+      ...HotelReservationDetailFragment
+    }
+  }
+  
+fragment HotelReservationDetailFragment on HotelReservationDetail {
+    hotel_itinerary {
+      ...HotelItineraryFragment
+    }
+    passengers {
+      ...PassengerFragment
+    }
+    affiliate
+  }
+  
+fragment HotelItineraryFragment on HotelItinerary {
+    hotel_name
+    address {
+      ...KlarnaAddressFragment
+    }
+    start_time
+    end_time
+    number_of_rooms
+    hotel_price
+    ticket_delivery_method
+    ticket_delivery_recipient
+  }
+  
+fragment KlarnaAddressFragment on KlarnaAddress {
+    street_address
+    city
+    postal_code
+    country
+  }
+  
+fragment PassengerFragment on Passenger {
+    first_name
+    last_name
+  }
+
+  
+fragment KlarnaMetadataFragment on KlarnaMetadata {
+    client_token
+    authorization_token
+    script
+  }
+
+  
+fragment KlarnaCheckoutDetailsFragment on KlarnaCheckoutDetails {
+    payment_method_category
+    country
+    orderDetails {
+      ...OrderDetailsFragment
+    }
+  }
+  
+fragment OrderDetailsFragment on OrderDetails {
+    order_lines {
+      ...OrderLineFragment
+    }
+    order_amount
+    order_tax_amount
+  }
+
+  
+fragment OrderLineFragment on OrderLine {
+    type
+    name
+    reference
+    quantity
+    unit_price
+    total_amount
+    total_discount_amount
+  }
+
+  
+  
+fragment PaymentAfterpayDetailsFragment on PaymentAfterpayDetails {
+    __typename
+    checkoutDetails {
+      ...AfterpayCheckoutDetailsFragment
+    }
+    etzParameters {
+      postalCode
+      presentedFormOfPayment {
+        ...PresentedFormOfPaymentFragment
+      }
+    }
+    metadata {
+      ...AfterpayMetadataFragment
+    }
+    priceDetails {
+      ...PaymentPriceDetailsFragment
+    }
+    title
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment AfterpayCheckoutDetailsFragment on AfterpayCheckoutDetails {
+    amount
+    currency
+    instorePickup
+    merchantReference
+  }
+
+  
+fragment PresentedFormOfPaymentFragment on PresentedFormOfPayment {
+    paymentBrand
+    paymentMethod
+    paymentSubMethod
+  }
+
+  
+fragment AfterpayMetadataFragment on AfterpayMetadata {
+    buttonScript
+    infoModalScript
+    bookingContext {
+      ...AfterpayBookingContextFragment
+    }
+  }
+
+  
+fragment AfterpayBookingContextFragment on AfterpayBookingContext {
+    items {
+      ...AfterpayBookingItemFragment
+    }
+  }
+
+  
+fragment AfterpayBookingItemFragment on AfterpayBookingItem {
+    category
+  }
+
+  
+  
+fragment PaymentBraintreeDetailsFragment on PaymentBraintreeDetails {
+    title
+    priceDetails {
+      ...PaymentPriceDetailsFragment
+    }
+    paymentMethodAttribute {
+      ...BraintreePaymentAttributeFragment
+    }
+  }
+
+  
+fragment BraintreePaymentAttributeFragment on BraintreePaymentAttribute {
+    clientScript
+    clientToken
+    paymentSubMethodAttribute {
+      ...BraintreePaymentSubMethodAttributeFragment
+    }
+  }
+
+  
+fragment BraintreePaymentSubMethodAttributeFragment on BraintreePaymentSubMethodAttribute {
+    ...PayPalPaymentSubMethodAttributeFragment
+  }
+
+  
+fragment PayPalPaymentSubMethodAttributeFragment on PayPalPaymentSubMethodAttribute {
+    paymentSubMethodUrn
+    scripts {
+      ...PayPalScriptsFragment
+    }
+    amount
+    currency
+    pageType
+    intent
+    components
+    presentationMode
+    flow
+    commit
+    displayName
+  }
+
+  
+fragment PayPalScriptsFragment on PayPalScripts {
+    checkoutScript
+    webSdkScript
+  }
+
+  
+  
+fragment PaymentGooglepayDetailsFragment on PaymentGooglePayDetails {
+    __typename
+    title
+    environmentForGooglePay
+    scriptLoadUrl
+    views {
+      ...PaymentInstrumentViewFragment
+    }
+
+    merchantInfo {
+      ...GooglePayMerchantInfoFragment
+    }
+    paymentRequest {
+      ...PaymentGooglePayRequestFragment
+    }
+    authenticationMethods
+    authenticationThreeDSResources {
+      ...PaymentThreeDSResourceWebFragment
+    }
+    mutationActions {
+      resumeActions
+    }
+    googlePayValidations {
+      name {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      countryCode {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      postalCode {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      emailAddress {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      addressLine1 {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      addressLine2 {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      city {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      state {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+      billingCountryMismatch {
+        ...PaymentGooglePayValidationStructureFragment
+      }
+    }
+  }
+
+  
+fragment GooglePayMerchantInfoFragment on GooglePayMerchantInfo {
+    merchantId
+    merchantName
+  }
+
+  
+fragment PaymentGooglePayRequestFragment on PaymentGooglePayRequest {
+    apiVersion
+    apiVersionMinor
+    emailRequired
+    allowedPaymentMethods {
+      ...GooglePayAllowedPaymentMethodsFragment
+    }
+    transactionInfo {
+      ...GooglePayTransactionInfoFragment
+    }
+  }
+
+  
+fragment GooglePayAllowedPaymentMethodsFragment on GooglePayAllowedPaymentMethods {
+    type
+    parameters {
+      allowedAuthMethods
+      allowedCardNetworks
+      assuranceDetailsRequired
+      billingAddressRequired
+      billingAddressParameters {
+        format
+        phoneNumberRequired
+      }
+    }
+    tokenizationSpecification {
+      type
+      parameters {
+        protocolVersion
+        publicKey
+      }
+    }
+  }
+
+  
+fragment GooglePayTransactionInfoFragment on GooglePayTransactionInfo {
+    countryCode
+    currencyCode
+    totalPrice
+    totalPriceStatus
+    totalPriceLabel
+    displayItems {
+      ...GooglePayDisplayItemsFragment
+    }
+  }
+  
+fragment PaymentGooglePayValidationStructureFragment on PaymentGooglePayValidationStructure {
+    fieldValidations {
+      regex
+      errorMessage
+    }
+  }
+
+  
+fragment GooglePayDisplayItemsFragment on GooglePayDisplayItem {
+    label
+    type
+    price
+  }
+
+  
+  
+fragment PaymentAntomDetailsFragment on PaymentAntomDetails {
+    __typename
+    title
+    paymentMethodUrn
+    antomPaymentConfig {
+      ...AntomPaymentConfigFragment
+    }
+    paymentSubMethods {
+      ...AntomPaymentSubMethodFragment
+    }
+    views {
+      ...AntomPaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment AntomPaymentConfigFragment on PaymentProviderConfig {
+    ... on AntomPaymentConfig {
+      containerId
+      scriptUrl
+      environment
+    }
+  }
+
+  
+fragment AntomPaymentSubMethodFragment on PaymentSubMethod {
+    paymentSubMethodUrn
+    subMethodAttribute {
+      ...AntomPaymentSubMethodAttributeFragment
+    }
+    views {
+      ...AntomPaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment AntomPaymentSubMethodAttributeFragment on PaymentSubMethodAttribute {
+    ...AntomSubMethodAttributeFragment
+  }
+
+  
+fragment AntomSubMethodAttributeFragment on AntomSubMethodAttribute {
+    paymentMethodType
+    paymentSessionData
+  }
+
+  
+fragment AntomPaymentInstrumentViewFragment on PaymentInstrumentView {
+    components {
+      __typename
+      ...PaymentFopDetailsMessageCardFragment
+    }
+    viewLabel: label
+    required
+    viewType
+  }
+
+  
+  
+fragment PaymentCheckoutDotComDetailsFragment on PaymentCheckoutDotComDetails {
+    __typename
+    title
+    paymentMethodUrn
+    checkoutDotComPaymentConfig {
+      ...CheckoutDotComPaymentConfigFragment
+    }
+    paymentSubMethods {
+      ...CheckoutDotComPaymentSubMethodFragment
+    }
+    views {
+      ...CheckoutDotComPaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment CheckoutDotComPaymentConfigFragment on PaymentProviderConfig {
+    ... on CheckoutDotComPaymentConfig {
+      containerId
+      environment
+      publicKey
+      scriptUrl
+      countryCode
+    }
+  }
+
+  
+fragment CheckoutDotComPaymentSubMethodFragment on PaymentSubMethod {
+    paymentSubMethodUrn
+    subMethodAttribute {
+      ...CheckoutDotComPaymentSubMethodAttributeFragment
+    }
+    views {
+      ...CheckoutDotComPaymentInstrumentViewFragment
+    }
+  }
+
+  
+fragment CheckoutDotComPaymentSubMethodAttributeFragment on PaymentSubMethodAttribute {
+    ...CheckoutDotComSubMethodAttributeFragment
+  }
+
+  
+fragment CheckoutDotComSubMethodAttributeFragment on CheckoutDotComSubMethodAttribute {
+    paymentMethodType
+    paymentSessionData
+  }
+
+  
+fragment CheckoutDotComPaymentInstrumentViewFragment on PaymentInstrumentView {
+    components {
+      __typename
+      ...PaymentFopDetailsMessageCardFragment
+    }
+    viewLabel: label
+    required
+    viewType
+  }
+
+  
+  
+fragment PaymentClickstreamPaymentListDataFragment on PaymentClickstreamAnalytics {
+    appliedPaymentMethods {
+      ...AppliedPaymentMethodFragment
+    }
+  }
+  
+fragment AppliedPaymentMethodFragment on AppliedPaymentMethod {
+    paymentMethod
+    paymentMethodClass
+    paymentMethodSubclass
+    paymentMethodBrand
+    paymentMethodAuthentication
+    isStoredCreditCard
+  }
+
+
+  
+  
+fragment PaymentShowErrorMessageActionFragment on PaymentShowErrorMessageAction {
+    __typename
+    error {
+      __typename
+      ...MessageContentFragment
+    }
+  }
+
+  
+fragment MessageContentFragment on MessageContent {
+    theme
+    heading
+    message
+    actions {
+      ...MessageLinkFragment
+    }
+    graphic {
+      ...EGDSGraphicFragment
+    }
+    analyticsKeyword
+  }
+
+  
+fragment MessageLinkFragment on MessageLink {
+    target
+    text
+    uri
+  }
+
+  
+fragment EGDSGraphicFragment on UIGraphic {
+    ... on Icon {
+      ...EGDSIconFragment
+    }
+  }
+
+  
+fragment EGDSIconFragment on Icon {
+    id
+    token
+    description
+    size
+    theme
+    title
+    spotLight
+    withBackground
+  }
+

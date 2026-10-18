@@ -1,0 +1,39 @@
+
+  mutation AbandonBookingMutation($checkoutSessionInfo: CheckoutSessionInfoInput!, $context: ContextInput!) {
+    abandonBooking(checkoutSessionInfo: $checkoutSessionInfo, context: $context) {
+      checkoutSessionToken
+      signals {
+        domainInfoList {
+          name
+          refId
+        }
+        signal
+      }
+      serverSignals {
+        ...ServerSignalFragment
+      }
+    }
+  }
+  
+  fragment ServerSignalFragment on UISignalSharedType {
+    topic
+    payload {
+      publisherModule
+      signalUrn
+      signalDetails {
+        description
+        reasonUrn
+        summary
+        signalAdditionalDetails {
+          linkSignalAdditionalDetail {
+            title
+            url
+            urn
+          }
+          stringSignalAdditionalDetail
+          urn
+        }
+      }
+    }
+  }
+

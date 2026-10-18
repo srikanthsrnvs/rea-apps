@@ -1,0 +1,83 @@
+
+  mutation ResumePaymentMutation($context: ContextInput!, $resumePaymentConfiguration: ResumePaymentConfigurationInput!) {
+    resumePayment(context: $context, resumePaymentConfiguration: $resumePaymentConfiguration) {
+      __typename
+      paymentSessionId
+      paymentProcessorId
+      paymentPlanId
+      paymentItemId
+      transactionStatus
+      creditCard3DSDetails {
+        encodedChallengeConfig
+        __typename
+      }
+      googlePay3DSDetails {
+        encodedChallengeConfig
+        __typename
+      }
+      paymentInstrumentSummary {
+        last4Digits
+      }
+      serverSignals {
+        ...ServerSignalsFragment
+      }
+      paymentSignals {
+        ...PaymentSignalFragment
+      }
+    }
+  }
+
+  
+  fragment PaymentSignalFragment on PaymentSignal {
+    paymentSignalDetails {
+      ...PaymentSignalDetailsFragment
+    }
+    urn
+  }
+
+  
+  fragment PaymentSignalDetailsFragment on PaymentSignalDetails {
+    reasonUrn
+    summary
+    type
+  }
+
+
+  
+  fragment ServerSignalsFragment on UISignalSharedType {
+    topic
+    payload {
+      ...UISignalPayloadSharedTypeFragment
+    }
+  }
+  
+  fragment UISignalPayloadSharedTypeFragment on UISignalPayloadSharedType {
+    publisherModule
+    signalUrn
+    signalDetails {
+      ...UISignalSummaryFragment
+    }
+  }
+
+  fragment UISignalSummaryFragment on UISignalSummary {
+    description
+    reasonUrn
+    summary
+    signalAdditionalDetails {
+      ...UISignalAdditionalDetailFragment
+    }
+  }
+  fragment UISignalAdditionalDetailFragment on UISignalAdditionalDetail {
+    urn
+    stringSignalAdditionalDetail
+    linkSignalAdditionalDetail {
+      ...UISignalLinkDetailsFragment
+    }
+  }
+  fragment UISignalLinkDetailsFragment on UISignalLinkDetails {
+    title
+    url
+    urn
+  }
+
+

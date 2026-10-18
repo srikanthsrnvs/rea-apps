@@ -1,6 +1,6 @@
 # REA apps
 
-Standalone tools reconstructed from installed apps, with separate Spotify, Uber, Instagram, Resy, OpenTable, and Erewhon CLIs.
+Standalone tools reconstructed from installed apps, with separate Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, and Expedia CLIs.
 
 | App | Commands | Runtime |
 | --- | --- | --- |
@@ -10,6 +10,7 @@ Standalone tools reconstructed from installed apps, with separate Spotify, Uber,
 | [OpenTable](opentable/README.md) | Verification-code login, paginated restaurant search, tables, payments, reservations, reviewed booking and cancellation | Headless Node HTTP; no Android, browser or display required on the host |
 | [Erewhon](erewhon/README.md) | SMS login, membership, rewards, purchase history, catalog, pickup and delivery carts, reviewed order submission | Headless Node HTTP; no Android, browser, display or developer API key input required |
 | [Resy](resy/README.md) | Restaurant search, tables, calendars, prices, payment methods, reservations, booking, cancellation | Headless Node HTTP; official Resy widget login in a separate client browser |
+| [Expedia](expedia/README.md) | Flight search, fare selection, round trips, checkout preparation and guarded booking; live payment verification pending | Node HTTP; email code plus a verification link in the user’s own browser; no host browser or Android |
 
 The CLIs output JSON and expose tool definitions for models. Uber, OpenTable and Erewhon accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Subsequent use is headless; no developer API key is required.
 
@@ -21,9 +22,9 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, and `erewhon` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime and need no Android or emulation at runtime. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy also installs cloudflared for its temporary login relay.
+The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, and `expedia` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy and Expedia also install cloudflared for temporary verification relays.
 
-For one native app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, or `--erewhon-only`.
+For one native app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, or `--expedia-only`.
 
 For an existing Spotify installation, rerun setup and complete the new native `spotify login` pairing. Once native commands work, stop the old desktop container with `spotify/bin/spotify-headless service stop` to reclaim RAM. Its saved profile volume can remain as a recovery copy; native sessions are separate. See the [migration guide](spotify/docs/headless-linux.md#existing-desktop-deployments).
 
@@ -54,6 +55,8 @@ For OpenTable, run `opentable login --phone NUMBER` (or `--email ADDRESS`), then
 
 For Erewhon, run `erewhon login --phone NUMBER`, then `erewhon auth complete --login-id LOGIN_ID --code CODE`. Codes can also come from `--code-file FILE`. The CLI validates and saves the opaque account token; new-user registration stops without creating an account. See its [login, shopping and live verification guide](erewhon/README.md).
 
+Expedia's flight search, fare selection and checkout preparation use HTTP. Login combines an email code with official verification in the user's browser; the Linux host runs Node and a temporary tunnel. See its [flight tools and verification limits](expedia/README.md).
+
 Read the app-specific guides for commands, installation on macOS, and protocol details. Uber, Resy and OpenTable booking/cancellation use reviewed plans. Models must show the current terms and obtain user approval before confirming a real booking or cancellation. Erewhon likewise requires an approved order review before `order confirm --plan-id ID --confirm` places and pays for an order.
 
 ## Development
@@ -67,6 +70,7 @@ npm --prefix instagram test
 npm --prefix resy test
 npm --prefix opentable test
 npm --prefix erewhon test
+npm --prefix expedia test
 ```
 
 The apps have separate dependency trees and private session storage. Native Spotify stores its session under `~/.config/spotify-cli`; historical desktop Docker files remain only for recovery/comparison. Instagram stores its session under `~/.config/instagram-cli`, Uber under `~/.config/uber-cli`, Resy under `~/.config/resy-cli`, OpenTable under `~/.config/opentable-cli`, and Erewhon under `~/.config/erewhon-cli` (or `$XDG_CONFIG_HOME/APP-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.

@@ -1,0 +1,12 @@
+
+  query RedirectOrderStatusQuery(
+    $context: ContextInput!
+    $confirmationSummaryParams: ConfirmationSummaryParamsInput
+    $orderId: String!
+  ) {
+    confirmationSummary(context: $context, confirmationSummaryParams: $confirmationSummaryParams, orderId: $orderId) {
+      __typename
+      orderStatus
+      redirectionUrl
+    }
+  }

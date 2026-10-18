@@ -1,0 +1,23 @@
+{
+  "name": "expedia-standalone-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless Expedia flight search and booking tools reconstructed from the Android app",
+  "bin": {
+    "expedia": "bin/expedia"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scripts/",
+    "docs/",
+    "README.md"
+  ]
+}

@@ -1,0 +1,9 @@
+
+  mutation GetStoredPaymentInstrumentTokenMutation(
+    $context: ContextInput!
+    $getStoredPaymentInstrumentTokenConfiguration: GetStoredPaymentInstrumentTokenConfigurationInput!
+  ) {
+    getStoredPaymentInstrumentToken(context: $context, getStoredPaymentInstrumentTokenConfiguration: $getStoredPaymentInstrumentTokenConfiguration) {
+      storedPaymentInstrumentToken
+    }
+  }

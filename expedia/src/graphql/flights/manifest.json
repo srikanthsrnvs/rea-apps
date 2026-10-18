@@ -1,0 +1,98 @@
+{
+  "source": {
+    "package": "com.expedia.bookings",
+    "version": "2026.41.0",
+    "apkSha256": "dfd7bbfdf10976740cbf7b4a74e359358871479766d0705d1e9b5ff633a7700f"
+  },
+  "evidenceType": "Exact GraphQL document strings recovered from shipped DEX bytes; static evidence, not a live API guarantee. Verified generated operation IDs are compared against SHA-256 of the complete document.",
+  "documents": [
+    {
+      "operationName": "androidFlightsResultsFlightsSearch",
+      "file": "androidFlightsResultsFlightsSearch.graphql",
+      "sha256": "bcc38aa12dc7969fdbd4e853b21c6a8ae999bb63d30919ec59b691373c8665fa",
+      "generatedOperationIdVerified": true,
+      "generatedClass": "Lst/c;",
+      "dex": "classes21.dex"
+    },
+    {
+      "operationName": "androidFlightsSearchResultsLoading",
+      "file": "androidFlightsSearchResultsLoading.graphql",
+      "sha256": "0e7e4e47a67008e54cf666d743a1ba42d9baef94b4d115cbe7192d50ea72a9e9",
+      "generatedOperationIdVerified": true,
+      "generatedClass": "Lst/d;",
+      "dex": "classes21.dex"
+    },
+    {
+      "operationName": "FlightListingsLoaded",
+      "file": "FlightListingsLoaded.graphql",
+      "sha256": "c1b50f00553818328bdef2a157ef96c23f24210f46e7dd14103afb951fdb586f",
+      "generatedOperationIdVerified": true,
+      "generatedClass": "Lsw/a;",
+      "dex": "classes21.dex"
+    },
+    {
+      "operationName": "FlightListingsLoading",
+      "file": "FlightListingsLoading.graphql",
+      "sha256": "1c6ab85801b55e7e7ff3c6303cc15be91bd809b54a4061cba01b34fd8d571d86",
+      "generatedOperationIdVerified": true,
+      "generatedClass": "Lsw/b;",
+      "dex": "classes21.dex"
+    },
+    {
+      "operationName": "FlightsProductCard",
+      "file": "FlightsProductCard.graphql",
+      "sha256": "13ff047d234e913e89e424601496d79a1898ab312a92bf742285c28d6e85339f",
+      "generatedOperationIdVerified": false,
+      "generatedClass": null,
+      "dex": "classes12.dex"
+    },
+    {
+      "operationName": "androidFlightsRateDetailFlightsDetailLoaded",
+      "file": "androidFlightsRateDetailFlightsDetailLoaded.graphql",
+      "sha256": "a1e08922f93d404874c5fc419767ca26d26e707f1e086e37a7982c2331978c09",
+      "generatedOperationIdVerified": false,
+      "generatedClass": null,
+      "dex": "classes12.dex"
+    },
+    {
+      "operationName": "flightsDetailsJourneySearchCriteria",
+      "file": "flightsDetailsJourneySearchCriteria.graphql",
+      "sha256": "2b9dc44222be76dc7c71b98cb5a235bc59043c4eddb361fb716b05d90e4d6e55",
+      "generatedOperationIdVerified": false,
+      "generatedClass": null,
+      "dex": "classes12.dex"
+    },
+    {
+      "operationName": "FlightsDetailPriceSummary",
+      "file": "FlightsDetailPriceSummary.graphql",
+      "sha256": "5e2bce66d572f1c18c612dd3825dd5166dca24a2cec7d2b9cf6c42d3fc32ee3c",
+      "generatedOperationIdVerified": false,
+      "generatedClass": null,
+      "dex": "classes21.dex"
+    },
+    {
+      "operationName": "FlightDetailsFISQuery",
+      "file": "FlightDetailsFISQuery.graphql",
+      "sha256": "fdb6688b528ba625fd7a00ec829be5c810957f11d944077f3b4484ac3795194d",
+      "generatedOperationIdVerified": false,
+      "generatedClass": null,
+      "dex": "classes21.dex"
+    },
+    {
+      "operationName": "FlightsDetailsFSRQuery",
+      "file": "FlightsDetailsFSRQuery.graphql",
+      "sha256": "147969298b62e31cce29387c44f40917d44d68c1d341e4ba81e91630c0beec3e",
+      "generatedOperationIdVerified": false,
+      "generatedClass": null,
+      "dex": "classes21.dex"
+    },
+    {
+      "operationName": "SearchLocationQuery",
+      "file": "SearchLocationQuery.graphql",
+      "sha256": "a9d2b7b419bd206f47bef9b7dc6c9c74fcfd8a79f4a6f9ff822af02604a17a9e",
+      "generatedOperationIdVerified": true,
+      "generatedClass": "Lj70/d;",
+      "dex": "classes23.dex"
+    }
+  ]
+}

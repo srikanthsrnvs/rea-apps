@@ -1,0 +1,80 @@
+
+  mutation SubmitPaymentMutation($context: ContextInput!, $submitPaymentConfiguration: SubmitPaymentConfigurationInput!) {
+    submitPayment(context: $context, submitPaymentConfiguration: $submitPaymentConfiguration) {
+      __typename
+      creditCard3DSDetails {
+        encodedChallengeConfig
+      }
+      googlePay3DSDetails {
+        encodedChallengeConfig
+      }
+      paymentInstrumentSummary {
+        last4Digits
+      }
+      paymentItemId
+      paymentPlanId
+      paymentProcessorId
+      paymentSessionId
+      paymentSignals {
+        ...PaymentSignalFragment
+      }
+      serverSignals {
+        ...ServerSignalsFragment
+      }
+      transactionStatus
+    }
+  }
+  
+  fragment PaymentSignalFragment on PaymentSignal {
+    paymentSignalDetails {
+      ...PaymentSignalDetailsFragment
+    }
+    urn
+  }
+
+  
+  fragment PaymentSignalDetailsFragment on PaymentSignalDetails {
+    reasonUrn
+    summary
+    type
+  }
+
+
+  
+  fragment ServerSignalsFragment on UISignalSharedType {
+    topic
+    payload {
+      ...UISignalPayloadSharedTypeFragment
+    }
+  }
+  
+  fragment UISignalPayloadSharedTypeFragment on UISignalPayloadSharedType {
+    publisherModule
+    signalUrn
+    signalDetails {
+      ...UISignalSummaryFragment
+    }
+  }
+
+  fragment UISignalSummaryFragment on UISignalSummary {
+    description
+    reasonUrn
+    summary
+    signalAdditionalDetails {
+      ...UISignalAdditionalDetailFragment
+    }
+  }
+  fragment UISignalAdditionalDetailFragment on UISignalAdditionalDetail {
+    urn
+    stringSignalAdditionalDetail
+    linkSignalAdditionalDetail {
+      ...UISignalLinkDetailsFragment
+    }
+  }
+  fragment UISignalLinkDetailsFragment on UISignalLinkDetails {
+    title
+    url
+    urn
+  }
+
+

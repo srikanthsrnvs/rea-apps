@@ -1,0 +1,68 @@
+
+  mutation BookMutation(
+    $checkoutSessionInfo: CheckoutSessionInfoInput!
+    $context: ContextInput!
+    $domainInfoList: [CheckoutDomainInfoInput!]
+    $checkoutSessionMode: CheckoutSessionMode
+    $clientId: String
+  ) {
+    book(
+      checkoutSessionInfo: $checkoutSessionInfo
+      context: $context
+      domainInfoList: $domainInfoList
+      checkoutSessionMode: $checkoutSessionMode
+      clientId: $clientId
+    ) {
+      data {
+        signals {
+          domainInfoList {
+            name
+            refId
+          }
+          signal
+        }
+        serverSignals {
+          ...ServerSignalFragment
+        }
+        orderId
+        orderNumber
+        email
+        itineraryNumber
+        classicRedirectUrl
+        checkoutSessionToken
+        asyncResolution {
+          pollIntervalMs
+          pollBackoff
+          pollingTimeoutMs
+          timeoutRedirectionUrl
+        }
+        feedbackMessage {
+          text
+        }
+      }
+    }
+  }
+
+  
+  fragment ServerSignalFragment on UISignalSharedType {
+    topic
+    payload {
+      publisherModule
+      signalUrn
+      signalDetails {
+        description
+        reasonUrn
+        summary
+        signalAdditionalDetails {
+          linkSignalAdditionalDetail {
+            title
+            url
+            urn
+          }
+          stringSignalAdditionalDetail
+          urn
+        }
+      }
+    }
+  }
+

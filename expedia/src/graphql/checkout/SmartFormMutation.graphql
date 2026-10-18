@@ -1,0 +1,63 @@
+
+  mutation SmartFormMutation($context: ContextInput!, $sessionId: String!, $data: SmartFormDataInput!, $sessionToken: String!, $type: SmartFormType) {
+    smartForm(context: $context, sessionId: $sessionId, sessionToken: $sessionToken, type: $type) {
+      updateFormData(data: $data) {
+        success
+        sessionToken
+        signals
+        validationErrors {
+          inputId
+          errorMessage
+        }
+        serverSignals {
+          ...ServerSignalFragment
+        }
+      }
+    }
+  }
+  
+  fragment ServerSignalFragment on UISignalSharedType {
+    topic
+    payload {
+      ...PayloadFragment
+    }
+  }
+  
+  fragment PayloadFragment on UISignalPayloadSharedType {
+    metadata {
+      ...MetadataFragment
+    }
+    publisherModule
+    signalUrn
+    signalDetails {
+      ...SignalDetailsFragment
+    }
+  }
+  
+  fragment MetadataFragment on GraphQLPair {
+    key
+    value
+  }
+
+  
+  fragment SignalDetailsFragment on UISignalSummary {
+    description
+    reasonUrn
+    summary
+    signalAdditionalDetails {
+      ...SignalAdditionalDetailsFragment
+    }
+  }
+  
+  fragment SignalAdditionalDetailsFragment on UISignalAdditionalDetail {
+    linkSignalAdditionalDetail {
+      title
+      url
+      urn
+    }
+    urn
+  }
+
+
+
+

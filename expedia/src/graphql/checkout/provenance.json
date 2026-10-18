@@ -1,0 +1,123 @@
+[
+  {
+    "operationName": "BookMutation",
+    "source": "web",
+    "sha256": "8cdbe4d530e98b24bd7e732752d0b28a47d773467fcebd986c99d8210dd0aa1b",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-book-button.25d15830c5787b4cdc0b.js",
+    "assetSha256": "c643062b226f47939923f1535821db40b308d5c5d893fb4c4d59970377b4511e",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "AbandonBookingMutation",
+    "source": "web",
+    "sha256": "4cde3fba094218502504df0ef0c888a88f023addc1b968c9d2ffac3601707b33",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-book-button.25d15830c5787b4cdc0b.js",
+    "assetSha256": "c643062b226f47939923f1535821db40b308d5c5d893fb4c4d59970377b4511e",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "SmartFormMutation",
+    "source": "web",
+    "sha256": "d04c7993e932a1853e2ae6945b010829b4e63b4ff3cbceea273d1704f13caa37",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-checkout-smart-form.99dea0d9f4b17afd127c.js",
+    "assetSha256": "7f910ea8484815d5bfeff677da9eb43ebbdb928b4e879ec464b317935532ae97",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "GetStoredPaymentInstrumentTokenMutation",
+    "source": "web",
+    "sha256": "3beb3bf808adee18e2fd65397684c2d12a7a151c3df6b1042e7e80a8e0178742",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "SubmitPaymentMutation",
+    "source": "web",
+    "sha256": "3414230782ea31fe8b6189d9f167b7c8bb46df90c65a3229de321c1b357d4295",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "UpdatePaymentSessionMutation",
+    "source": "web",
+    "sha256": "ca9888f77b44c08d06ccb54f2731423a25265ed46ebd86ea3dddcd24356dec7b",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "PostPaymentNotifyMutation",
+    "source": "web",
+    "sha256": "273f54bd80d777a1559fbc40409d776dadd05ff0aa8a319b5250c149cf3cb5db",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "ResumePaymentMutation",
+    "source": "web",
+    "sha256": "94de06d0e799d702122260947cab101dc420ac5d2c7355640cdf0193724ce481",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "GetSessionInfo",
+    "source": "android",
+    "sha256": "a3f7622095b924ac568895751ee7ce6836184847d21973b47fbeb33952d8d78b",
+    "apkVersion": "2026.41.0",
+    "apkSha256": "dfd7bbfdf10976740cbf7b4a74e359358871479766d0705d1e9b5ff633a7700f",
+    "class": "com.expedia.bookings.apollographql.Checkout.GetSessionInfoQuery",
+    "runtimeValidated": "read-only session validation"
+  },
+  {
+    "operationName": "SelectPaymentMethodMutation",
+    "source": "web",
+    "sha256": "2ba689014fce6ea3e1a8a0562a052b7ef62ac8981adde505a3a5386c10db05d8",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "CreatePaymentToken",
+    "source": "web",
+    "sha256": "cb81307de12d60286943cca57d596114658cd8591a8cc2092fe41fdb16cdbbc8",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "RedirectOrderStatusQuery",
+    "source": "web",
+    "sha256": "93a894f30db3e247bc65ac3f1040ea8fddcffac076291f0a9accda0ae77b8ec5",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/app-shared.41bb2fa145a9b46b86bd.js",
+    "assetSha256": "bfe6d85000e4d7baa1574b3a4d9b8be16791ec24f27e63d8e8a9cd2ffa227988",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "UpdatePaymentMethodMutation",
+    "source": "web",
+    "sha256": "4a95506be18c4c03b49d396b9a0603807f5837cf2d1030ce89ebac169f92fc3c",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "InitialisePaymentModule",
+    "source": "web",
+    "sha256": "92abf762b24f055264afd017bfa84765ab3df74a54615448f1bf1d0d3c7bbcdb",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  },
+  {
+    "operationName": "InitialisePaymentModule_RenewAccessToken",
+    "source": "web",
+    "sha256": "1935c96fb4d8fffc8e0e9fe1aaebbf77677249a925fd95b5145163e03d8ffb76",
+    "assetUrl": "https://c.travel-assets.com/ecomm-checkout-ui/shared-ui-retail-checkout-common-payment-module.bb399c6a0cf8db48ce93.js",
+    "assetSha256": "7fc9e98308b9f270826cc17f898d428b4e25315d2407014696586e0185425a1f",
+    "runtimeValidated": false
+  }
+]
