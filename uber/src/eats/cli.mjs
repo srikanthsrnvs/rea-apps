@@ -39,6 +39,17 @@ const commandOptions = {
     'raw',
   ],
   operation: ['operation-id', 'raw'],
+  track: [
+    'action',
+    'order-id',
+    'raw',
+    'duration',
+    'after',
+    'host',
+    'port',
+    'public-url',
+    'frame-origin',
+  ],
 };
 const stringOptions = [
   'query',
@@ -60,6 +71,12 @@ const stringOptions = [
   'operation-id',
   'payment-profile-id',
   'tip-amount',
+  'duration',
+  'after',
+  'host',
+  'port',
+  'public-url',
+  'frame-origin',
 ];
 const options = Object.fromEntries(
   stringOptions.map((name) => [name, { type: 'string' }]),
@@ -67,6 +84,7 @@ const options = Object.fromEntries(
 options.help = { type: 'boolean', short: 'h' };
 options.confirm = { type: 'boolean' };
 options.raw = { type: 'boolean' };
+options['frame-origin'] = { type: 'string', multiple: true };
 
 function required(values, name) {
   if (values[name] === undefined || values[name] === '')
@@ -123,7 +141,30 @@ function validate(values, command) {
     throw new Error(
       '--tip-amount must be a nonnegative decimal amount with at most two decimal places',
     );
-  if (command === 'search') {
+  if (command === 'track') {
+    required(values, 'order-id');
+    values.action ??= 'snapshot';
+    if (!['snapshot', 'stream', 'serve'].includes(values.action))
+      throw new Error('Tracking action must be snapshot, stream or serve');
+    if (values.raw && values.action !== 'snapshot')
+      throw new Error('--raw is only supported for a tracking snapshot');
+    if (
+      values.after !== undefined &&
+      (values.action !== 'stream' ||
+        !/^[0-9]+$/.test(values.after) ||
+        !Number.isSafeInteger(Number(values.after)))
+    )
+      throw new Error('--after requires a nonnegative stream event cursor');
+    if (
+      values.action !== 'serve' &&
+      ['host', 'port', 'public-url', 'frame-origin'].some(
+        (key) => values[key] !== undefined,
+      )
+    )
+      throw new Error('Viewer settings require --action serve');
+    if (values.action === 'snapshot' && values.duration !== undefined)
+      throw new Error('--duration requires stream or serve');
+  } else if (command === 'search') {
     required(values, 'query');
     required(values, 'near');
   } else if (command === 'menu') {
@@ -255,7 +296,7 @@ export async function runEatsCli(argv, { execute, print = console.log } = {}) {
   const seen = new Set();
   for (const token of parsed.tokens) {
     if (token.kind !== 'option') continue;
-    if (seen.has(token.name))
+    if (seen.has(token.name) && token.name !== 'frame-origin')
       throw new Error(`--${token.name} may only be supplied once`);
     seen.add(token.name);
   }
@@ -285,6 +326,8 @@ export async function runEatsCli(argv, { execute, print = console.log } = {}) {
     print(JSON.stringify(eatsToolManifest, null, 2));
     return eatsToolManifest;
   }
+  if (command === 'track' && !execute)
+    return (await import('./tracking-cli.mjs')).runEatsTracking(values);
   if (values.request) values.request = await readRequest(values.request);
   const service = execute ?? (await import('./service.mjs')).executeEats;
   const result = await service(command, values);

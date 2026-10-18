@@ -14,7 +14,11 @@ import {
   normalizeEatsItemDetail,
 } from './discovery.mjs';
 import * as protocol from './cart-protocol.mjs';
-import { normalizeEatsActiveOrders, normalizeEatsHistory } from './orders.mjs';
+import {
+  normalizeEatsActiveOrders,
+  normalizeEatsHistory,
+  eatsTrackingCommands,
+} from './orders.mjs';
 import {
   eatsCancellationOptionsRequest,
   normalizeEatsCancellationOptions,
@@ -882,11 +886,16 @@ export function createEatsService({
             { read, now: now() },
           );
           const previous = await read(`operation-${plan.operationId}`);
-          if (previous?.state === 'accepted')
+          if (previous?.state === 'accepted') {
+            const result = protocol.normalizeEatsOrderResult(previous.response);
             return {
-              ...protocol.normalizeEatsOrderResult(previous.response),
+              ...result,
               operationId: plan.operationId,
+              tracking: eatsTrackingCommands(
+                result.workflowId ?? result.draftId,
+              ),
             };
+          }
           if (previous)
             throw Object.assign(
               error(
@@ -944,7 +953,11 @@ export function createEatsService({
               storeId: draft.storeId,
               operationId: plan.operationId,
             });
-          return { ...result, operationId: plan.operationId };
+          return {
+            ...result,
+            operationId: plan.operationId,
+            tracking: eatsTrackingCommands(result.workflowId ?? result.draftId),
+          };
         }
         if (values.action === 'history') {
           const query = new URLSearchParams({

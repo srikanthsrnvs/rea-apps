@@ -73,7 +73,7 @@ export class MapMotion {
       ['provider', 'provider_recommended'].includes(r.kind),
     );
     this.predictions.observePredictions(scene.driver?.prediction ?? []);
-    const identity = `${scene.driver?.streamSequence ?? ''}:${scene.tripId}:${scene.status}:${position.epoch}:${position.lat}:${position.lon}:${position.course}:${route?.encodedPolyline ?? ''}`;
+    const identity = `${scene.driver?.streamSequence ?? ''}:${scene.tripId}:${scene.status}:${position.epoch}:${position.lat}:${position.lon}:${position.course}:${route?.geometryKey ?? route?.encodedPolyline ?? ''}`;
     if (identity === this.observation) return;
     const points =
       route?.points?.length <= 2000 && route.points.every(valid)

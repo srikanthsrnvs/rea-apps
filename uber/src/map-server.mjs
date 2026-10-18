@@ -31,6 +31,7 @@ const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/viewer.mjs', ['viewer.mjs', 'text/javascript; charset=utf-8']],
   ['/viewer.css', ['viewer.css', 'text/css; charset=utf-8']],
+  ['/delivery.mjs', ['delivery.mjs', 'text/javascript; charset=utf-8']],
   [
     '/live-stream.mjs',
     [new URL('./live-stream.mjs', directory), 'text/javascript; charset=utf-8'],
@@ -158,6 +159,7 @@ export async function startMapServer(
     isAuthorized = async () => true,
     subscribeToScenes,
     onClose = () => {},
+    fidelity: fidelityOverrides = {},
   } = {},
 ) {
   const config = mapServerOptions(options);
@@ -173,6 +175,7 @@ export async function startMapServer(
     readFailed = false,
     revoked = false;
   const peers = new Set();
+  const deliveryCursors = new WeakMap();
   let eventTimer = null,
     eventRead = false,
     unsubscribe = null,
@@ -184,15 +187,38 @@ export async function startMapServer(
     updates: subscribeToScenes
       ? 'ramen_push_with_status_fallback'
       : 'status_snapshot_polling',
+    ...fidelityOverrides,
   };
   const packet = (value) => ({
     scene: value,
     expiresAt: new Date(expiresAt).toISOString(),
     fidelity,
+    viewer: { frameOrigins: config.origins },
   });
+  function deliveryEvents(peer, value) {
+    let cursor = deliveryCursors.get(peer) ?? 0;
+    for (const event of value.kind === 'eats'
+      ? (value.deliveryEvents ?? [])
+      : []) {
+      if (event.sequence <= cursor) continue;
+      if (
+        !peer.write(
+          `id: ${event.id}\nevent: delivery\ndata: ${JSON.stringify(event)}\n\n`,
+        )
+      ) {
+        peer.destroy();
+        break;
+      }
+      cursor = event.sequence;
+    }
+    deliveryCursors.set(peer, cursor);
+  }
   function broadcast(value) {
     const event = `event: scene\ndata: ${JSON.stringify(packet(value))}\n\n`;
-    for (const peer of peers) if (!peer.write(event)) peer.destroy();
+    for (const peer of peers) {
+      if (!peer.write(event)) peer.destroy();
+      else deliveryEvents(peer, value);
+    }
   }
   function revokePeers(event = 'revoked') {
     revoked = true;
@@ -212,6 +238,7 @@ export async function startMapServer(
     });
   }
   async function scene() {
+    if (cached?.state === 'ended') return cached;
     if (pending) return pending;
     if (cached && now() < nextReadAt) {
       if (readFailed) throw new Error('Trip refresh failed');
@@ -243,6 +270,8 @@ export async function startMapServer(
   }
   // Fail before advertising a URL when login or response shape is unusable.
   const initial = await scene();
+  if (!(await isAuthorized()))
+    throw new Error('Map session is no longer available');
   const points = [
     ...(initial.waypoints ?? []),
     ...(initial.driver?.position ? [initial.driver.position] : []),
@@ -266,7 +295,7 @@ export async function startMapServer(
   const frameAncestors = config.origins.length
     ? ["'self'", ...config.origins].join(' ')
     : '*';
-  const csp = `default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' https://tc2.uber.com https://unpkg.com; img-src 'self' data: blob: https://*.uber.com https://d1a3f4spazzrp4.cloudfront.net; worker-src blob: https://unpkg.com; font-src 'self' https://tb-static.uber.com; base-uri 'none'; form-action 'none'; frame-ancestors ${frameAncestors}`;
+  const csp = `default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' https://tc2.uber.com https://unpkg.com; img-src 'self' data: blob: https://*.uber.com https://d1a3f4spazzrp4.cloudfront.net https://duyt4h9nfnj50.cloudfront.net https://d1w2poirtb3as9.cloudfront.net; worker-src blob: https://unpkg.com; font-src 'self' https://tb-static.uber.com; base-uri 'none'; form-action 'none'; frame-ancestors ${frameAncestors}`;
   const server = http.createServer(async (req, res) => {
     const send = (status, body, type = 'application/json; charset=utf-8') => {
       res.writeHead(status, {
@@ -325,6 +354,32 @@ export async function startMapServer(
             !(await isAuthorized())
           )
             return send(410, { error: 'Map session is no longer available' });
+          let resume = 0,
+            gap = null;
+          if (
+            initial.kind === 'eats' &&
+            req.headers['last-event-id'] !== undefined
+          ) {
+            const match = /^([a-f\d-]{36}):([0-9]+)$/i.exec(
+              req.headers['last-event-id'],
+            );
+            if (
+              !match ||
+              match[1].toLowerCase() !== initial.tripId?.toLowerCase() ||
+              !Number.isSafeInteger(Number(match[2]))
+            )
+              return send(400, {
+                error: 'Invalid delivery event cursor for this order',
+              });
+            resume = Number(match[2]);
+            if (resume > (initial.eventCursor ?? 0))
+              return send(409, {
+                error: 'Delivery event cursor is ahead of this order',
+              });
+            const oldest = initial.deliveryEvents?.[0]?.sequence;
+            if (oldest && resume < oldest - 1)
+              gap = { after: resume, oldestAvailable: oldest };
+          }
           res.writeHead(200, {
             'content-type': 'text/event-stream; charset=utf-8',
             'cache-control': 'no-store',
@@ -336,6 +391,9 @@ export async function startMapServer(
           res.write(
             `event: scene\ndata: ${JSON.stringify(packet(initial))}\n\n`,
           );
+          deliveryCursors.set(res, resume);
+          if (gap) res.write(`event: gap\ndata: ${JSON.stringify(gap)}\n\n`);
+          deliveryEvents(res, initial);
           peers.add(res);
           res.once('close', () => {
             peers.delete(res);

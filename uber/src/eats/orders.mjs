@@ -86,7 +86,15 @@ export function normalizeEatsHistory(response) {
   return compact({ orders, nextCursor: pagination?.nextCursor });
 }
 
-/** No live active-order sample was fabricated; preserve native status structures. */
+export function eatsTrackingCommands(workflowId) {
+  return {
+    command: `uber eats track --order-id ${workflowId}`,
+    mapCommand: `uber eats track --action serve --order-id ${workflowId}`,
+    streamCommand: `uber eats track --action stream --order-id ${workflowId}`,
+  };
+}
+
+/** Preserve native status structures and a selected-order tracking entry point. */
 export function normalizeEatsActiveOrders(response) {
   if (!object(response) || !Array.isArray(response.activeEaterOrdersMobileView))
     invalid('Uber Eats returned no supported active order list');
@@ -103,6 +111,7 @@ export function normalizeEatsActiveOrders(response) {
       activeOrderStatus: copy(order.activeOrderStatus),
       activeOrderOverview: copy(order.activeOrderOverview),
       orderPickupDetails: copy(order.orderPickupDetails),
+      tracking: eatsTrackingCommands(order.uuid ?? orderId),
     });
   });
   return { orders, activeOrderCount: orders.length };

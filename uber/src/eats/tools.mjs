@@ -18,6 +18,33 @@ const schema = (properties, required = []) => ({
 
 export const eatsTools = [
   {
+    name: 'eats_track',
+    command:
+      'uber eats track --order-id <orderId> [--action snapshot|stream|serve] [--after <cursor>] [--duration <seconds>] [--host <host>] [--port <port>] [--public-url <url>] [--frame-origin <origin>]',
+    description:
+      'Track one selected food delivery. Snapshot returns native status, ETA, restaurant, courier, map geometry and recent lifecycle events. Stream emits NDJSON snapshots and delivery events; resume using the last numeric event cursor. Serve returns an expiring read-only iframe map URL and authenticated SSE events, and stays running. Uses saved Uber credentials; requires no server browser or Android. Delivery completion is verified, never inferred from disappearance. No messages, tips or order mutations are sent.',
+    inputSchema: schema(
+      {
+        orderId: { type: 'string', format: 'uuid' },
+        action: {
+          type: 'string',
+          enum: ['snapshot', 'stream', 'serve'],
+          default: 'snapshot',
+        },
+        after: { type: 'integer', minimum: 0 },
+        duration: { type: 'integer', minimum: 10, maximum: 86400 },
+        host: { type: 'string' },
+        port: { type: 'integer', minimum: 0, maximum: 65535 },
+        publicUrl: { type: 'string', format: 'uri' },
+        frameOrigin: {
+          type: 'array',
+          items: { type: 'string', format: 'uri' },
+        },
+      },
+      ['orderId'],
+    ),
+  },
+  {
     name: 'eats_locations',
     command: 'uber eats locations [--near <near>]',
     description:

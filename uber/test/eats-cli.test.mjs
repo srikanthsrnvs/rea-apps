@@ -6,7 +6,7 @@ import path from 'node:path';
 import { runEatsCli } from '../src/eats/cli.mjs';
 import { eatsTools } from '../src/eats/tools.mjs';
 
-test('help and the six-tool manifest require no session or service call and print JSON', async () => {
+test('help and the compact tool manifest require no session or service call and print JSON', async () => {
   let calls = 0;
   const output = [];
   const dependencies = {
@@ -19,8 +19,8 @@ test('help and the six-tool manifest require no session or service call and prin
   await runEatsCli(['tools'], dependencies);
   assert.equal(calls, 0);
   assert.equal(output[0].usage, 'uber eats <command> [options]');
-  assert.equal(output[1].tools.length, 6);
-  assert.equal(new Set(eatsTools.map((tool) => tool.name)).size, 6);
+  assert.equal(output[1].tools.length, 7);
+  assert.equal(new Set(eatsTools.map((tool) => tool.name)).size, 7);
   assert.ok(
     eatsTools.every((tool) => tool.inputSchema.additionalProperties === false),
   );

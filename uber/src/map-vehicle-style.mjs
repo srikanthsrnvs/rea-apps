@@ -12,6 +12,7 @@ export function mapAssetUrl(value) {
       return null;
     if (
       url.hostname !== 'd1a3f4spazzrp4.cloudfront.net' &&
+      url.hostname !== 'duyt4h9nfnj50.cloudfront.net' &&
       !/(^|\.)uber\.com$/.test(url.hostname)
     )
       return null;

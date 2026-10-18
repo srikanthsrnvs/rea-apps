@@ -17,12 +17,20 @@ import {
 } from './route-animation.mjs';
 import { MapMotion, trimRouteAt } from './map-motion.mjs';
 import { createWaypoint, updateWaypoint } from './waypoint.mjs';
+import {
+  createDeliveryBridge,
+  createDeliveryView,
+  deliveryMapPadding,
+} from './delivery.mjs';
 
 const key = new URLSearchParams(location.hash.slice(1)).get('key');
 // A renewed viewer lease can change only the fragment in an existing browser tab.
 // Reload so its requests use the new key and an expired poller can restart.
 addEventListener('hashchange', () => location.reload());
 const status = document.querySelector('#status');
+const deliveryPanel = document.querySelector('#delivery');
+const deliveryView = createDeliveryView(deliveryPanel);
+const deliveryBridge = createDeliveryBridge({ window });
 const night = matchMedia('(prefers-color-scheme: dark)');
 let map,
   latest,
@@ -128,9 +136,18 @@ function recenter() {
   );
   const northeast = bounds.getNorthEast(),
     southwest = bounds.getSouthWest();
+  const padding =
+    latest.kind === 'eats'
+      ? deliveryMapPadding({
+          width: map.getContainer().clientWidth,
+          height: map.getContainer().clientHeight,
+          panelWidth: deliveryPanel.getBoundingClientRect().width,
+          panelHeight: deliveryPanel.getBoundingClientRect().height,
+        })
+      : 16;
   if (northeast.lng === southwest.lng && northeast.lat === southwest.lat)
-    map.easeTo({ center: coordinate(items[0]), zoom: 15 });
-  else map.fitBounds(bounds, { padding: 16, maxZoom: 16, duration: 500 });
+    map.easeTo({ center: coordinate(items[0]), zoom: 15, padding });
+  else map.fitBounds(bounds, { padding, maxZoom: 16, duration: 500 });
 }
 function routeData(scene, position) {
   return {
@@ -208,8 +225,26 @@ function removeVehicle() {
       null;
 }
 function render(scene) {
-  const changedTrip = latest?.tripId !== scene.tripId;
+  const changedTrip =
+    latest?.tripId !== scene.tripId || latest?.kind !== scene.kind;
   latest = scene;
+  deliveryView.render(scene);
+  deliveryBridge.update(scene);
+  document.body.classList.toggle('delivery-view', scene.kind === 'eats');
+  document
+    .querySelector('#map')
+    .setAttribute(
+      'aria-label',
+      scene.kind === 'eats'
+        ? 'Interactive delivery map'
+        : 'Interactive ride map',
+    );
+  document
+    .querySelector('#recenter')
+    .setAttribute(
+      'aria-label',
+      scene.kind === 'eats' ? 'Show the whole delivery' : 'Show the whole trip',
+    );
   if (changedTrip) {
     pulseStart = null;
     motion.reset();
@@ -243,7 +278,10 @@ function render(scene) {
     if (!vehicleMarker) {
       vehicleNode = document.createElement('div');
       vehicleNode.className = 'driver';
-      vehicleNode.setAttribute('aria-label', 'Driver position');
+      vehicleNode.setAttribute(
+        'aria-label',
+        scene.kind === 'eats' ? 'Courier position' : 'Driver position',
+      );
       const container = document.createElement('div');
       container.append(vehicleNode);
       renderedPosition = motion.position ?? scene.driver.position;
@@ -297,7 +335,18 @@ function render(scene) {
     map.resize();
     if (changedTrip || follow) recenter();
   }
-  if (scene.state === 'idle') show('No active ride');
+  if (scene.kind === 'eats') {
+    show(
+      scene.state === 'unavailable'
+        ? 'Delivery details are unavailable'
+        : scene.state === 'ended' && !scene.delivery
+          ? 'Delivery ended'
+          : Number.isFinite(scene.driver?.positionAgeMs) &&
+              scene.driver.positionAgeMs > 30000
+            ? `Courier location ${Math.floor(scene.driver.positionAgeMs / 1000)}s old`
+            : '',
+    );
+  } else if (scene.state === 'idle') show('No active ride');
   else if (scene.state === 'ended')
     show(
       ['ClientCanceled', 'DriverCanceled', 'Canceled', 'CANCELED'].includes(
@@ -340,8 +389,10 @@ async function loadStyle() {
   return result.style;
 }
 function unavailable(code) {
+  deliveryBridge.close();
   document.querySelector('#map').hidden = true;
   document.querySelector('#recenter').hidden = true;
+  deliveryView.render(null);
   stopped = true;
   if (animationFrameId !== null) {
     cancelAnimationFrame(animationFrameId);
@@ -397,13 +448,16 @@ async function poll() {
     }
     if (!response.ok) throw new Error('Trip refresh failed');
     const payload = await response.json();
+    deliveryBridge.update(payload.scene, payload.viewer?.frameOrigins ?? []);
     interval = Math.max(
       8000,
       Math.min(3600000, payload.scene.pollingIntervalMs ?? 8000),
     );
     render(payload.scene);
-    liveEnabled =
-      payload.fidelity?.updates === 'ramen_push_with_status_fallback';
+    liveEnabled = [
+      'ramen_push_with_status_fallback',
+      'native_eats_polling',
+    ].includes(payload.fidelity?.updates);
     startLiveDelivery();
   } catch {
     show(
@@ -418,7 +472,20 @@ document.querySelector('#recenter').addEventListener('click', () => {
   follow = true;
   recenter();
 });
+const panelObserver = new ResizeObserver(() => {
+  document.body.style.setProperty(
+    '--delivery-panel-height',
+    `${deliveryPanel.hidden ? 0 : deliveryPanel.getBoundingClientRect().height}px`,
+  );
+  if (follow && latest?.kind === 'eats') recenter();
+});
+panelObserver.observe(deliveryPanel);
+addEventListener('resize', () => {
+  if (follow && latest?.kind === 'eats') recenter();
+});
 addEventListener('pagehide', () => {
+  deliveryBridge.close();
+  panelObserver.disconnect();
   stopped = true;
   clearTimeout(timer);
   clearTimeout(liveRetryTimer);

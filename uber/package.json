@@ -1,6 +1,6 @@
 {
   "name": "uber-standalone-cli",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Native headless Uber and Uber Eats CLI with shared login, rides, menus, carts and food ordering",

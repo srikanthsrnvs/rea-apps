@@ -4,13 +4,13 @@ A Node.js CLI reconstructed from Uber's Android app and official login frontend.
 
 Requires Node.js 22.19 or later. No npm dependencies, Java, ADB or REA are needed to run it.
 
-Uber Eats uses the same login and runtime. It calls native endpoints directly; no Chromium, WebView, emulator, browser automation, proxy, tunnel or background food-ordering service runs on the server. Commands exit after producing JSON. Like the native Spotify CLI, installation reuses a compatible Node runtime. The optional ride-map viewer starts only when explicitly requested.
+Uber Eats uses the same login and runtime. It calls native endpoints directly; no Chromium, WebView, emulator, browser automation, proxy, tunnel or background food-ordering service runs on the server. Ordinary commands exit after producing JSON; explicitly requested tracking streams and viewers stay running. Like the native Spotify CLI, installation reuses a compatible Node runtime. Ride and food-delivery map viewers start only when explicitly requested.
 
-On the ARM64 Orin, sampled ride status, Eats status and food search commands peaked at roughly **94–100 MiB RSS** and completed in **0.65–1.03 seconds**. These are measured workloads, not a memory ceiling. The complete Uber/Eats package is about **140 KB compressed / 0.5 MB unpacked**, excluding the shared Node runtime.
+On the ARM64 Orin, sampled ride status, Eats status and food search commands peaked at roughly **94–100 MiB RSS** and completed in **0.65–1.03 seconds**. These are measured workloads, not a memory ceiling. The complete Uber/Eats package is about **160 KB compressed / 0.55 MB unpacked**, excluding the shared Node runtime.
 
 ## Uber Eats
 
-`uber eats tools` returns six model tools: location context, food/restaurant search, menus/item options, cart management, checkout review, and orders/history/cancellation. Use this focused toolset for food rather than loading every ride tool. No separate Eats login is required.
+`uber eats tools` returns seven model tools: location context, food/restaurant search, menus/item options, cart management, checkout review, orders/history/cancellation, and delivery tracking. Use this focused toolset for food rather than loading every ride tool. No separate Eats login is required.
 
 ```sh
 uber eats locations
@@ -62,7 +62,28 @@ For required modifiers, populate `customizationV2s` with `{uuid: GROUP_ID, child
 
 Checkout selects the explicitly supplied tip, including zero, and prepares a 90-second plan. Confirmation rechecks the cart, location, payment, tip and current total before submitting once. Cancellation uses Uber's server-issued authorization and displayed charge/refund terms, with a separate 60-second plan. An order created outside this CLI may need `--near LAT,LON` when preparing cancellation. Missing terms never imply a free cancellation. Group, business, scheduled and split-payment checkouts and additional verification flows are rejected explicitly.
 
-Search, item options, cart creation/add/update/remove/discard, $2 and zero-tip checkout reviews, active-order reads and paginated history are verified on headless ARM64 Linux. Paid food ordering and active-order cancellation are implemented from native contracts and covered with simulated service tests; they have not been exercised as live purchases. See [native Eats contracts and coverage](docs/eats-protocol.md).
+Search, item options, cart creation/add/update/remove/discard, $2 and zero-tip checkout reviews, active-order reads and paginated history are verified on headless ARM64 Linux. A real food purchase was verified through the CLI and active-order reads. Active-order cancellation remains covered by native contracts and simulated service tests. Delivery tracking is described below. See [native Eats contracts and coverage](docs/eats-protocol.md).
+
+## Food delivery tracking
+
+Use the selected order's workflow ID returned by `order --action status` or its `tracking` commands. Tracking accepts either the workflow or native order ID and keeps following that same delivery.
+
+```sh
+uber eats track --order-id WORKFLOW_UUID
+uber eats track --action stream --order-id WORKFLOW_UUID --duration 300
+uber eats track --action stream --order-id WORKFLOW_UUID --after 42 --duration 300
+uber eats track --action serve --order-id WORKFLOW_UUID \
+  --host 0.0.0.0 --port 8787 --public-url https://your-server.example/delivery/ \
+  --frame-origin https://your-client.example --duration 3600
+```
+
+`serve` returns an expiring `mapUrl` for an iframe. Keep its foreground command running and route the public URL to its listening port. HTTPS termination or a tunnel is deployment infrastructure; the CLI does not start one automatically. All rendering runs in the client's browser. The Orin runs a small Node HTTP server, authenticates native reads and refreshes status once every eight seconds across all viewers. It never launches Chromium or Android.
+
+The view shows Uber's ETA, native segmented progress and status text, the restaurant, courier and drop-off, original vehicle artwork, and the server-supplied road route. It reuses the ride viewer's motion and route animation. Native Eats push transport and exact Eats animation parity are not yet verified; this implementation uses native HTTP snapshots. A missing courier location stays missing, and meeting/arrival stages never masquerade as completed delivery.
+
+The same tool provides lifecycle hooks as NDJSON, authenticated SSE, or messages to an explicitly allowed iframe parent. Hooks cover preparing, courier travel to the restaurant, heading to the customer, time to meet, arrival, delivery completion/cancellation/failure, courier assignment, ETA/delay/activity changes and courier positions. Events include a stable ID, monotonic sequence and observation timestamp. They describe observed changes; stages missed while no tracker was running are not invented. The latest 128 events are retained privately for resumption. Consumers should deduplicate by ID.
+
+See [tracking events and embedding](docs/eats-tracking.md) for event payloads, iframe subscription and native evidence.
 
 ## Install
 

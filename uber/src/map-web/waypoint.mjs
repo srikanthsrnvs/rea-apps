@@ -6,7 +6,7 @@ export function createWaypoint(point) {
   const container = document.createElement('div');
   container.className = 'waypoint-container';
   const anchor = document.createElement('div');
-  anchor.className = `waypoint ${point.kind === 'pickup' ? 'pickup' : ''}`;
+  anchor.className = `waypoint ${['pickup', 'restaurant'].includes(point.kind) ? 'pickup' : ''}${point.kind === 'restaurant' ? ' restaurant' : ''}`;
   anchor.setAttribute('aria-label', point.kind ?? 'Waypoint');
   container.append(anchor);
   return container;
@@ -14,6 +14,7 @@ export function createWaypoint(point) {
 
 export function updateWaypoint(container, point, scene) {
   const label =
+    scene.kind !== 'eats' &&
     point.kind === 'pickup' &&
     ['active', 'dispatching', 'replay'].includes(scene.state)
       ? scene.eta?.pickupDisplay

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Ride map</title>
+    <title>Live map</title>
     <link
       rel="stylesheet"
       href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css"
@@ -13,6 +13,7 @@
   <body>
     <main hidden id="map" aria-label="Interactive ride map"></main>
     <div id="status" role="status">Loading map…</div>
+    <section hidden id="delivery" aria-label="Delivery tracking"></section>
     <button
       hidden
       id="recenter"

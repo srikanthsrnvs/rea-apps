@@ -135,7 +135,7 @@ async function runRideCli() {
     console.log(`Standalone Uber CLI — verification-code login and headless HTTP access.
 
 uber tools                         Print tool definitions for models
-uber eats tools                    Print the six food ordering tool definitions
+uber eats tools                    Print the compact food ordering and tracking tools
 uber eats help                     Search food, inspect menus and manage food orders
 uber login --phone +15555550123     Send a login verification code; works over SSH
 uber auth complete --login-id ID --challenge-id ID --code CODE  Submit the current code; may request a second code

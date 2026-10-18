@@ -124,6 +124,148 @@ body {
   background-repeat: no-repeat;
   background-position: 0 0;
 }
+#delivery {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: min(460px, calc(100% - 32px));
+  max-height: min(54vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 20px;
+  padding: 22px 24px 16px;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 4px 24px #0003;
+}
+.delivery-view #recenter {
+  bottom: calc(var(--delivery-panel-height, 240px) + 36px);
+}
+.delivery-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.delivery-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+.delivery-eta {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 500;
+}
+.delivery-detail,
+.delivery-secondary,
+.delivery-delay,
+.delivery-address,
+.delivery-total,
+.delivery-courier-name {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.delivery-secondary {
+  color: #545454;
+}
+.delivery-progress {
+  --delivery-progress-color: #06c167;
+  display: flex;
+  gap: 4px;
+  margin: 20px 0 16px;
+}
+.delivery-progress-segment {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #e2e2e2;
+}
+.delivery-progress-segment[data-state='complete'] {
+  background: var(--delivery-progress-color);
+}
+.delivery-progress-segment[data-state='active']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--delivery-progress-color);
+  transform-origin: left;
+  animation: delivery-progress 2s ease-in-out infinite;
+}
+@keyframes delivery-progress {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.delivery-delay {
+  border-left: 3px solid #ffc043;
+  padding-left: 10px;
+}
+.delivery-courier {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #e2e2e2;
+  padding-top: 12px;
+  margin-top: 16px;
+}
+.delivery-courier-photo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.delivery-courier-name {
+  margin-top: 0;
+  font-size: 16px;
+}
+.delivery-order {
+  margin-top: 16px;
+  border-top: 1px solid #e2e2e2;
+  padding-top: 12px;
+}
+.delivery-order summary {
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.delivery-order-id {
+  float: right;
+  color: #545454;
+  font-size: 13px;
+}
+.delivery-items {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  #delivery {
+    max-height: calc(100% - 32px);
+    width: 320px;
+    left: 16px;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .delivery-progress-segment[data-state='active']::after {
+    animation: none;
+  }
+}
 @media (prefers-color-scheme: dark) {
   html,
   body,
@@ -131,7 +273,8 @@ body {
     background: #3e434c;
   }
   #status,
-  #recenter {
+  #recenter,
+  #delivery {
     background: #000;
     color: #fff;
   }
@@ -144,6 +287,20 @@ body {
   .driver {
     background: #000;
     border-color: #fff;
+  }
+  .delivery-secondary,
+  .delivery-order-id {
+    color: #afafaf;
+  }
+  .delivery-courier,
+  .delivery-order {
+    border-color: #333;
+  }
+  .delivery-progress-segment {
+    background: #333;
+  }
+  .delivery-progress-segment[data-state='complete'] {
+    background: var(--delivery-progress-color);
   }
 }
 
