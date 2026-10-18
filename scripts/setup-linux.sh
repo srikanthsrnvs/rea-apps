@@ -10,7 +10,8 @@ case "${1:-}" in
   --opentable-only) [ "$#" = 1 ] || exit 2; mode=opentable; spotify_option= ;;
   --erewhon-only) [ "$#" = 1 ] || exit 2; mode=erewhon; spotify_option= ;;
   --expedia-only) [ "$#" = 1 ] || exit 2; mode=expedia; spotify_option= ;;
-  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only|--instagram-only|--resy-only|--opentable-only|--erewhon-only|--expedia-only]' >&2; exit 2 ;;
+  --amazon-only) [ "$#" = 1 ] || exit 2; mode=amazon; spotify_option= ;;
+  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only|--instagram-only|--resy-only|--opentable-only|--erewhon-only|--expedia-only|--amazon-only]' >&2; exit 2 ;;
 esac
 if [ "$mode" = both ]; then
   if [ -n "$spotify_option" ]; then
@@ -34,6 +35,7 @@ if [ "$mode" = both ]; then
   OPENTABLE_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/opentable/scripts/setup-linux.sh"
   EREWHON_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/erewhon/scripts/setup-linux.sh"
   EXPEDIA_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/expedia/scripts/setup-linux.sh"
+  AMAZON_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/amazon/scripts/setup-linux.sh"
 elif [ "$mode" = uber ]; then
   "$workspace/uber/scripts/setup-linux.sh"
 elif [ "$mode" = instagram ]; then
@@ -44,7 +46,9 @@ elif [ "$mode" = opentable ]; then
   "$workspace/opentable/scripts/setup-linux.sh"
 elif [ "$mode" = erewhon ]; then
   "$workspace/erewhon/scripts/setup-linux.sh"
-else
+elif [ "$mode" = expedia ]; then
   "$workspace/expedia/scripts/setup-linux.sh"
+else
+  "$workspace/amazon/scripts/setup-linux.sh"
 fi
 printf '%s\n' 'Add ~/.local/bin to PATH if needed: export PATH="$HOME/.local/bin:$PATH"'

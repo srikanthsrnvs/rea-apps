@@ -1,0 +1,6 @@
+node_modules/
+.runtime/
+*.apk
+*.aab
+*.pyc
+__pycache__/

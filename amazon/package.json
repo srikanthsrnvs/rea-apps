@@ -1,0 +1,26 @@
+{
+  "name": "amazon-standalone-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless Amazon Shopping tools reconstructed from its Android app",
+  "bin": {
+    "amazon": "bin/amazon"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scripts/",
+    "docs/",
+    "README.md"
+  ],
+  "dependencies": {
+    "linkedom": "0.18.12"
+  }
+}
