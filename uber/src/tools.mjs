@@ -5,6 +5,14 @@ const coordinate = {
 export const toolManifest = {
   name: 'uber',
   version: 5,
+  relatedToolsets: [
+    {
+      name: 'uber-eats',
+      command: 'uber eats tools',
+      description:
+        'Six headless tools for food search, menus, carts, checkout, orders and location context. Shares this Uber login.',
+    },
+  ],
   transport: 'CLI',
   output: 'JSON on stdout; JSON errors on stderr and nonzero exit status',
   authentication:

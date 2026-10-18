@@ -7,7 +7,7 @@ const definitelyRejected = new Set([400, 401, 403, 404, 422]);
 
 function uncertainOperation(id, cause) {
   const error = new Error(
-    `Uber may have accepted this operation. Do not repeat it; check trip status and inspect operation ${id}.`,
+    `Uber may have accepted this operation. Do not repeat it; check status and inspect operation ${id}.`,
     { cause },
   );
   error.code = 'outcome_unknown';
@@ -17,12 +17,20 @@ function uncertainOperation(id, cause) {
 
 /** Must run inside the authenticated state lock. Never retries a mutation. */
 export async function executeMutation(
-  { id, kind, endpoint, body, validate, context },
+  { id, kind, endpoint, body, validate, context, beforeSend },
   send,
   { read = readState, write = saveState } = {},
 ) {
   if (!uuid.test(id ?? '')) throw new Error('Operation ID must be a UUID');
-  if (!['booking', 'cancellation'].includes(kind))
+  if (
+    ![
+      'booking',
+      'cancellation',
+      'eats-cart',
+      'eats-order',
+      'eats-cancellation',
+    ].includes(kind)
+  )
     throw new Error('Unknown mutation type');
   const key = `operation-${id}`;
   const digest = createHash('sha256')
@@ -57,11 +65,14 @@ export async function executeMutation(
   // If this write fails, nothing is sent. A killed process leaves a recoverable record.
   await write(key, record);
   let response;
+  let dispatched = false;
   try {
+    if (beforeSend) await beforeSend();
+    dispatched = true;
     response = await send(endpoint, body, { readOnly: false, callUuid: id });
     if (validate) validate(response);
   } catch (cause) {
-    const rejected = definitelyRejected.has(cause.status);
+    const rejected = !dispatched || definitelyRejected.has(cause.status);
     try {
       await write(key, {
         ...record,

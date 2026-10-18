@@ -84,7 +84,7 @@ async function codeInput() {
   }
 }
 
-try {
+async function runRideCli() {
   const parsed = parseArgs({
     allowPositionals: true,
     options: {
@@ -135,6 +135,8 @@ try {
     console.log(`Standalone Uber CLI — verification-code login and headless HTTP access.
 
 uber tools                         Print tool definitions for models
+uber eats tools                    Print the six food ordering tool definitions
+uber eats help                     Search food, inspect menus and manage food orders
 uber login --phone +15555550123     Send a login verification code; works over SSH
 uber auth complete --login-id ID --challenge-id ID --code CODE  Submit the current code; may request a second code
 uber auth poll --login-id ID        Inspect the pending login without sending another code
@@ -426,6 +428,13 @@ State: ${stateDirectory}`);
       }
     }
   } else throw new Error(`Unknown command: ${command}`);
+}
+
+try {
+  if (process.argv[2] === 'eats') {
+    const { runEatsCli } = await import('./eats/cli.mjs');
+    await runEatsCli(process.argv.slice(3));
+  } else await runRideCli();
 } catch (error) {
   console.error(
     JSON.stringify({
@@ -434,6 +443,9 @@ State: ${stateDirectory}`);
         code: error.code ?? 'cli_error',
         ...(error.status ? { status: error.status } : {}),
         ...(error.operationId ? { operationId: error.operationId } : {}),
+        ...(error.validationErrors
+          ? { validationErrors: error.validationErrors }
+          : {}),
       },
     }),
   );

@@ -4,6 +4,66 @@ A Node.js CLI reconstructed from Uber's Android app and official login frontend.
 
 Requires Node.js 22.19 or later. No npm dependencies, Java, ADB or REA are needed to run it.
 
+Uber Eats uses the same login and runtime. It calls native endpoints directly; no Chromium, WebView, emulator, browser automation, proxy, tunnel or background food-ordering service runs on the server. Commands exit after producing JSON. Like the native Spotify CLI, installation reuses a compatible Node runtime. The optional ride-map viewer starts only when explicitly requested.
+
+On the ARM64 Orin, sampled ride status, Eats status and food search commands peaked at roughly **94–100 MiB RSS** and completed in **0.65–1.03 seconds**. These are measured workloads, not a memory ceiling. The complete Uber/Eats package is about **140 KB compressed / 0.5 MB unpacked**, excluding the shared Node runtime.
+
+## Uber Eats
+
+`uber eats tools` returns six model tools: location context, food/restaurant search, menus/item options, cart management, checkout review, and orders/history/cancellation. Use this focused toolset for food rather than loading every ride tool. No separate Eats login is required.
+
+```sh
+uber eats locations
+uber eats search --query 'coffee' --near 34.05,-118.25 --mode delivery
+uber eats menu --store-id STORE_UUID --near 34.05,-118.25
+uber eats menu --store-id STORE_UUID --item-id ITEM_UUID --section-id SECTION_UUID --near 34.05,-118.25
+uber eats cart --action list
+uber eats cart --action create --request cart.json
+uber eats cart --action get --draft-id DRAFT_UUID
+uber eats checkout --draft-id DRAFT_UUID --tip-amount 2.00
+# Show the returned items, address, payment, fees, tip and total to the user.
+uber eats order --action confirm --plan-id APPROVED_PLAN_UUID --confirm
+uber eats order --action status
+uber eats order --action history --limit 10
+uber eats order --action cancel --order-id ORDER_UUID
+# Show the returned cancellation terms before submitting its separate plan.
+uber eats order --action cancel --plan-id APPROVED_CANCEL_PLAN_UUID --confirm
+```
+
+Both delivery and pickup use `--mode` for search/menu and `diningMode` in the creation request. Cart requests use exact server identifiers:
+
+```json
+{
+  "storeId": "STORE_UUID",
+  "diningMode": "delivery",
+  "deliveryAddress": {
+    "latitude": 34.05,
+    "longitude": -118.25,
+    "address": {
+      "address1": "Your street address",
+      "title": "Your street address"
+    }
+  },
+  "items": [
+    {
+      "itemId": "ITEM_UUID",
+      "sectionId": "SECTION_UUID",
+      "subsectionId": "SUBSECTION_UUID",
+      "quantity": 1,
+      "customizationV2s": []
+    }
+  ]
+}
+```
+
+For required modifiers, populate `customizationV2s` with `{uuid: GROUP_ID, childOptions:{options:[{uuid: OPTION_ID, quantity:1, customizationV2List:[]}]}}`. Nested choices remain nested. Item details expose bounds, defaults and availability; the CLI rechecks selections against fresh item data before editing the cart. Cart creation preserves other restaurant carts and refuses to replace an existing cart for the same restaurant.
+
+`cart --action add` accepts an `items` array. `cart --action update` accepts `lineId`, `quantity`, `specialInstructions` and/or `customizations`; `remove --line-id` removes one exact line, and `discard` removes the selected draft. Supply a unique `--operation-id UUID` for cart mutations when integrating an agent. Reuse that ID only to recover the identical request. Inspect uncertain outcomes with `uber eats operation --operation-id UUID`; never blindly repeat them.
+
+Checkout selects the explicitly supplied tip, including zero, and prepares a 90-second plan. Confirmation rechecks the cart, location, payment, tip and current total before submitting once. Cancellation uses Uber's server-issued authorization and displayed charge/refund terms, with a separate 60-second plan. An order created outside this CLI may need `--near LAT,LON` when preparing cancellation. Missing terms never imply a free cancellation. Group, business, scheduled and split-payment checkouts and additional verification flows are rejected explicitly.
+
+Search, item options, cart creation/add/update/remove/discard, $2 and zero-tip checkout reviews, active-order reads and paginated history are verified on headless ARM64 Linux. Paid food ordering and active-order cancellation are implemented from native contracts and covered with simulated service tests; they have not been exercised as live purchases. See [native Eats contracts and coverage](docs/eats-protocol.md).
+
 ## Install
 
 From this repository's `uber/` directory on macOS, or with an existing supported Node runtime:
