@@ -26,6 +26,15 @@ function holdAction(name, reject = false) {
   actionGates.push(gate); heldAction = gate; return gate;
 }
 const calls = [];
+async function checkArtworkClearance(frame) {
+  const bounds = await frame.locator("#artwork-window").evaluate(e=>{
+    const window=e.getBoundingClientRect(),sleeve=document.querySelector("#artwork .sleeve").getBoundingClientRect(),title=document.querySelector("#title").getBoundingClientRect();
+    return {above:sleeve.top-window.top,below:window.bottom-sleeve.bottom,gap:title.top-sleeve.bottom};
+  });
+  assert.ok(bounds.above >= 26,"The hover shadow needs room above the sleeve");
+  assert.ok(bounds.below >= 42,"The shadow must not be clipped above the title");
+  assert.ok(bounds.gap >= 24,"The enlarged cover must stay clear of the title");
+}
 try {
   await client.connect(transport);
   const resource = (await client.readResource({ uri: PLAYER_URI })).contents[0];
@@ -98,6 +107,7 @@ try {
   assert.ok(await frame.locator("#artwork .disc").evaluate(e=>parseFloat(getComputedStyle(e).translate)) > restingDisc,"Hover brings the record farther out of its sleeve");
   assert.ok(await frame.locator("#artwork .sleeve").evaluate(e=>Number(getComputedStyle(e).scale)) > 1,"Hover gently enlarges the cover");
   assert.equal(await frame.locator("#artwork-next .sleeve").evaluate(e=>getComputedStyle(e).scale),"none","Neighbor previews stay still");
+  await checkArtworkClearance(frame);
   await page.mouse.move(1,1);
   await page.waitForTimeout(500);
   assert.equal(await frame.locator("#artwork .disc").evaluate(e=>parseFloat(getComputedStyle(e).translate)),restingDisc);
@@ -200,6 +210,10 @@ try {
   assert.equal(await frame.getByRole("button").count(),3);
   assert.equal(await frame.locator("#device, #album, .footer").count(),0);
   assert.ok(await frame.locator(".artwork-next").evaluate(e=>getComputedStyle(e).filter.includes("blur")));
+  await frame.locator("#artwork .cover").hover();
+  await page.waitForTimeout(500);
+  await checkArtworkClearance(frame);
+  await page.mouse.move(1,1);
   const long = await client.callTool({name:"spotify_status",arguments:{}});
   const longTitle = "A very long song title that must scroll continuously without creating another line";
   long.structuredContent.component.props.playback.track.name = longTitle;
