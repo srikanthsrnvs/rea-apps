@@ -1,7 +1,7 @@
 # Claude Android chat protocol
 
-This implementation reconstructs the read contracts shipped in Claude Android
-1.261016.51 (`com.anthropic.claude`, APK SHA-256
+This implementation reconstructs the read and completion contracts shipped in
+Claude Android 1.261016.51 (`com.anthropic.claude`, APK SHA-256
 `9031d8c700315ada64e41ffdd4a81fad881e0670b03b1f6de3a3ebbec1fda080`).
 The contracts below come from static REA/JADX evidence. Live authentication and
 account-access results must be recorded separately; decompilation does not prove
@@ -54,6 +54,9 @@ organization schema `ev_ab75632df1faa7be3002cf0891f457bbe918c3064b86255ac92f1215
 wrapper requests the first page with `limit=100`, without `section` or `cursor`.
 It requests subsequent recent-history pages with `limit=30`, `section=recents`,
 and the opaque cursor returned by the server.
+
+The CLI's `--all` mode uses 100 rows on continuation requests to reduce round
+trips, as validated against the live service. An explicit `--limit` is honored.
 
 Response structure:
 
@@ -114,7 +117,9 @@ include_extracted_content=false
 ```
 
 The native method optionally adds `return_dangling_human_message` and
-`max_response_bytes`. The CLI leaves the response-size cap absent by default.
+`max_response_bytes`. The CLI omits that query parameter by default, while its
+HTTP transport independently enforces a 32 MiB response ceiling. An oversized
+response fails rather than being reported as a complete truncated conversation.
 The response contains conversation metadata, `chat_messages` and
 `current_leaf_message_uuid`. Every message has `uuid`, `parent_message_uuid`,
 `index`, sender, text, rich content blocks, attachments and files. The CLI

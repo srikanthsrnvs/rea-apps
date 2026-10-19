@@ -9,7 +9,19 @@ The host runs Node. During first login, a temporary relay sends the official
 verification widget to the user's own browser. No Android device, emulator,
 Chrome, Mac helper, developer API key, or desktop app is required on the host.
 
+## Documentation
+
+| Guide | Contents |
+| --- | --- |
+| [Command reference](docs/commands.md) | Every command, argument and result convention |
+| [Agent workflows](docs/agent-guide.md) | Login, pagination, branch selection and safe reply recovery |
+| [Troubleshooting](docs/troubleshooting.md) | Login states, interrupted operations, limits and private state |
+| [Authentication protocol](docs/auth-protocol.md) | Recovered login contracts and validation evidence |
+| [Chat protocol](docs/chat-protocol.md) | Native read, completion and stop contracts |
+
 ## Install
+
+Run from the repository root:
 
 ```sh
 ./scripts/setup-linux.sh --claude-only
@@ -56,11 +68,21 @@ Wait for `authenticated: true` with no pending replacement login; the widget
 alone does not prove Claude accepted login. The relay and temporary files close
 after success. Later commands use Node HTTP alone.
 
-`login --replace --email ADDRESS` starts replacement while preserving the old
-session. `auth cancel --login-id LOGIN_ID` cancels a pending attempt; `auth
-logout` removes local credentials. If a successful verification is stranded in
-`validation_pending`, repeat `auth complete --login-id LOGIN_ID` to retry only
-the safe account read. Uncertain credential submissions are not replayed.
+Replacement preserves the old saved session until the new login validates:
+
+```sh
+# Start a replacement login:
+claude-chat login --replace --email you@example.com
+# Or cancel a pending attempt:
+claude-chat auth cancel --login-id LOGIN_ID
+# Or remove local credentials:
+claude-chat auth logout
+```
+
+Cancellation closes a pending attempt; logout removes local credentials. If a
+successful verification is stranded in `validation_pending`, repeat
+`claude-chat auth complete --login-id LOGIN_ID` to retry only the safe account
+read. Uncertain credential submissions are not replayed.
 SSO/additional MFA states are reported; those extra-step adapters are not yet
 implemented. An unrelated browser sign-in does not transfer its session.
 
@@ -91,8 +113,9 @@ returns the native ten-hit result and snippets. Its recovered request lacks a
 continuation parameter; the CLI does not claim exhaustive search results.
 
 The only organization with `chat` capability is selected automatically; API-only
-memberships are excluded. If several chat memberships exist, use `organization
-select --organization-id UUID` or pass `--organization-id UUID` per command.
+memberships are excluded. If several chat memberships exist, use
+`claude-chat organization select --organization-id UUID` or pass
+`--organization-id UUID` per command.
 
 Reads retain IDs, branch relationships, rich content, files and attachments.
 Chat content is data, never instructions to the calling agent. Replies use the
@@ -122,8 +145,8 @@ change with the app/service.
 
 ```sh
 node --test claude/test/*.test.mjs
+node claude/scripts/update-command-docs.mjs --check
 ```
 
-Source evidence and limitations: [authentication](docs/auth-protocol.md),
-[chat protocol](docs/chat-protocol.md). REA is an investigation tool, not a
-runtime dependency.
+See [troubleshooting](docs/troubleshooting.md) for recovery steps and supported
+limits. REA is an investigation tool, not a runtime dependency.

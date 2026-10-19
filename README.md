@@ -61,7 +61,7 @@ Expedia's flight search, fare selection and checkout preparation use HTTP. Login
 
 Amazon runs `amazon login`, then `amazon auth complete --login-id LOGIN_ID` after approval in the user’s browser. Its host uses only HTTP, including cart and checkout review. Purchase and cancellation adapters still need live submission verification; see its [guide](amazon/README.md).
 
-Claude uses `claude-chat login --email ADDRESS`, then accepts the email code/button URL through `auth complete`. Open its returned verification link in the user's own browser; the Orin validates and saves login automatically. It lists/searches/reads chats and creates replies through HTTP. See its [guide](claude/README.md).
+Claude uses `claude-chat login --email ADDRESS`, then accepts the email code/button URL through `auth complete`. Open its returned verification link in the user's own browser; the Orin validates and saves login automatically. It lists/searches/reads chats and creates replies through HTTP. See its [guide](claude/README.md), [command reference](claude/docs/commands.md), and [agent workflows](claude/docs/agent-guide.md).
 
 Read the app-specific guides for commands, installation on macOS, and protocol details. Uber, Resy and OpenTable booking/cancellation use reviewed plans. Models must show the current terms and obtain user approval before confirming a real booking or cancellation. Erewhon likewise requires an approved order review before `order confirm --plan-id ID --confirm` places and pays for an order.
 
