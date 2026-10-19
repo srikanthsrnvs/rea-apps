@@ -92,6 +92,16 @@ try {
   assert.equal(await frame.locator("#artwork-previous").isHidden(),true);
   assert.equal(await frame.locator("#cover-image-next").getAttribute("src"),"https://i.scdn.co/image/test-two");
   const initialImageRequests = imageRequests.length;
+  const restingDisc = await frame.locator("#artwork .disc").evaluate(e=>parseFloat(getComputedStyle(e).translate));
+  await frame.locator("#artwork .cover").hover();
+  await page.waitForTimeout(500);
+  assert.ok(await frame.locator("#artwork .disc").evaluate(e=>parseFloat(getComputedStyle(e).translate)) > restingDisc,"Hover brings the record farther out of its sleeve");
+  assert.ok(await frame.locator("#artwork .sleeve").evaluate(e=>Number(getComputedStyle(e).scale)) > 1,"Hover gently enlarges the cover");
+  assert.equal(await frame.locator("#artwork-next .sleeve").evaluate(e=>getComputedStyle(e).scale),"none","Neighbor previews stay still");
+  await page.mouse.move(1,1);
+  await page.waitForTimeout(500);
+  assert.equal(await frame.locator("#artwork .disc").evaluate(e=>parseFloat(getComputedStyle(e).translate)),restingDisc);
+  assert.equal(await frame.locator("#artwork .sleeve").evaluate(e=>getComputedStyle(e).scale),"1");
   const pausedGate = holdAction("spotify_pause");
   await frame.getByRole("button",{name:"Pause",exact:true}).click();
   await pausedGate.started;
@@ -231,6 +241,10 @@ try {
   assert.equal(await frame.locator("#cover-image").getAttribute("src"), currentCover, "A late image must not restore the previous cover");
   await page.emulateMedia({reducedMotion:"reduce"});
   assert.equal(await frame.locator("#artwork .disc").evaluate(e => getComputedStyle(e).animationName), "none");
+  await frame.locator("#artwork .cover").hover();
+  assert.equal(await frame.locator("#artwork .sleeve").evaluate(e=>getComputedStyle(e).scale),"1","Reduced motion disables hover growth");
+  assert.equal(await frame.locator("#artwork .disc").evaluate(e=>parseFloat(getComputedStyle(e).translate)),restingDisc);
+  await page.mouse.move(1,1);
   const reduced = structuredClone(long);
   reduced.structuredContent.component.props.playback.track = {...reduced.structuredContent.component.props.playback.track,uri:"spotify:track:three",name:"Third song"};
   delete reduced.structuredContent.component.props.playback.adjacentTracks;

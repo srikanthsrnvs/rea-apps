@@ -81,6 +81,7 @@ For a CLI-backed agent, the backend maps the seven fixed `spotify_*` player acti
 ## Playback behavior
 
 - Album artwork appears in a rounded sleeve with a metallic CD beside it. The disc rotates while playback is running and pauses when playback pauses or becomes stale. Reduced-motion preferences disable rotation.
+- The current record rests partly tucked into its sleeve. Hovering the cover on a mouse/trackpad slides it outward and enlarges the sleeve by 4%; leaving reverses the effect. Disc rotation stays independent. Neighbor previews stay still, and touch-only or reduced-motion clients do not get this hover movement.
 - Artwork comes from the existing native playback metadata, without another Spotify API request. The client's browser fetches HTTPS images only from `https://i.scdn.co/image/`; both MCP CSP metadata and the standalone viewer permit that image origin. Spotify tokens and viewer keys are never sent with image requests, and no referrer is sent. Custom hosts must also permit this image origin in their iframe CSP.
 - Track changes replace the cover, while routine status updates and pause/resume reuse it. Missing, unsupported or failed images show a music-note placeholder without blocking the controls; a late response for an old cover cannot replace the current one.
 - Previous and next covers peek in from the card's edges, smaller and faded. Unknown neighbors are hidden; a known track without artwork uses the same placeholder. The player never guesses neighbors from search results or playlist sorting.
