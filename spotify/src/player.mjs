@@ -42,10 +42,10 @@ export async function playerResource() {
     uri: PLAYER_URI, mimeType: PLAYER_MIME,
     text: await readFile(new URL("./player/player.html", import.meta.url), "utf8"),
     _meta: {
-      ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } },
-      "openai/widgetDescription": "Live Spotify player with track details, pause/resume, previous/next, seek and volume controls. Controls use the active Spotify Connect device.",
+      ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: ["https://i.scdn.co"] } },
+      "openai/widgetDescription": "Live Spotify player with album artwork, track details, pause/resume, previous/next, seek and volume controls. Controls use the active Spotify Connect device.",
       "openai/widgetPrefersBorder": true,
-      "openai/widgetCSP": { connect_domains: [], resource_domains: [] },
+      "openai/widgetCSP": { connect_domains: [], resource_domains: ["https://i.scdn.co"] },
     },
   };
 }

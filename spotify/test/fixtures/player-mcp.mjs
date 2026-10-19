@@ -2,8 +2,8 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { createMcpServer } from "../../src/mcp.mjs";
 const tracks = [
-  { uri: "spotify:track:one", name: "First song", artists: ["First artist"], album: "Test playlist" },
-  { uri: "spotify:track:two", name: "Second <script>song</script>", artists: ["Second artist"], album: "Test playlist" },
+  { uri: "spotify:track:one", name: "First song", artists: ["First artist"], album: "Test playlist", imageUrl: "https://i.scdn.co/image/test-one" },
+  { uri: "spotify:track:two", name: "Second <script>song</script>", artists: ["Second artist"], album: "Test playlist", imageUrl: "https://i.scdn.co/image/test-two" },
 ];
 let index = 0;
 const state = { state: "playing", context: "spotify:playlist:test", positionMs: 30000, durationMs: 210000, device: "Test speaker", deviceId: "speaker", volume: 35, track: tracks[0] };

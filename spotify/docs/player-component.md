@@ -25,7 +25,7 @@ Playback commands return their existing result plus a `component` descriptor. Th
 }
 ```
 
-The actual `props.playback` also contains the track URI, artists, album, playlist/context URI, position, duration, device, volume, restrictions and observation timestamp. The descriptor accompanies `status`, `play`, `pause`, `resume`, `toggle`, `next`, `previous`, `seek`, `shuffle`, `repeat` and `transfer` when they return playback state. Errors and unrelated commands do not fabricate a player or report a successful mutation.
+The actual `props.playback` also contains the track URI, artists, album, playlist/context URI, position, duration, device, volume, restrictions and observation timestamp. When native Connect metadata supplies artwork, `props.playback.track.imageUrl` contains its public cover URL. The descriptor accompanies `status`, `play`, `pause`, `resume`, `toggle`, `next`, `previous`, `seek`, `shuffle`, `repeat` and `transfer` when they return playback state. Errors and unrelated commands do not fabricate a player or report a successful mutation.
 
 ## MCP Apps and ChatGPT
 
@@ -66,6 +66,9 @@ For a CLI-backed agent, the backend maps the seven fixed `spotify_*` player acti
 
 ## Playback behavior
 
+- Album artwork appears in a rounded sleeve with a metallic CD beside it. The disc rotates while playback is running and pauses when playback pauses or becomes stale. Reduced-motion preferences disable rotation.
+- Artwork comes from the existing native playback metadata, without another Spotify API request. The client's browser fetches HTTPS images only from `https://i.scdn.co/image/`; both MCP CSP metadata and the standalone viewer permit that image origin. Spotify tokens and viewer keys are never sent with image requests, and no referrer is sent. Custom hosts must also permit this image origin in their iframe CSP.
+- Track changes replace the cover, while routine status updates and pause/resume reuse it. Missing, unsupported or failed images show a music-note placeholder without blocking the controls; a late response for an old cover cannot replace the current one.
 - The large button explicitly pauses or resumes; it does not blindly toggle stale state.
 - Previous/next follow Spotify’s active playlist or queue, including its own shuffle and repeat rules.
 - Seeking submits seconds and the current `track-uri`. The runtime rejects the action if playback changed tracks before it executed.
@@ -80,4 +83,4 @@ For a CLI-backed agent, the backend maps the seven fixed `spotify_*` player acti
 
 `npm test` covers the actual stdio MCP resource and metadata, playlist controls, preserved CLI results and stale-track seek rejection. `node scripts/check-player-browser.mjs` uses Playwright and a deterministic MCP fixture for browser acceptance, without changing real playback. Install Playwright in the development environment or set `SPOTIFY_PLAYWRIGHT_MODULE` to its module; `SPOTIFY_TEST_BROWSER` optionally selects an existing Chromium executable. Playwright is not required by the CLI or the component.
 
-Browser acceptance checks the actual reusable host adapter, pause/resume, previous/next, seek, volume/mute, single-line scrolling titles, escaped metadata, failed actions, external state refresh, mobile layout, action allowlisting and disposal. Screenshots go under the ignored `.runtime/` directory. A real local Spotify status read also verified that the tool returns the current track and component together; the browser control checks use the isolated playlist fixture.
+Browser acceptance checks the actual reusable host adapter, cover loading and track changes, artwork fallback and origin restrictions, reduced motion, pause/resume, previous/next, seek, volume/mute, single-line scrolling titles, escaped metadata, failed actions, external state refresh, mobile layout, action allowlisting and disposal. Images are supplied by isolated browser fixtures, so acceptance does not depend on Spotify's CDN. Screenshots go under the ignored `.runtime/` directory. A real Spotify status read also verified that the tool returns the current track, artwork URL and component together; browser control checks use the isolated playlist fixture.

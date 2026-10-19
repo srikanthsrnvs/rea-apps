@@ -15,6 +15,7 @@ const transport = new StdioClientTransport({ command: process.execPath,
   args: [fileURLToPath(new URL("../test/fixtures/player-mcp.mjs", import.meta.url))], stderr: "pipe" });
 let browser, server, viewer;
 let rejectNext = false, failedCalls = 0, holdStatus = false, statusCalls = 0;
+let releaseLateArtwork;
 const calls = [];
 try {
   await client.connect(transport);
@@ -50,18 +51,41 @@ try {
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   browser = await chromium.launch({ headless: true, ...(process.env.SPOTIFY_TEST_BROWSER ? { executablePath: process.env.SPOTIFY_TEST_BROWSER } : {}) });
-  const page = await browser.newPage({ viewport: { width: 620, height: 570 } });
+  const imageRequests = [];
+  let lateArtworkStarted;
+  const lateArtwork = new Promise(resolve => { lateArtworkStarted = resolve; });
+  // Images are isolated fixture responses, never a live CDN dependency.
+  const artworkSvg = color => `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="${color}"/><circle cx="210" cy="90" r="100" fill="#eee1c8"/><path d="M0 300V160L300 70V300" fill="#284e47"/><circle cx="90" cy="210" r="62" fill="#e28b5c"/></svg>`;
+  const routeArtwork = async route => {
+    imageRequests.push(route.request().url());
+    assert.equal(route.request().headers().authorization, undefined);
+    assert.equal(route.request().headers().referer, undefined);
+    if (route.request().url().endsWith("late")) {
+      await new Promise(resolve => { releaseLateArtwork = resolve; lateArtworkStarted(); });
+    }
+    if (route.request().url().endsWith("missing")) return route.fulfill({status:404,contentType:"text/plain",body:"Not found"});
+    await route.fulfill({status:200,contentType:"image/svg+xml",body:artworkSvg(route.request().url().endsWith("test-one") ? "#958aab" : "#b78669")});
+  };
+  const page = await browser.newPage({ viewport: { width: 620, height: 900 } });
+  await page.route("https://i.scdn.co/image/**", routeArtwork);
   const errors = []; page.on("pageerror", error => errors.push(error.message));
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   const frame = page.frameLocator("iframe");
   await frame.getByRole("heading", { name: "First song" }).waitFor();
+  await frame.locator('#artwork[data-state="ready"]').waitFor();
+  assert.equal(await frame.getByRole("img", {name:"Album cover: Test playlist"}).getAttribute("src"), "https://i.scdn.co/image/test-one");
+  assert.equal(await frame.locator(".disc").evaluate(e => getComputedStyle(e).animationPlayState), "running");
   await frame.getByRole("button", { name: "Pause", exact: true }).click();
   await frame.getByRole("button", { name: "Resume", exact: true }).waitFor();
+  assert.equal(await frame.locator(".disc").evaluate(e => getComputedStyle(e).animationPlayState), "paused");
   assert.equal((await client.callTool({ name: "spotify_status", arguments: {} })).structuredContent.result.state, "paused");
   await frame.getByRole("button", { name: "Resume", exact: true }).click();
   await frame.getByRole("button", { name: "Pause", exact: true }).waitFor();
+  assert.equal(imageRequests.length, 1, "Polling and pause/resume must not reload unchanged artwork");
   await frame.getByRole("button", { name: "Next track", exact: true }).click();
   await frame.getByRole("heading", { name: "Second <script>song</script>" }).waitFor();
+  await frame.locator('#artwork[data-state="ready"]').waitFor();
+  assert.equal(await frame.locator("#cover-image").getAttribute("src"), "https://i.scdn.co/image/test-two");
   assert.equal(await frame.locator("h1 script").count(), 0);
   await frame.getByRole("button", { name: "Previous track", exact: true }).click();
   await frame.getByRole("heading", { name: "First song" }).waitFor();
@@ -96,8 +120,10 @@ try {
   assert.ok(statusCalls > previousStatusCalls);
   assert.equal(calls.filter(c => c.name === "spotify_next").length, 2, "Failed next action must not be replayed");
   await fs.mkdir(new URL("../.runtime/", import.meta.url), { recursive: true });
-  await page.screenshot({ path: fileURLToPath(new URL("../.runtime/player-desktop.png", import.meta.url)) });
+  await page.evaluate(() => window.scrollTo(0,0));
+  await page.screenshot({ path: fileURLToPath(new URL("../.runtime/player-desktop.png", import.meta.url)), fullPage:true });
   await page.setViewportSize({ width: 320, height: 570 });
+  await frame.locator("html").evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   assert.equal(await frame.locator("html").evaluate(e => e.scrollWidth <= e.clientWidth), true);
   await frame.getByRole("button", { name: "Pause", exact: true }).waitFor();
   await page.waitForTimeout(100);
@@ -111,7 +137,40 @@ try {
   assert.equal(await frame.locator("h1").evaluate(e => getComputedStyle(e).whiteSpace), "nowrap");
   assert.equal(await frame.locator("#title-track").evaluate(e => getComputedStyle(e).animationName), "song-marquee");
   assert.equal(await frame.locator("html").evaluate(e => e.scrollWidth <= e.clientWidth), true);
-  await page.screenshot({ path: fileURLToPath(new URL("../.runtime/player-mobile.png", import.meta.url)) });
+  await page.evaluate(() => window.scrollTo(0,0));
+  await page.screenshot({ path: fileURLToPath(new URL("../.runtime/player-mobile.png", import.meta.url)), fullPage:true });
+  holdStatus = true;
+  const artState = structuredClone(long);
+  delete artState.structuredContent.component.props.playback.track.imageUrl;
+  await page.evaluate(result => window.player.update(result), artState);
+  await frame.locator('#artwork[data-state="empty"]').waitFor();
+  await frame.getByRole("img", {name:"Album artwork unavailable"}).waitFor();
+  assert.equal(await frame.locator("#cover-image").getAttribute("src"), null);
+  artState.structuredContent.component.props.playback.track.imageUrl = "https://i.scdn.co/image/missing";
+  await page.evaluate(result => window.player.update(result), artState);
+  await frame.locator('#artwork[data-state="unavailable"]').waitFor();
+  assert.equal(await frame.locator("#play-pause").isEnabled(), true, "An artwork failure must not disable playback");
+  const requestsBeforeInvalid = imageRequests.length;
+  for (const url of ["javascript:alert(1)", "http://i.scdn.co/image/test-one", "https://example.com/cover.jpg", "https://i.scdn.co.evil.example/image/album"]) {
+    artState.structuredContent.component.props.playback.track.imageUrl = url;
+    await page.evaluate(result => window.player.update(result), artState);
+    await frame.locator('#artwork[data-state="empty"]').waitFor();
+    assert.equal(await frame.locator("#cover-image").getAttribute("src"), null);
+  }
+  assert.equal(imageRequests.length, requestsBeforeInvalid);
+  artState.structuredContent.component.props.playback.track.imageUrl = "https://i.scdn.co/image/late";
+  await page.evaluate(result => window.player.update(result), artState);
+  await lateArtwork;
+  await page.evaluate(result => window.player.update(result), long);
+  await frame.locator('#artwork[data-state="ready"]').waitFor();
+  const currentCover = await frame.locator("#cover-image").getAttribute("src");
+  releaseLateArtwork();
+  await page.waitForTimeout(100);
+  assert.equal(await frame.locator("#cover-image").getAttribute("src"), currentCover, "A late image must not restore the previous cover");
+  await page.emulateMedia({reducedMotion:"reduce"});
+  assert.equal(await frame.locator(".disc").evaluate(e => getComputedStyle(e).animationName), "none");
+  await page.emulateMedia({reducedMotion:"no-preference"});
+  holdStatus = false;
   await frame.locator("body").evaluate(() => window.parent.postMessage({jsonrpc:"2.0",id:9999,method:"tools/call",params:{name:"spotify_playlist_unfollow",arguments:{uri:"spotify:playlist:test"}}}, "*"));
   await page.waitForTimeout(100);
   assert.equal(calls.some(c => c.name === "spotify_playlist_unfollow"), false);
@@ -128,20 +187,23 @@ try {
     if (response.isError) throw Error(response.structuredContent.error.message);
     return response.structuredContent.result;
   } });
-  const standalone = await browser.newPage({viewport:{width:500,height:570}});
+  const standalone = await browser.newPage({viewport:{width:500,height:900}});
+  await standalone.route("https://i.scdn.co/image/**", routeArtwork);
   standalone.on("pageerror", error => errors.push(error.message));
   await standalone.goto(`http://127.0.0.1:${viewer.port}/#key=${secret}`);
   const live = standalone.frameLocator("iframe");
   await live.getByRole("heading",{name:"Second <script>song</script>"}).waitFor();
+  await live.locator('#artwork[data-state="ready"]').waitFor();
   await live.getByRole("button",{name:"Pause",exact:true}).click();
   await live.getByRole("button",{name:"Resume",exact:true}).waitFor();
   await live.getByRole("button",{name:"Resume",exact:true}).click();
   await live.getByRole("button",{name:"Pause",exact:true}).waitFor();
   await standalone.screenshot({path:fileURLToPath(new URL("../.runtime/player-viewer.png",import.meta.url))});
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "pause", "resume", "next", "previous", "seek", "volume and mute", "single-line title scrolling", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal", "authenticated standalone viewer"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png", ".runtime/player-viewer.png"] }));
+  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "album art and track changes", "artwork fallback and origin validation", "late artwork response", "disc animation and reduced motion", "pause", "resume", "next", "previous", "seek", "volume and mute", "single-line title scrolling", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal", "authenticated standalone viewer"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png", ".runtime/player-viewer.png"] }));
 } finally {
   holdStatus = false;
+  releaseLateArtwork?.();
   await browser?.close();
   await viewer?.close();
   if (server) await new Promise(resolve => server.close(resolve));

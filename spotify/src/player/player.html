@@ -8,10 +8,18 @@
 :root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:light-dark(#17251c,#f2f8f3);background:transparent}*{box-sizing:border-box}body{margin:0;padding:16px}.player{max-width:560px;margin:auto;padding:30px;border:1px solid light-dark(#dfe8e0,#304438);border-radius:24px;background:light-dark(#f6faf5,#14221a)}h1{font-size:clamp(24px,5vw,36px);line-height:1.15;letter-spacing:-.04em;margin:0 0 9px;white-space:nowrap;overflow:hidden}.artist{font-size:16px;margin:0;color:light-dark(#526658,#adbfaf)}.album{font-size:12px;min-height:18px;margin:7px 0 0;color:light-dark(#69806f,#879f8d)}.controls{display:flex;align-items:center;justify-content:center;gap:28px;margin:26px 0}button{font:inherit;border:0;cursor:pointer;color:inherit;background:transparent;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:48px;height:48px;transition:transform .12s,background .12s}button:hover:enabled{background:light-dark(#e3ede3,#263d2d);transform:scale(1.04)}button:active:enabled{transform:scale(.96)}button:focus-visible,input:focus-visible{outline:3px solid #1db954;outline-offset:5px}button:disabled{opacity:.35;cursor:default}.primary{width:88px;height:88px;background:#1ed760;color:#082713;box-shadow:0 8px 24px #1db95422}.primary:hover:enabled{background:#3de276}.primary svg{width:36px;height:36px}svg{width:25px;height:25px;fill:currentColor}.seek{width:100%;display:block;accent-color:#1db954;cursor:pointer;height:24px;margin:0}.seek:disabled{cursor:default}.times{display:flex;justify-content:space-between;font-size:11px;font-variant-numeric:tabular-nums;color:light-dark(#627769,#9fb6a5);margin-top:3px}.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px;min-height:28px;font-size:12px;color:light-dark(#526c5b,#a4bda9)}.device{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.refresh{width:28px;height:28px;border-radius:8px}.refresh svg{width:17px;height:17px}.error{font-size:12px;color:light-dark(#a33325,#ffb5a9);margin:12px 0 0;line-height:1.5}.error:empty{display:none}[hidden]{display:none!important}@media(max-width:350px){body{padding:8px}.player{padding:22px}.controls{gap:18px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 .volume-row{display:flex;align-items:center;gap:12px;margin-top:18px}.volume-row button{width:44px;height:44px;flex-shrink:0}.volume-row svg{width:21px;height:21px}.volume-slider{flex:1;min-width:0;width:100%;height:24px;accent-color:#1db954}.volume-value{width:42px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:light-dark(#526c5b,#a4bda9)}
 #title-track{display:inline-flex;gap:40px;white-space:nowrap}#title-text{white-space:nowrap}#title-copy{display:none}.marquee #title-copy{display:inline}.marquee #title-track{animation:song-marquee var(--title-duration,12s) linear infinite;will-change:transform}.artist,.album{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@keyframes song-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--title-distance,0px)))}}@media(prefers-reduced-motion:reduce){.marquee #title-track{animation:none}}
+.artwork{position:relative;width:min(100%,300px);aspect-ratio:1.35;margin:0 auto 22px;isolation:isolate}.disc{position:absolute;width:60%;aspect-ratio:1;right:0;top:9%;border-radius:50%;background:repeating-radial-gradient(circle,transparent 0 2px,#ffffff18 3px 4px),conic-gradient(from 25deg,#aaaeb0,#eeeeeb 12%,#bbc2c4 23%,#f5eed7 32%,#afb8ba 43%,#f7f7f5 54%,#b8bec6 65%,#e7e4cf 78%,#aaaeb0);box-shadow:inset 0 0 0 1px #ffffff88,0 3px 10px #00000012;animation:disc-spin 18s linear infinite;animation-play-state:paused}.disc:before{content:"";position:absolute;inset:39%;border:1px solid #80858988;border-radius:50%;background:radial-gradient(circle,light-dark(#f6faf5,#14221a) 0 34%,#bcc2c388 36% 64%,#e1e3df 66% 76%,#969d9f 78% 82%,#dededb 84%)}.artwork[data-playing="true"][data-state="ready"] .disc{animation-play-state:running}.sleeve{position:absolute;left:2%;top:4%;width:64%;aspect-ratio:1;padding:14px;border:1px solid light-dark(#ffffff,#536057);border-radius:25px;background:light-dark(#fdfdfa,#344239);box-shadow:0 9px 25px #00000020;z-index:1}.cover{position:relative;overflow:hidden;width:100%;height:100%;border-radius:16px;background:light-dark(#e2e8df,#25332b)}.cover-image{display:block;width:100%;height:100%;object-fit:cover}.cover-fallback{position:absolute;inset:0;display:grid;place-items:center;color:light-dark(#8c9f8e,#84998a);background:linear-gradient(145deg,#1db95412,transparent)}.cover-fallback svg{width:44px;height:44px}@keyframes disc-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.disc{animation:none}}
 </style>
 </head>
 <body>
 <main class="player" aria-label="Spotify playback controls">
+  <div id="artwork" class="artwork" data-state="empty" data-playing="false">
+    <div class="disc" aria-hidden="true"></div>
+    <div class="sleeve"><div class="cover">
+      <div id="cover-fallback" class="cover-fallback" role="img" aria-label="Album artwork unavailable"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v12.2A4 4 0 1 0 11 19V7l8-2v8.2A4 4 0 1 0 21 17V0z"/></svg></div>
+      <img id="cover-image" class="cover-image" alt="" referrerpolicy="no-referrer" hidden>
+    </div></div>
+  </div>
   <h1 id="title"><span id="title-track"><span id="title-text">Connecting to Spotify…</span><span id="title-copy" aria-hidden="true"></span></span></h1>
   <p class="artist" id="artist"></p><p class="album" id="album"></p>
   <div class="controls">
@@ -36,6 +44,7 @@
   let playback = null, anchor = 0, busy = false, reading = false, stale = true;
   let scrubbing = false, scrubUri = null, bridgeReady = false, disposed = false;
   let nextId = 0, hostOrigin = null, newest = 0, volumeDragging = false, volumeDevice = null;
+  let artworkKey = null;
   const previousVolume = new Map();
   const requests = new Map();
   const targets = { refresh:"spotify_status", pause:"spotify_pause", resume:"spotify_resume", previous:"spotify_previous", next:"spotify_next", seek:"spotify_seek", volume:"spotify_volume" };
@@ -72,8 +81,36 @@
     el("title").setAttribute("aria-label", text); el("title").title = text;
     measureTitle();
   }
+  function renderArtwork() {
+    const track = playback.track, artwork = el("artwork");
+    artwork.dataset.playing = String(playback.state === "playing" && !stale);
+    const key = JSON.stringify([track?.uri, track?.imageUrl, track?.album, track?.name]);
+    if (key === artworkKey) return;
+    artworkKey = key;
+    artwork.dataset.state = "empty";
+    el("cover-fallback").hidden = false;
+    const image = document.createElement("img");
+    image.id = "cover-image"; image.className = "cover-image"; image.hidden = true;
+    image.alt = track?.album ? "Album cover: " + track.album : "Cover artwork for " + (track?.name || "current track");
+    image.referrerPolicy = "no-referrer"; image.decoding = "async";
+    el("cover-image").replaceWith(image);
+    let url;
+    try { url = new URL(track?.imageUrl); } catch { return; }
+    if (url.origin !== "https://i.scdn.co" || !url.pathname.startsWith("/image/") || url.username || url.password) return;
+    artwork.dataset.state = "loading";
+    image.onload = () => {
+      if (!image.isConnected) return;
+      image.hidden = false; el("cover-fallback").hidden = true; artwork.dataset.state = "ready";
+    };
+    image.onerror = () => {
+      if (!image.isConnected) return;
+      image.hidden = true; el("cover-fallback").hidden = false; artwork.dataset.state = "unavailable";
+    };
+    image.src = url.href;
+  }
   function render() {
     if (!playback) { controls(); return; }
+    renderArtwork();
     setTitle(playback.track?.name || "Nothing playing");
     el("artist").textContent = (playback.track?.artists || []).join(", ");
     el("album").textContent = playback.track?.album || "";

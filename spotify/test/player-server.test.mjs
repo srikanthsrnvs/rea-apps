@@ -13,6 +13,7 @@ test("optional viewer serves the existing component and accepts only authenticat
     const root = await fetch(origin);
     assert.equal(root.status, 200); assert.equal(root.headers.get("cache-control"), "no-store");
     assert.ok(root.headers.get("content-security-policy").includes("sha256-"));
+    assert.ok(root.headers.get("content-security-policy").includes("img-src https://i.scdn.co;"));
     assert.ok(!(await root.text()).includes(secret));
     const resource = await (await fetch(`${origin}/resource`)).json(); assert.equal(resource.uri, "ui://spotify/player-v1.html");
     assert.equal((await rpc({ name: "spotify_status" }, "wrong")).status, 401);

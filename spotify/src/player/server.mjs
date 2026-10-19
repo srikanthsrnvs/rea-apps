@@ -17,7 +17,7 @@ export async function startPlayerServer({ secret, expiresAt, port = 0, ownerId, 
   let closing = false, tail = Promise.resolve(), windowStart = Date.now(), requests = 0;
   const reply = (res, status, value, type = "application/json") => {
     res.writeHead(status, { "Content-Type": type, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
-      "X-Content-Type-Options": "nosniff", "Content-Security-Policy": `default-src 'none'; script-src 'self' ${scriptHashes}; style-src 'unsafe-inline'; connect-src 'self'; frame-src 'self' about:; frame-ancestors *; base-uri 'none'; form-action 'none'` });
+      "X-Content-Type-Options": "nosniff", "Content-Security-Policy": `default-src 'none'; script-src 'self' ${scriptHashes}; style-src 'unsafe-inline'; img-src https://i.scdn.co; connect-src 'self'; frame-src 'self' about:; frame-ancestors *; base-uri 'none'; form-action 'none'` });
     res.end(type === "application/json" ? JSON.stringify(value) : value);
   };
   const authorized = req => {
