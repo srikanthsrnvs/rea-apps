@@ -15,11 +15,11 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
 .error{font-size:12px;text-align:center;color:#893f35;margin:18px 0 0;line-height:1.5}.error:empty{display:none}
 #title-track{display:inline-flex;gap:40px;white-space:nowrap}#title-text{white-space:nowrap}#title-copy{display:none}.marquee{text-align:left}.marquee #title-copy{display:inline}.marquee #title-track{animation:song-marquee var(--title-duration,12s) linear infinite;will-change:transform}
 @keyframes song-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--title-distance,0px)))}}
-.artwork-window{--art-size:clamp(200px,68vw,330px);--art-step:calc(var(--art-size) * .88);position:relative;overflow:hidden;isolation:isolate;margin:6px -32px 16px;padding:14px 0 12px;mask-image:linear-gradient(to right,transparent,#000 4%,#000 96%,transparent)}
+.artwork-window{--art-size:clamp(200px,68vw,330px);--art-step:calc(var(--art-size) * .96);position:relative;overflow:hidden;isolation:isolate;margin:6px -32px 16px;padding:14px 0 12px;mask-image:linear-gradient(to right,transparent,#000 4%,#000 96%,transparent)}
 .artwork-stage{position:relative}.artwork{position:relative;width:var(--art-size);aspect-ratio:1.43;margin:0 auto;isolation:isolate}.artwork-current{left:calc(var(--art-size) * .13);z-index:2}
 .disc{position:absolute;width:60%;aspect-ratio:1;right:0;top:9%;border-radius:50%;background:repeating-radial-gradient(circle,transparent 0 3px,#ffffff12 4px 5px),conic-gradient(from 25deg,#b6b9b9,#efefec 12%,#bfc5c6 23%,#e6e1cf 32%,#b6bfc0 43%,#f6f6f4 54%,#bfc4cb 65%,#e7e4d4 78%,#b6b9b9);box-shadow:inset 0 0 0 1px #ffffff88;animation:disc-spin 18s linear infinite;animation-play-state:paused}.disc:before{content:"";position:absolute;inset:39%;border:1px solid #93999988;border-radius:50%;background:radial-gradient(circle,#e6e9e6 0 34%,#bfc5c588 36% 64%,#e1e3df 66% 76%,#969d9f 78% 82%,#dededb 84%)}.artwork[data-playing="true"][data-state="ready"] .disc{animation-play-state:running}
 .sleeve{position:absolute;left:2%;top:4%;width:64%;aspect-ratio:1;padding:16px;border:1px solid #fff;border-radius:29px;background:#f9faf7;box-shadow:0 7px 22px #00000012;z-index:1}.sleeve-grain{position:absolute;inset:0;width:100%;height:100%;border-radius:inherit;opacity:.13;pointer-events:none}.cover{position:relative;overflow:hidden;width:100%;height:100%;border-radius:20px;background:#d8dcda}.cover-image{display:block;width:100%;height:100%;object-fit:cover}.cover-fallback{position:absolute;inset:0;display:grid;place-items:center;color:#929a95;background:linear-gradient(145deg,#e6e9e5,transparent)}.cover-fallback svg{width:44px;height:44px}
-.artwork-neighbor{position:absolute;top:0;margin:0;opacity:.45;transform:translateX(-50%) scale(.78);filter:blur(1.8px) saturate(.65);pointer-events:none;z-index:1}.artwork-previous{left:calc(50% - var(--art-step) + var(--art-size) * .13)}.artwork-next{left:calc(50% + var(--art-step) + var(--art-size) * .13)}.artwork-ghost{position:absolute;inset:0;pointer-events:none;z-index:3}
+.artwork-neighbor{position:absolute;top:0;margin:0;opacity:.4;transform:translateX(-50%) scale(.78);filter:blur(1.8px) saturate(.65);pointer-events:none;z-index:1}.artwork-previous{left:calc(50% - var(--art-step) + var(--art-size) * .13)}.artwork-next{left:calc(50% + var(--art-step) + var(--art-size) * .13)}.artwork-ghost{position:absolute;inset:0;pointer-events:none;z-index:3}
 @keyframes disc-spin{to{transform:rotate(360deg)}}
 @media(max-width:350px){body{padding:8px}.player{padding:26px 22px 30px;border-radius:42px}.artwork-window{margin-left:-22px;margin-right:-22px}.controls{gap:26px}button{width:48px;height:48px}.primary{width:76px;height:76px}.sleeve{padding:11px;border-radius:21px}.cover{border-radius:13px}.artist{font-size:18px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}.disc,.marquee #title-track,.loading-ring{animation:none}}
@@ -184,7 +184,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
   }
   function animateTransition(transition) {
     if (!transition || coverTransition !== transition) return;
-    const {direction,ghost} = transition, step = el("artwork").clientWidth * .88;
+    const {direction,ghost} = transition, step = el("artwork").clientWidth * .96;
     const options = {duration:520,easing:"cubic-bezier(.22,1,.36,1)",fill:"both"};
     el("artwork-window").dataset.transition = direction > 0 ? "next" : direction < 0 ? "previous" : "replace";
     // The outgoing snapshot and incoming strip share the same queue spacing.
@@ -193,7 +193,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
       ghost.animate([{transform:"translateX(0)",opacity:1},{transform:"translateX(" + (-direction * step) + "px)",opacity:0}],options),
       ...["artwork","artwork-previous","artwork-next"].map(id => {
         const node = el(id), base = id === "artwork" ? "" : "translateX(-50%) scale(.78)";
-        return node.animate([{transform:"translateX(" + (direction * step) + "px) " + (base || "scale(.78)"),opacity:0},{transform:base || "none",opacity:id === "artwork" ? 1 : .45}],options);
+        return node.animate([{transform:"translateX(" + (direction * step) + "px) " + (base || "scale(.78)"),opacity:0},{transform:base || "none",opacity:id === "artwork" ? 1 : .4}],options);
       }),
       ...["title","artist"].map(id => el(id).animate([{transform:"translateX(" + (direction * 16) + "px)",opacity:0},{transform:"translateX(0)",opacity:1}],{...options,duration:360}))
     );
