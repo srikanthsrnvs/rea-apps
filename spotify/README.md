@@ -50,11 +50,11 @@ Commands affect the account’s active Connect device. `transfer` requires its e
 
 Repeated reads reuse small, account-scoped snapshots: one second for playback state, 15 seconds for searches/library reads, and 30 seconds for LAN discovery. Use `--refresh` for current data. Mutations invalidate account snapshots and always use fresh confirmation reads. No mutation is retried automatically.
 
-Playback commands return the observed state, not just a request acknowledgement. An uncertain mutation is never automatically repeated; inspect status before retrying. Seeking from the player component includes the expected track URI so an old slider cannot seek a replacement track.
+Playback commands return the observed state, not just a request acknowledgement. An uncertain mutation is never automatically repeated; inspect status before retrying. Seeking through the host adapter includes the expected track URI so a stale client cannot seek a replacement track.
 
 ## Prebuilt music controls
 
-Playback results also include a versioned `spotify.player` component reference with current song, artist, album artwork, playback position, device and control bindings. Its static HTML shows the cover in a rounded sleeve beside an animated CD, plus a large pause/resume button, previous/next, seek, volume and mute/unmute. Artwork uses existing native playback metadata, with no extra Spotify API request. Long titles scroll on one line. The model never generates the component or handles button clicks.
+Playback results also include a versioned `spotify.player` component reference with current song, artist, album artwork, adjacent tracks, playback position, device and control bindings. Its static HTML uses a neutral frosted card, a rounded album sleeve beside an animated CD, blurred previous/next covers, and directional transitions. The visible controls are previous, play/pause and next; seek and volume remain available through CLI tools and the host adapter. Artwork and neighbors use existing native playback metadata, with no extra Spotify API request. Long titles scroll on one line. The model never generates the component or handles button clicks.
 
 A connected MCP Apps host loads `ui://spotify/player-v1.html`. Custom frontends can use the included sandboxed host adapter. `spotify component` returns the static resource for a CLI-backed renderer. Ordinary shell JSON alone does not make ChatGPT display UI: the host must support and connect to the component contract. See the [player integration guide](docs/player-component.md).
 

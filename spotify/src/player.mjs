@@ -23,6 +23,7 @@ export function playbackResult(name, result) {
     props: {
       playback: {
         state: result.state, track: result.track, context: result.context,
+        adjacentTracks: result.adjacentTracks,
         positionMs: result.positionMs, durationMs: result.durationMs,
         device: result.device, deviceId: result.deviceId, restrictions: result.restrictions,
         volume: result.volume,
@@ -43,7 +44,7 @@ export async function playerResource() {
     text: await readFile(new URL("./player/player.html", import.meta.url), "utf8"),
     _meta: {
       ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: ["https://i.scdn.co"] } },
-      "openai/widgetDescription": "Live Spotify player with album artwork, track details, pause/resume, previous/next, seek and volume controls. Controls use the active Spotify Connect device.",
+      "openai/widgetDescription": "Minimal Spotify player with a frosted neutral card, album art carousel, song and artist, and previous, play/pause and next controls. Uses the active Spotify Connect device.",
       "openai/widgetPrefersBorder": true,
       "openai/widgetCSP": { connect_domains: [], resource_domains: ["https://i.scdn.co"] },
     },

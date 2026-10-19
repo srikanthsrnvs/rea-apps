@@ -5,68 +5,81 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Spotify player</title>
 <style>
-:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:light-dark(#17251c,#f2f8f3);background:transparent}*{box-sizing:border-box}body{margin:0;padding:16px}.player{max-width:560px;margin:auto;padding:30px;border:1px solid light-dark(#dfe8e0,#304438);border-radius:24px;background:light-dark(#f6faf5,#14221a)}h1{font-size:clamp(24px,5vw,36px);line-height:1.15;letter-spacing:-.04em;margin:0 0 9px;white-space:nowrap;overflow:hidden}.artist{font-size:16px;margin:0;color:light-dark(#526658,#adbfaf)}.album{font-size:12px;min-height:18px;margin:7px 0 0;color:light-dark(#69806f,#879f8d)}.controls{display:flex;align-items:center;justify-content:center;gap:28px;margin:26px 0}button{font:inherit;border:0;cursor:pointer;color:inherit;background:transparent;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:48px;height:48px;transition:transform .12s,background .12s}button:hover:enabled{background:light-dark(#e3ede3,#263d2d);transform:scale(1.04)}button:active:enabled{transform:scale(.96)}button:focus-visible,input:focus-visible{outline:3px solid #1db954;outline-offset:5px}button:disabled{opacity:.35;cursor:default}.primary{width:88px;height:88px;background:#1ed760;color:#082713;box-shadow:0 8px 24px #1db95422}.primary:hover:enabled{background:#3de276}.primary svg{width:36px;height:36px}svg{width:25px;height:25px;fill:currentColor}.seek{width:100%;display:block;accent-color:#1db954;cursor:pointer;height:24px;margin:0}.seek:disabled{cursor:default}.times{display:flex;justify-content:space-between;font-size:11px;font-variant-numeric:tabular-nums;color:light-dark(#627769,#9fb6a5);margin-top:3px}.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px;min-height:28px;font-size:12px;color:light-dark(#526c5b,#a4bda9)}.device{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.refresh{width:28px;height:28px;border-radius:8px}.refresh svg{width:17px;height:17px}.error{font-size:12px;color:light-dark(#a33325,#ffb5a9);margin:12px 0 0;line-height:1.5}.error:empty{display:none}[hidden]{display:none!important}@media(max-width:350px){body{padding:8px}.player{padding:22px}.controls{gap:18px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-.volume-row{display:flex;align-items:center;gap:12px;margin-top:18px}.volume-row button{width:44px;height:44px;flex-shrink:0}.volume-row svg{width:21px;height:21px}.volume-slider{flex:1;min-width:0;width:100%;height:24px;accent-color:#1db954}.volume-value{width:42px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;color:light-dark(#526c5b,#a4bda9)}
-#title-track{display:inline-flex;gap:40px;white-space:nowrap}#title-text{white-space:nowrap}#title-copy{display:none}.marquee #title-copy{display:inline}.marquee #title-track{animation:song-marquee var(--title-duration,12s) linear infinite;will-change:transform}.artist,.album{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@keyframes song-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--title-distance,0px)))}}@media(prefers-reduced-motion:reduce){.marquee #title-track{animation:none}}
-.artwork{position:relative;width:min(100%,300px);aspect-ratio:1.35;margin:0 auto 22px;isolation:isolate}.disc{position:absolute;width:60%;aspect-ratio:1;right:0;top:9%;border-radius:50%;background:repeating-radial-gradient(circle,transparent 0 2px,#ffffff18 3px 4px),conic-gradient(from 25deg,#aaaeb0,#eeeeeb 12%,#bbc2c4 23%,#f5eed7 32%,#afb8ba 43%,#f7f7f5 54%,#b8bec6 65%,#e7e4cf 78%,#aaaeb0);box-shadow:inset 0 0 0 1px #ffffff88,0 3px 10px #00000012;animation:disc-spin 18s linear infinite;animation-play-state:paused}.disc:before{content:"";position:absolute;inset:39%;border:1px solid #80858988;border-radius:50%;background:radial-gradient(circle,light-dark(#f6faf5,#14221a) 0 34%,#bcc2c388 36% 64%,#e1e3df 66% 76%,#969d9f 78% 82%,#dededb 84%)}.artwork[data-playing="true"][data-state="ready"] .disc{animation-play-state:running}.sleeve{position:absolute;left:2%;top:4%;width:64%;aspect-ratio:1;padding:14px;border:1px solid light-dark(#ffffff,#536057);border-radius:25px;background:light-dark(#fdfdfa,#344239);box-shadow:0 9px 25px #00000020;z-index:1}.cover{position:relative;overflow:hidden;width:100%;height:100%;border-radius:16px;background:light-dark(#e2e8df,#25332b)}.cover-image{display:block;width:100%;height:100%;object-fit:cover}.cover-fallback{position:absolute;inset:0;display:grid;place-items:center;color:light-dark(#8c9f8e,#84998a);background:linear-gradient(145deg,#1db95412,transparent)}.cover-fallback svg{width:44px;height:44px}@keyframes disc-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.disc{animation:none}}
+:root{color-scheme:light;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#292b2a;background:transparent}
+*{box-sizing:border-box}body{margin:0;padding:16px}[hidden]{display:none!important}
+.player{max-width:560px;margin:auto;padding:34px 32px 36px;border:1px solid #939694;border-radius:58px;background:linear-gradient(140deg,#edefeddb,#e3e6e4d9);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px)}
+h1{font-size:clamp(23px,5vw,29px);font-weight:500;line-height:1.25;letter-spacing:-.035em;text-align:center;margin:0 0 9px;white-space:nowrap;overflow:hidden}.artist{font-size:21px;line-height:1.35;text-align:center;margin:0;color:#747775;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.controls{display:flex;align-items:center;justify-content:center;gap:42px;margin:36px 0 0}
+button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:58px;height:58px;transition:transform .16s,background .16s}button:hover:enabled{background:#cdd1cdbf;transform:scale(1.04)}button:active:enabled{transform:scale(.96)}button:focus-visible{outline:2px solid #707672;outline-offset:5px}button:disabled{opacity:.35;cursor:default}.primary{width:90px;height:90px;background:#d3d6d3b5;color:#484c49}.primary svg{width:40px;height:40px}svg{width:28px;height:28px;fill:currentColor}
+.error{font-size:12px;text-align:center;color:#893f35;margin:18px 0 0;line-height:1.5}.error:empty{display:none}
+#title-track{display:inline-flex;gap:40px;white-space:nowrap}#title-text{white-space:nowrap}#title-copy{display:none}.marquee{text-align:left}.marquee #title-copy{display:inline}.marquee #title-track{animation:song-marquee var(--title-duration,12s) linear infinite;will-change:transform}
+@keyframes song-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--title-distance,0px)))}}
+.artwork-window{--art-size:clamp(200px,68vw,330px);--art-step:calc(var(--art-size) * .88);position:relative;overflow:hidden;isolation:isolate;margin:6px -32px 16px;padding:14px 0 12px;mask-image:linear-gradient(to right,transparent,#000 4%,#000 96%,transparent)}
+.artwork-stage{position:relative}.artwork{position:relative;width:var(--art-size);aspect-ratio:1.43;margin:0 auto;isolation:isolate}.artwork-current{left:calc(var(--art-size) * .13);z-index:2}
+.disc{position:absolute;width:60%;aspect-ratio:1;right:0;top:9%;border-radius:50%;background:repeating-radial-gradient(circle,transparent 0 3px,#ffffff12 4px 5px),conic-gradient(from 25deg,#b6b9b9,#efefec 12%,#bfc5c6 23%,#e6e1cf 32%,#b6bfc0 43%,#f6f6f4 54%,#bfc4cb 65%,#e7e4d4 78%,#b6b9b9);box-shadow:inset 0 0 0 1px #ffffff88;animation:disc-spin 18s linear infinite;animation-play-state:paused}.disc:before{content:"";position:absolute;inset:39%;border:1px solid #93999988;border-radius:50%;background:radial-gradient(circle,#e6e9e6 0 34%,#bfc5c588 36% 64%,#e1e3df 66% 76%,#969d9f 78% 82%,#dededb 84%)}.artwork[data-playing="true"][data-state="ready"] .disc{animation-play-state:running}
+.sleeve{position:absolute;left:2%;top:4%;width:64%;aspect-ratio:1;padding:16px;border:1px solid #fff;border-radius:29px;background:#f9faf7;box-shadow:0 7px 22px #00000012;z-index:1}.sleeve-grain{position:absolute;inset:0;width:100%;height:100%;border-radius:inherit;opacity:.13;pointer-events:none}.cover{position:relative;overflow:hidden;width:100%;height:100%;border-radius:20px;background:#d8dcda}.cover-image{display:block;width:100%;height:100%;object-fit:cover}.cover-fallback{position:absolute;inset:0;display:grid;place-items:center;color:#929a95;background:linear-gradient(145deg,#e6e9e5,transparent)}.cover-fallback svg{width:44px;height:44px}
+.artwork-neighbor{position:absolute;top:0;margin:0;opacity:.45;transform:translateX(-50%) scale(.78);filter:blur(1.8px) saturate(.65);pointer-events:none;z-index:1}.artwork-previous{left:calc(50% - var(--art-step) + var(--art-size) * .13)}.artwork-next{left:calc(50% + var(--art-step) + var(--art-size) * .13)}.artwork-ghost{position:absolute;inset:0;pointer-events:none;z-index:3}
+@keyframes disc-spin{to{transform:rotate(360deg)}}
+@media(max-width:350px){body{padding:8px}.player{padding:26px 22px 30px;border-radius:42px}.artwork-window{margin-left:-22px;margin-right:-22px}.controls{gap:26px}button{width:48px;height:48px}.primary{width:76px;height:76px}.sleeve{padding:11px;border-radius:21px}.cover{border-radius:13px}.artist{font-size:18px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}.disc,.marquee #title-track{animation:none}}
 </style>
 </head>
 <body>
 <main class="player" aria-label="Spotify playback controls">
-  <div id="artwork" class="artwork" data-state="empty" data-playing="false">
-    <div class="disc" aria-hidden="true"></div>
-    <div class="sleeve"><div class="cover">
-      <div id="cover-fallback" class="cover-fallback" role="img" aria-label="Album artwork unavailable"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v12.2A4 4 0 1 0 11 19V7l8-2v8.2A4 4 0 1 0 21 17V0z"/></svg></div>
-      <img id="cover-image" class="cover-image" alt="" referrerpolicy="no-referrer" hidden>
-    </div></div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="sleeve-paper"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></defs></svg>
+  <div id="artwork-window" class="artwork-window">
+    <div id="artwork-stage" class="artwork-stage">
+      <div id="artwork-previous" class="artwork artwork-neighbor artwork-previous" data-state="empty" data-playing="false" aria-hidden="true" hidden>
+        <div class="disc" aria-hidden="true"></div>
+        <div class="sleeve"><svg class="sleeve-grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#sleeve-paper)"/></svg><div class="cover">
+          <div id="cover-fallback-previous" class="cover-fallback" role="img" aria-label="Album artwork unavailable"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v12.2A4 4 0 1 0 11 19V7l8-2v8.2A4 4 0 1 0 21 17V0z"/></svg></div>
+          <img id="cover-image-previous" class="cover-image" alt="" referrerpolicy="no-referrer" hidden>
+        </div></div>
+      </div>
+      <div id="artwork" class="artwork artwork-current" data-state="empty" data-playing="false">
+        <div class="disc" aria-hidden="true"></div>
+        <div class="sleeve"><svg class="sleeve-grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#sleeve-paper)"/></svg><div class="cover">
+          <div id="cover-fallback" class="cover-fallback" role="img" aria-label="Album artwork unavailable"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v12.2A4 4 0 1 0 11 19V7l8-2v8.2A4 4 0 1 0 21 17V0z"/></svg></div>
+          <img id="cover-image" class="cover-image" alt="" referrerpolicy="no-referrer" hidden>
+        </div></div>
+      </div>
+      <div id="artwork-next" class="artwork artwork-neighbor artwork-next" data-state="empty" data-playing="false" aria-hidden="true" hidden>
+        <div class="disc" aria-hidden="true"></div>
+        <div class="sleeve"><svg class="sleeve-grain" aria-hidden="true"><rect width="100%" height="100%" filter="url(#sleeve-paper)"/></svg><div class="cover">
+          <div id="cover-fallback-next" class="cover-fallback" role="img" aria-label="Album artwork unavailable"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v12.2A4 4 0 1 0 11 19V7l8-2v8.2A4 4 0 1 0 21 17V0z"/></svg></div>
+          <img id="cover-image-next" class="cover-image" alt="" referrerpolicy="no-referrer" hidden>
+        </div></div>
+      </div>
+    </div>
   </div>
   <h1 id="title"><span id="title-track"><span id="title-text">Connecting to Spotify…</span><span id="title-copy" aria-hidden="true"></span></span></h1>
-  <p class="artist" id="artist"></p><p class="album" id="album"></p>
+  <p class="artist" id="artist"></p>
   <div class="controls">
-    <button id="previous" aria-label="Previous track" title="Previous track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h3v16H5zm14 0v16L9 12z"/></svg></button>
+    <button id="previous" aria-label="Previous track" title="Previous track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14L2 12zm10 0v14l-10-7z"/></svg></button>
     <button id="play-pause" class="primary" aria-label="Pause" title="Pause" disabled><svg id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m8 3 14 9-14 9z"/></svg></button>
-    <button id="next" aria-label="Next track" title="Next track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4h3v16h-3zM5 4l10 8-10 8z"/></svg></button>
+    <button id="next" aria-label="Next track" title="Next track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5v14l10-7zm10 0v14l10-7z"/></svg></button>
   </div>
-  <input id="seek" class="seek" type="range" min="0" max="0" value="0" step="1" aria-label="Playback position" disabled>
-  <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
-  <div class="volume-row" aria-label="Speaker volume">
-    <button id="mute" aria-label="Mute" title="Mute" disabled><svg id="volume-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9zm13-4v2a6 6 0 0 1 0 10v2a8 8 0 0 0 0-14zm-2 4v6a4 4 0 0 0 0-6z"/></svg><svg id="muted-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M3 9v6h4l5 4V5L7 9zm12-1 3 4-3 4 2 1 3-4 3 4 1-1-3-4 3-4-1-1-3 4-3-4z"/></svg></button>
-    <input id="volume" class="volume-slider" type="range" min="0" max="100" step="1" value="0" aria-label="Volume" disabled>
-    <span id="volume-value" class="volume-value">—</span>
-  </div>
-  <div class="footer"><span id="device" class="device">Connecting…</span><button id="refresh" class="refresh" aria-label="Refresh playback" title="Refresh playback"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7V3l-2 2a9 9 0 1 0 3 10h-3a6 6 0 1 1-2-8l-3 3h9V3h-2z"/></svg></button></div>
   <p id="error" class="error" role="status" aria-live="polite"></p>
 </main>
 <script>
 (() => {
   "use strict";
   const el = id => document.getElementById(id);
-  let playback = null, anchor = 0, busy = false, reading = false, stale = true;
-  let scrubbing = false, scrubUri = null, bridgeReady = false, disposed = false;
-  let nextId = 0, hostOrigin = null, newest = 0, volumeDragging = false, volumeDevice = null;
-  let artworkKey = null;
-  const previousVolume = new Map();
+  let playback = null, busy = false, reading = false, stale = true;
+  let bridgeReady = false, disposed = false, stateEpoch = 0;
+  let nextId = 0, hostOrigin = null, newest = 0;
+  const artworkKeys = new Map();
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let coverTransition = null;
   const requests = new Map();
-  const targets = { refresh:"spotify_status", pause:"spotify_pause", resume:"spotify_resume", previous:"spotify_previous", next:"spotify_next", seek:"spotify_seek", volume:"spotify_volume" };
-  const time = ms => { const s = Math.max(0, Math.floor((Number(ms) || 0) / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2,"0"); };
-  const position = () => playback ? Math.min(playback.durationMs || 0, (playback.positionMs || 0) + (playback.state === "playing" && !stale ? performance.now() - anchor : 0)) : 0;
+  const targets = { refresh:"spotify_status", pause:"spotify_pause", resume:"spotify_resume", previous:"spotify_previous", next:"spotify_next" };
   function controls() {
     for (const id of ["play-pause","next","previous"]) el(id).disabled = busy || stale || !playback?.track || !playback.deviceId;
-    el("seek").disabled = busy || stale || !playback?.track || !playback.deviceId || !playback.durationMs;
     const permissions = playback?.restrictions || {};
     if (permissions[playback?.state === "playing" ? "canPause" : "canResume"] === false) el("play-pause").disabled = true;
     if (permissions.canSkipNext === false) el("next").disabled = true;
     if (permissions.canSkipPrevious === false) el("previous").disabled = true;
-    if (permissions.canSeek === false) el("seek").disabled = true;
-    const canVolume = !busy && !stale && !!playback?.deviceId && Number.isFinite(playback.volume);
-    el("volume").disabled = !canVolume; el("mute").disabled = !canVolume;
-    el("refresh").disabled = busy || reading || !bridgeReady;
     el("play-pause").setAttribute("aria-busy", String(busy));
-  }
-  function tick() {
-    if (scrubbing || !playback) return;
-    const ms = position(); el("seek").value = String(ms / 1000); el("elapsed").textContent = time(ms);
-    el("seek").setAttribute("aria-valuetext", time(ms) + " of " + time(playback.durationMs));
   }
   function measureTitle() {
     const width = el("title-text").getBoundingClientRect().width, available = el("title").clientWidth;
@@ -81,61 +94,102 @@
     el("title").setAttribute("aria-label", text); el("title").title = text;
     measureTitle();
   }
-  function renderArtwork() {
-    const track = playback.track, artwork = el("artwork");
-    artwork.dataset.playing = String(playback.state === "playing" && !stale);
+  function renderCover(track, suffix = "") {
+    const artwork = el("artwork" + suffix), fallback = el("cover-fallback" + suffix);
+    if (suffix) artwork.hidden = !track;
+    artwork.dataset.playing = String(!suffix && playback.state === "playing" && !stale);
     const key = JSON.stringify([track?.uri, track?.imageUrl, track?.album, track?.name]);
-    if (key === artworkKey) return;
-    artworkKey = key;
-    artwork.dataset.state = "empty";
-    el("cover-fallback").hidden = false;
+    if (key === artworkKeys.get(suffix)) return;
+    artworkKeys.set(suffix, key);
+    artwork.dataset.state = "empty"; fallback.hidden = false;
     const image = document.createElement("img");
-    image.id = "cover-image"; image.className = "cover-image"; image.hidden = true;
+    image.id = "cover-image" + suffix; image.className = "cover-image"; image.hidden = true;
     image.alt = track?.album ? "Album cover: " + track.album : "Cover artwork for " + (track?.name || "current track");
     image.referrerPolicy = "no-referrer"; image.decoding = "async";
-    el("cover-image").replaceWith(image);
+    el("cover-image" + suffix).replaceWith(image);
     let url;
     try { url = new URL(track?.imageUrl); } catch { return; }
     if (url.origin !== "https://i.scdn.co" || !url.pathname.startsWith("/image/") || url.username || url.password) return;
     artwork.dataset.state = "loading";
     image.onload = () => {
       if (!image.isConnected) return;
-      image.hidden = false; el("cover-fallback").hidden = true; artwork.dataset.state = "ready";
+      image.hidden = false; fallback.hidden = true; artwork.dataset.state = "ready";
     };
     image.onerror = () => {
       if (!image.isConnected) return;
-      image.hidden = true; el("cover-fallback").hidden = false; artwork.dataset.state = "unavailable";
+      image.hidden = true; fallback.hidden = false; artwork.dataset.state = "unavailable";
     };
     image.src = url.href;
+    if (image.complete && image.naturalWidth > 0) image.onload();
   }
+  function renderArtwork() {
+    renderCover(playback.track);
+    renderCover(playback.adjacentTracks?.previous, "-previous");
+    renderCover(playback.adjacentTracks?.next, "-next");
+    for (const [side,label] of [["previous","Previous track"],["next","Next track"]]) {
+      const track = playback.adjacentTracks?.[side];
+      el(side).title = track?.name ? label + ": " + track.name : label;
+    }
+  }
+  const sameTrack = (a,b) => !!a && !!b && a.uri === b.uri && (!a.uid || !b.uid || a.uid === b.uid);
+  function clearTransition() {
+    if (!coverTransition) return;
+    for (const animation of coverTransition.animations) animation.cancel();
+    coverTransition.ghost.remove(); coverTransition = null;
+    delete el("artwork-window").dataset.transition;
+  }
+  function beginTransition(next, action) {
+    if (!next.track) { clearTransition(); return null; }
+    if (!playback?.track || sameTrack(playback.track,next.track)) return null;
+    clearTransition();
+    if (reducedMotion.matches) return null;
+    const direction = action === "next" ? 1 : action === "previous" ? -1
+      : sameTrack(playback.adjacentTracks?.next,next.track) ? 1
+      : sameTrack(playback.adjacentTracks?.previous,next.track) ? -1 : 0;
+    const ghost = el("artwork-stage").cloneNode(true);
+    ghost.removeAttribute("id");
+    for (const node of ghost.querySelectorAll("[id]")) node.removeAttribute("id");
+    ghost.classList.add("artwork-ghost"); ghost.setAttribute("aria-hidden","true");
+    el("artwork-stage").append(ghost);
+    const transition = {ghost,animations:[],direction}; coverTransition = transition;
+    return transition;
+  }
+  function animateTransition(transition) {
+    if (!transition || coverTransition !== transition) return;
+    const {direction,ghost} = transition, step = el("artwork").clientWidth * .88;
+    const options = {duration:520,easing:"cubic-bezier(.22,1,.36,1)",fill:"both"};
+    el("artwork-window").dataset.transition = direction > 0 ? "next" : direction < 0 ? "previous" : "replace";
+    // The outgoing snapshot and incoming strip share the same queue spacing.
+    // Only confirmed state animates; a failed skip never moves a preview.
+    transition.animations.push(
+      ghost.animate([{transform:"translateX(0)",opacity:1},{transform:"translateX(" + (-direction * step) + "px)",opacity:0}],options),
+      ...["artwork","artwork-previous","artwork-next"].map(id => {
+        const node = el(id), base = id === "artwork" ? "" : "translateX(-50%) scale(.78)";
+        return node.animate([{transform:"translateX(" + (direction * step) + "px) " + (base || "scale(.78)"),opacity:0},{transform:base || "none",opacity:id === "artwork" ? 1 : .45}],options);
+      }),
+      ...["title","artist"].map(id => el(id).animate([{transform:"translateX(" + (direction * 16) + "px)",opacity:0},{transform:"translateX(0)",opacity:1}],{...options,duration:360}))
+    );
+    if (direction) {
+      transition.animations.push(ghost.querySelector(".artwork-current").animate([{transform:"scale(1)"},{transform:"scale(.78)"}],options));
+    }
+    Promise.all(transition.animations.map(animation=>animation.finished)).then(()=>{
+      if (coverTransition === transition) clearTransition();
+    }).catch(()=>{});
+  }
+  const motionChanged = () => { if (reducedMotion.matches) clearTransition(); };
+  reducedMotion.addEventListener("change",motionChanged);
   function render() {
     if (!playback) { controls(); return; }
     renderArtwork();
     setTitle(playback.track?.name || "Nothing playing");
     el("artist").textContent = (playback.track?.artists || []).join(", ");
-    el("album").textContent = playback.track?.album || "";
-    el("device").textContent = playback.device ? "Playing on " + playback.device : "No active device";
     const paused = playback.state !== "playing";
     el("play-icon").hidden = !paused; el("pause-icon").hidden = paused;
     el("play-pause").setAttribute("aria-label", paused ? "Resume" : "Pause");
     el("play-pause").title = paused ? "Resume" : "Pause";
-    if (!scrubbing) el("seek").max = String((playback.durationMs || 0) / 1000);
-    if (!volumeDragging) {
-      const value = playback.volume;
-      el("volume").value = Number.isFinite(value) ? String(Math.round(value)) : "0";
-      el("volume-value").textContent = Number.isFinite(value) ? Math.round(value) + "%" : "—";
-      el("volume").setAttribute("aria-valuetext", Number.isFinite(value) ? Math.round(value) + " percent" : "Unavailable");
-    }
-    if (playback.volume > 0 && playback.deviceId) {
-      previousVolume.set(playback.deviceId, playback.volume);
-      if (previousVolume.size > 16) previousVolume.delete(previousVolume.keys().next().value);
-    }
-    const muted = playback.volume === 0;
-    el("volume-icon").hidden = muted; el("muted-icon").hidden = !muted;
-    el("mute").setAttribute("aria-label", muted ? "Unmute" : "Mute"); el("mute").title = muted ? "Unmute" : "Mute";
-    el("duration").textContent = time(playback.durationMs); controls(); tick();
+    controls();
   }
-  function accept(response) {
+  function accept(response, action) {
     const output = response?.structuredContent || response;
     if (response?.isError || output?.ok === false) throw Error(output?.error?.message || "Spotify could not confirm that action. Refresh before trying again.");
     const component = output?.component;
@@ -143,7 +197,9 @@
     const state = component.props?.playback;
     if (!state || !["playing","paused","stopped"].includes(state.state)) return;
     if (Number(state.observedAt) < newest) return;
-    newest = Number(state.observedAt) || 0; playback = state; anchor = performance.now(); stale = false; render(); return true;
+    const transition = beginTransition(state,action);
+    newest = Number(state.observedAt) || 0; playback = state; stale = false; render();
+    animateTransition(transition); return true;
   }
   function notify(method, params) {
     window.parent.postMessage({jsonrpc:"2.0",method,params}, hostOrigin || "*");
@@ -158,27 +214,25 @@
   }
   async function call(action, args = {}) {
     if (!bridgeReady) throw Error("This player needs a connected MCP Apps host.");
+    const epoch = stateEpoch;
     const result = await request("tools/call", { name: targets[action], arguments: args });
-    const accepted = accept(result), output = result?.structuredContent || result;
-    if (action === "volume" && output?.ok && Number.isFinite(output.result?.percent) && playback?.deviceId === args["device-id"]) {
-      playback = {...playback, volume:output.result.percent}; render(); return true;
-    }
-    return accepted;
+    if (action === "refresh" && epoch !== stateEpoch) return true;
+    return accept(result, action);
   }
   async function refresh(fresh = false) {
     if (disposed || !bridgeReady || reading || busy || document.hidden) return;
     reading = true; controls();
-    try { await call("refresh", fresh ? {refresh:true} : {}); }
+    try { if (await call("refresh", fresh ? {refresh:true} : {}) && !fresh) el("error").textContent = ""; }
     catch (error) { stale = true; el("error").textContent = error.message; render(); }
     finally { reading = false; controls(); }
   }
   async function action(name, args) {
-    if (disposed || busy || stale) { scrubbing = false; volumeDragging = false; render(); return; }
-    busy = true; el("error").textContent = ""; controls();
+    if (disposed || busy || stale) return;
+    stateEpoch++; busy = true; el("error").textContent = ""; controls();
     let needsRefresh = true;
     try { needsRefresh = !await call(name, args); }
     catch (error) { stale = true; el("error").textContent = error.message; }
-    finally { busy = false; scrubbing = false; volumeDragging = false; render(); if (needsRefresh) await refresh(true); }
+    finally { busy = false; render(); if (needsRefresh) await refresh(true); }
   }
   window.addEventListener("message", event => {
     if (event.source !== window.parent || disposed) return;
@@ -201,36 +255,16 @@
   });
   el("play-pause").onclick = () => action(playback?.state === "playing" ? "pause" : "resume");
   el("previous").onclick = () => action("previous"); el("next").onclick = () => action("next");
-  el("refresh").onclick = () => { el("error").textContent = ""; refresh(true); };
-  el("seek").addEventListener("input", () => {
-    if (!scrubbing) scrubUri = playback?.track?.uri;
-    scrubbing = true; el("elapsed").textContent = time(Number(el("seek").value) * 1000);
-  });
-  el("seek").addEventListener("change", () => {
-    if (!scrubUri || scrubUri !== playback?.track?.uri) { scrubbing = false; render(); return; }
-    action("seek", {seconds:Number(el("seek").value), "track-uri":scrubUri});
-  });
-  el("seek").addEventListener("pointercancel", () => { scrubbing = false; render(); });
-  el("volume").addEventListener("input", () => {
-    if (!volumeDragging) volumeDevice = playback?.deviceId;
-    volumeDragging = true; el("volume-value").textContent = el("volume").value + "%"; el("volume").setAttribute("aria-valuetext", el("volume").value + " percent");
-  });
-  el("volume").addEventListener("change", () => {
-    if (!volumeDevice || volumeDevice !== playback?.deviceId) { volumeDragging = false; render(); return; }
-    action("volume", {percent:Number(el("volume").value), "device-id":volumeDevice});
-  });
-  el("volume").addEventListener("pointercancel", () => { volumeDragging = false; render(); });
-  el("mute").onclick = () => action("volume", {percent:playback.volume === 0 ? previousVolume.get(playback.deviceId) ?? 25 : 0, "device-id":playback.deviceId});
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
-  const clock = setInterval(tick, 250), polling = setInterval(refresh, 3000);
+  const polling = setInterval(refresh, 3000);
   const resize = new ResizeObserver(() => {
     measureTitle();
     if (bridgeReady && !disposed) notify("ui/notifications/size-changed", {height:Math.ceil(document.body.getBoundingClientRect().height)});
   });
   resize.observe(document.body);
   function dispose() {
-    disposed = true; clearInterval(clock); clearInterval(polling);
-    resize.disconnect();
+    disposed = true; clearInterval(polling);
+    resize.disconnect(); clearTransition(); reducedMotion.removeEventListener("change",motionChanged);
     for (const p of requests.values()) { clearTimeout(p.timer); p.reject(Error("Player closed.")); }
     requests.clear();
   }

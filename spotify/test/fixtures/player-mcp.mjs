@@ -4,6 +4,7 @@ import { createMcpServer } from "../../src/mcp.mjs";
 const tracks = [
   { uri: "spotify:track:one", name: "First song", artists: ["First artist"], album: "Test playlist", imageUrl: "https://i.scdn.co/image/test-one" },
   { uri: "spotify:track:two", name: "Second <script>song</script>", artists: ["Second artist"], album: "Test playlist", imageUrl: "https://i.scdn.co/image/test-two" },
+  { uri: "spotify:track:three", name: "Third song", artists: ["Third artist"], album: "Third album", imageUrl: "https://i.scdn.co/image/test-three" },
 ];
 let index = 0;
 const state = { state: "playing", context: "spotify:playlist:test", positionMs: 30000, durationMs: 210000, device: "Test speaker", deviceId: "speaker", volume: 35, track: tracks[0] };
@@ -17,6 +18,7 @@ const server = createMcpServer({}, { run: async (name, args) => {
     state.volume = args.percent; return { percent: state.volume };
   }
   state.track = tracks[index];
+  state.adjacentTracks = {previous: tracks[index-1] ?? null, next: tracks[index+1] ?? null};
   if (name === "seek") {
     if (args["track-uri"] && args["track-uri"] !== state.track.uri)
       throw Object.assign(new Error("Playback moved to another track."), { code: "STALE_TRACK" });

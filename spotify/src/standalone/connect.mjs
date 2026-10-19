@@ -98,6 +98,10 @@ export function normalizeConnectStatus(cluster, receivedAt = Date.now(), usernam
   return {
     connected: true, username, state: !track ? "stopped" : paused ? "paused" : "playing",
     track, context: state?.context_uri ?? null,
+    adjacentTracks: {
+      previous: track ? normalizeConnectTrack((state?.prev_tracks ?? []).filter(visibleQueueTrack).at(-1)) : null,
+      next: track ? normalizeConnectTrack((state?.next_tracks ?? [])[visibleQueueIndexes(state)[0]]) : null,
+    },
     positionMs: track ? Math.round(Math.max(0, Math.min(duration || Infinity, position))) : 0,
     durationMs: duration, shuffle: !!state?.options?.shuffling_context,
     smartShuffle: state?.options?.modes?.smart_shuffle ?? null,

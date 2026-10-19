@@ -53,6 +53,27 @@ test("inactive orphaned state is paused and hidden observers are excluded from s
   assert.equal(normalizeConnectDevices(cluster).length, 1);
 });
 
+test("adjacent covers follow the native queue order, ignoring hidden and removed rows", () => {
+  const cluster = fixture(), row = (name,metadata={}) => ({uri:`spotify:track:${name}`,uid:name,metadata:{title:name,image_url:"spotify:image:abcd",...metadata}});
+  cluster.player_state.options.shuffling_context = true;
+  cluster.player_state.prev_tracks = [row("oldest"),row("previous"),row("hidden",{hidden:"true"})];
+  cluster.player_state.next_tracks = [row("removed"),row("hidden",{hidden_in_queue:"true"}),row("queued",{is_queued:"true"}),row("context")];
+  cluster.player_state.next_tracks[0].removed = ["deleted"];
+  const result = normalizeConnectStatus(cluster);
+  assert.equal(result.adjacentTracks.previous.uri,"spotify:track:previous");
+  assert.equal(result.adjacentTracks.next.uri,"spotify:track:queued");
+  assert.equal(result.adjacentTracks.next.imageUrl,"https://i.scdn.co/image/abcd");
+  assert.equal(result.shuffle,true);
+});
+
+test("adjacent covers do not invent playlist wraparound or cross a queue delimiter", () => {
+  const cluster = fixture();
+  cluster.player_state.next_tracks = [{uri:"spotify:delimiter"},{uri:"spotify:track:wrapped",metadata:{title:"Wrapped"}}];
+  assert.deepEqual(normalizeConnectStatus(cluster).adjacentTracks,{previous:null,next:null});
+  cluster.player_state.options.repeating_context = true;
+  assert.equal(normalizeConnectStatus(cluster).adjacentTracks.next.uri,"spotify:track:wrapped");
+});
+
 test("status and devices are direct HTTP reads without a websocket or observer registration", async () => {
   const p = protocol(), count = FakeSocket.instances.length;
   assert.equal((await executeConnect("status", {}, p.request, p.options)).device, "LSX 2");

@@ -7,6 +7,7 @@ import { PLAYER_URI, PLAYER_MIME, playbackResult, playerResource } from "../src/
 
 test("playback results retain the existing result and reference one static component", async () => {
   const state = { state: "playing", track: { name: "Song", uri: "spotify:track:one", imageUrl: "https://i.scdn.co/image/album" }, positionMs: 42, durationMs: 1000, volume: 23 };
+  state.adjacentTracks = {previous:null,next:{uri:"spotify:track:two",name:"Next",imageUrl:"https://i.scdn.co/image/next"}};
   const output = playbackResult("play", state);
   assert.equal(output.result, state);
   assert.equal(output.component.resourceUri, PLAYER_URI);
@@ -15,6 +16,7 @@ test("playback results retain the existing result and reference one static compo
   assert.equal(output.component.props.playback.volume, 23);
   assert.equal(output.component.props.playback.positionMs, 42);
   assert.equal(output.component.props.playback.track.imageUrl, state.track.imageUrl);
+  assert.deepEqual(output.component.props.playback.adjacentTracks,state.adjacentTracks);
   assert.equal(playbackResult("search", { tracks: [] }).component, undefined);
   assert.equal(playbackResult("play", null).component, undefined);
   const resource = await playerResource();
@@ -46,12 +48,15 @@ test("MCP advertises and serves the player; controls operate the same playlist s
     let output = (await call("play")).structuredContent;
     assert.equal(output.component.props.playback.track.name, "First song");
     assert.equal(output.component.props.playback.track.imageUrl, "https://i.scdn.co/image/test-one");
+    assert.equal(output.component.props.playback.adjacentTracks.next.uri,"spotify:track:two");
     output = (await call("pause")).structuredContent;
     assert.equal(output.result.state, "paused");
     assert.equal((await call("resume")).structuredContent.result.state, "playing");
     output = (await call("next")).structuredContent;
     assert.match(output.result.track.name, /^Second/);
     assert.equal(output.component.props.playback.track.imageUrl, "https://i.scdn.co/image/test-two");
+    assert.equal(output.component.props.playback.adjacentTracks.previous.uri,"spotify:track:one");
+    assert.equal(output.component.props.playback.adjacentTracks.next.uri,"spotify:track:three");
     assert.equal(output.result.context, "spotify:playlist:test");
     const stale = await call("seek", { seconds: 90, "track-uri": "spotify:track:one" });
     assert.equal(stale.isError, true);
