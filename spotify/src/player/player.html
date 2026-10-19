@@ -11,6 +11,7 @@
 h1{font-size:clamp(23px,5vw,29px);font-weight:500;line-height:1.25;letter-spacing:-.035em;text-align:center;margin:0 0 9px;white-space:nowrap;overflow:hidden}.artist{font-size:21px;line-height:1.35;text-align:center;margin:0;color:#747775;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .controls{display:flex;align-items:center;justify-content:center;gap:42px;margin:36px 0 0}
 button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:58px;height:58px;transition:transform .16s,background .16s}button:hover:enabled{background:#cdd1cdbf;transform:scale(1.04)}button:active:enabled{transform:scale(.96)}button:focus-visible{outline:2px solid #707672;outline-offset:5px}button:disabled{opacity:.35;cursor:default}.primary{width:90px;height:90px;background:#d3d6d3b5;color:#484c49}.primary svg{width:40px;height:40px}svg{width:28px;height:28px;fill:currentColor}
+.primary{position:relative}.loading-ring{position:absolute;inset:-7px;border:2px solid #55585626;border-top-color:#666c68;border-radius:50%;pointer-events:none;animation:control-loading .8s linear infinite}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@keyframes control-loading{to{transform:rotate(360deg)}}
 .error{font-size:12px;text-align:center;color:#893f35;margin:18px 0 0;line-height:1.5}.error:empty{display:none}
 #title-track{display:inline-flex;gap:40px;white-space:nowrap}#title-text{white-space:nowrap}#title-copy{display:none}.marquee{text-align:left}.marquee #title-copy{display:inline}.marquee #title-track{animation:song-marquee var(--title-duration,12s) linear infinite;will-change:transform}
 @keyframes song-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--title-distance,0px)))}}
@@ -21,7 +22,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
 .artwork-neighbor{position:absolute;top:0;margin:0;opacity:.45;transform:translateX(-50%) scale(.78);filter:blur(1.8px) saturate(.65);pointer-events:none;z-index:1}.artwork-previous{left:calc(50% - var(--art-step) + var(--art-size) * .13)}.artwork-next{left:calc(50% + var(--art-step) + var(--art-size) * .13)}.artwork-ghost{position:absolute;inset:0;pointer-events:none;z-index:3}
 @keyframes disc-spin{to{transform:rotate(360deg)}}
 @media(max-width:350px){body{padding:8px}.player{padding:26px 22px 30px;border-radius:42px}.artwork-window{margin-left:-22px;margin-right:-22px}.controls{gap:26px}button{width:48px;height:48px}.primary{width:76px;height:76px}.sleeve{padding:11px;border-radius:21px}.cover{border-radius:13px}.artist{font-size:18px}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}.disc,.marquee #title-track{animation:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}.disc,.marquee #title-track,.loading-ring{animation:none}}
 </style>
 </head>
 <body>
@@ -56,30 +57,57 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
   <p class="artist" id="artist"></p>
   <div class="controls">
     <button id="previous" aria-label="Previous track" title="Previous track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14L2 12zm10 0v14l-10-7z"/></svg></button>
-    <button id="play-pause" class="primary" aria-label="Pause" title="Pause" disabled><svg id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m8 3 14 9-14 9z"/></svg></button>
+    <button id="play-pause" class="primary" aria-label="Pause" title="Pause" disabled><span id="loading-ring" class="loading-ring" aria-hidden="true" hidden></span><svg id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg><svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m8 3 14 9-14 9z"/></svg></button>
     <button id="next" aria-label="Next track" title="Next track" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5v14l10-7zm10 0v14l10-7z"/></svg></button>
   </div>
+  <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
   <p id="error" class="error" role="status" aria-live="polite"></p>
 </main>
 <script>
 (() => {
   "use strict";
   const el = id => document.getElementById(id);
-  let playback = null, busy = false, reading = false, stale = true;
+  let playback = null, displayedPlayback = null, busy = false, reading = false, stale = true;
   let bridgeReady = false, disposed = false, stateEpoch = 0;
   let nextId = 0, hostOrigin = null, newest = 0;
   const artworkKeys = new Map();
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let coverTransition = null;
   const requests = new Map();
+  const pendingActions = [];
   const targets = { refresh:"spotify_status", pause:"spotify_pause", resume:"spotify_resume", previous:"spotify_previous", next:"spotify_next" };
   function controls() {
-    for (const id of ["play-pause","next","previous"]) el(id).disabled = busy || stale || !playback?.track || !playback.deviceId;
-    const permissions = playback?.restrictions || {};
-    if (permissions[playback?.state === "playing" ? "canPause" : "canResume"] === false) el("play-pause").disabled = true;
+    const view = displayedPlayback || playback;
+    const unavailable = stale || !view?.track || !view.deviceId || pendingActions.length >= 8;
+    for (const id of ["play-pause","next","previous"]) el(id).disabled = unavailable;
+    const permissions = view?.restrictions || {};
+    if (permissions[view?.state === "playing" ? "canPause" : "canResume"] === false) el("play-pause").disabled = true;
     if (permissions.canSkipNext === false) el("next").disabled = true;
     if (permissions.canSkipPrevious === false) el("previous").disabled = true;
-    el("play-pause").setAttribute("aria-busy", String(busy));
+    const loading = busy || pendingActions.length > 0 || el("artwork").dataset.state === "loading" || (reading && stale);
+    el("loading-ring").hidden = !loading;
+    el("play-pause").setAttribute("aria-busy", String(loading));
+    el("announcement").textContent = pendingActions.length ? "Updating playback…" : "";
+  }
+  function projectedPlayback() {
+    let view = playback;
+    if (!view) return view;
+    for (const job of pendingActions) {
+      if (job.name === "pause" || job.name === "resume") {
+        const playing = job.name === "resume";
+        view = {...view,state:playing ? "playing" : "paused",restrictions:{...view.restrictions,canPause:playing,canResume:!playing}};
+      } else {
+        // Previous may restart the current song instead of changing tracks.
+        const restart = job.name === "previous" && view.positionMs >= 3000;
+        const neighbor = restart ? null : view.adjacentTracks?.[job.name];
+        if (neighbor) {
+          view = {...view,track:neighbor,positionMs:0,durationMs:neighbor.durationMs,
+            restrictions:{...view.restrictions,...(job.name === "next" ? {canSkipPrevious:true} : {canSkipNext:true})},
+            adjacentTracks:job.name === "next" ? {previous:view.track,next:null} : {previous:null,next:view.track}};
+        } else if (restart) view = {...view,positionMs:0};
+      }
+    }
+    return view;
   }
   function measureTitle() {
     const width = el("title-text").getBoundingClientRect().width, available = el("title").clientWidth;
@@ -97,7 +125,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
   function renderCover(track, suffix = "") {
     const artwork = el("artwork" + suffix), fallback = el("cover-fallback" + suffix);
     if (suffix) artwork.hidden = !track;
-    artwork.dataset.playing = String(!suffix && playback.state === "playing" && !stale);
+    artwork.dataset.playing = String(!suffix && displayedPlayback.state === "playing" && !stale);
     const key = JSON.stringify([track?.uri, track?.imageUrl, track?.album, track?.name]);
     if (key === artworkKeys.get(suffix)) return;
     artworkKeys.set(suffix, key);
@@ -113,21 +141,21 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
     artwork.dataset.state = "loading";
     image.onload = () => {
       if (!image.isConnected) return;
-      image.hidden = false; fallback.hidden = true; artwork.dataset.state = "ready";
+      image.hidden = false; fallback.hidden = true; artwork.dataset.state = "ready"; controls();
     };
     image.onerror = () => {
       if (!image.isConnected) return;
-      image.hidden = true; fallback.hidden = false; artwork.dataset.state = "unavailable";
+      image.hidden = true; fallback.hidden = false; artwork.dataset.state = "unavailable"; controls();
     };
     image.src = url.href;
     if (image.complete && image.naturalWidth > 0) image.onload();
   }
   function renderArtwork() {
-    renderCover(playback.track);
-    renderCover(playback.adjacentTracks?.previous, "-previous");
-    renderCover(playback.adjacentTracks?.next, "-next");
+    renderCover(displayedPlayback.track);
+    renderCover(displayedPlayback.adjacentTracks?.previous, "-previous");
+    renderCover(displayedPlayback.adjacentTracks?.next, "-next");
     for (const [side,label] of [["previous","Previous track"],["next","Next track"]]) {
-      const track = playback.adjacentTracks?.[side];
+      const track = displayedPlayback.adjacentTracks?.[side];
       el(side).title = track?.name ? label + ": " + track.name : label;
     }
   }
@@ -140,12 +168,12 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
   }
   function beginTransition(next, action) {
     if (!next.track) { clearTransition(); return null; }
-    if (!playback?.track || sameTrack(playback.track,next.track)) return null;
+    if (!displayedPlayback?.track || sameTrack(displayedPlayback.track,next.track)) return null;
     clearTransition();
     if (reducedMotion.matches) return null;
     const direction = action === "next" ? 1 : action === "previous" ? -1
-      : sameTrack(playback.adjacentTracks?.next,next.track) ? 1
-      : sameTrack(playback.adjacentTracks?.previous,next.track) ? -1 : 0;
+      : sameTrack(displayedPlayback.adjacentTracks?.next,next.track) ? 1
+      : sameTrack(displayedPlayback.adjacentTracks?.previous,next.track) ? -1 : 0;
     const ghost = el("artwork-stage").cloneNode(true);
     ghost.removeAttribute("id");
     for (const node of ghost.querySelectorAll("[id]")) node.removeAttribute("id");
@@ -160,7 +188,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
     const options = {duration:520,easing:"cubic-bezier(.22,1,.36,1)",fill:"both"};
     el("artwork-window").dataset.transition = direction > 0 ? "next" : direction < 0 ? "previous" : "replace";
     // The outgoing snapshot and incoming strip share the same queue spacing.
-    // Only confirmed state animates; a failed skip never moves a preview.
+    // Pending previews move immediately; confirmation keeps or corrects them.
     transition.animations.push(
       ghost.animate([{transform:"translateX(0)",opacity:1},{transform:"translateX(" + (-direction * step) + "px)",opacity:0}],options),
       ...["artwork","artwork-previous","artwork-next"].map(id => {
@@ -178,16 +206,21 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
   }
   const motionChanged = () => { if (reducedMotion.matches) clearTransition(); };
   reducedMotion.addEventListener("change",motionChanged);
-  function render() {
-    if (!playback) { controls(); return; }
+  function render(action) {
+    const view = projectedPlayback();
+    if (!view) { controls(); return; }
+    const transition = beginTransition(view,action);
+    displayedPlayback = view;
     renderArtwork();
-    setTitle(playback.track?.name || "Nothing playing");
-    el("artist").textContent = (playback.track?.artists || []).join(", ");
-    const paused = playback.state !== "playing";
-    el("play-icon").hidden = !paused; el("pause-icon").hidden = paused;
+    setTitle(view.track?.name || "Nothing playing");
+    el("artist").textContent = (view.track?.artists || []).join(", ");
+    const paused = view.state !== "playing";
+    // SVGElement.hidden is not reflected into markup; use the actual attribute.
+    el("play-icon").toggleAttribute("hidden", !paused);
+    el("pause-icon").toggleAttribute("hidden", paused);
     el("play-pause").setAttribute("aria-label", paused ? "Resume" : "Pause");
     el("play-pause").title = paused ? "Resume" : "Pause";
-    controls();
+    controls(); animateTransition(transition);
   }
   function accept(response, action) {
     const output = response?.structuredContent || response;
@@ -197,9 +230,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
     const state = component.props?.playback;
     if (!state || !["playing","paused","stopped"].includes(state.state)) return;
     if (Number(state.observedAt) < newest) return;
-    const transition = beginTransition(state,action);
-    newest = Number(state.observedAt) || 0; playback = state; stale = false; render();
-    animateTransition(transition); return true;
+    newest = Number(state.observedAt) || 0; playback = state; stale = false; render(action); return true;
   }
   function notify(method, params) {
     window.parent.postMessage({jsonrpc:"2.0",method,params}, hostOrigin || "*");
@@ -212,27 +243,46 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
       window.parent.postMessage({jsonrpc:"2.0",id,method,params}, hostOrigin || "*");
     });
   }
-  async function call(action, args = {}) {
-    if (!bridgeReady) throw Error("This player needs a connected MCP Apps host.");
-    const epoch = stateEpoch;
-    const result = await request("tools/call", { name: targets[action], arguments: args });
-    if (action === "refresh" && epoch !== stateEpoch) return true;
-    return accept(result, action);
-  }
   async function refresh(fresh = false) {
-    if (disposed || !bridgeReady || reading || busy || document.hidden) return;
+    if (disposed || !bridgeReady || reading || busy || pendingActions.length || document.hidden) return;
     reading = true; controls();
-    try { if (await call("refresh", fresh ? {refresh:true} : {}) && !fresh) el("error").textContent = ""; }
-    catch (error) { stale = true; el("error").textContent = error.message; render(); }
-    finally { reading = false; controls(); }
+    const epoch = stateEpoch;
+    try {
+      const result = await request("tools/call", {name:targets.refresh,arguments:fresh ? {refresh:true} : {}});
+      if (epoch !== stateEpoch) return;
+      if (accept(result) && !fresh) el("error").textContent = "";
+    } catch (error) {
+      if (epoch === stateEpoch) { stale = true; el("error").textContent = error.message; render(); }
+    } finally { reading = false; controls(); }
   }
-  async function action(name, args) {
-    if (disposed || busy || stale) return;
-    stateEpoch++; busy = true; el("error").textContent = ""; controls();
-    let needsRefresh = true;
-    try { needsRefresh = !await call(name, args); }
-    catch (error) { stale = true; el("error").textContent = error.message; }
-    finally { busy = false; render(); if (needsRefresh) await refresh(true); }
+  async function drainActions() {
+    if (busy || disposed) return;
+    busy = true; controls();
+    let needsRefresh = false;
+    try {
+      while (pendingActions.length && !disposed) {
+        const job = pendingActions[0];
+        const result = await request("tools/call", {name:targets[job.name],arguments:job.args});
+        if (disposed) return;
+        // Remove only the completed intent before projecting the remaining clicks.
+        pendingActions.shift();
+        if (!accept(result,job.name)) throw Error("Spotify did not confirm the action. Checking playback; the action will not be repeated.");
+      }
+    } catch (error) {
+      pendingActions.length = 0; stale = true;
+      el("error").textContent = error.message;
+      render(); needsRefresh = true;
+    } finally {
+      busy = false; controls();
+      if (needsRefresh && !disposed) await refresh(true);
+    }
+  }
+  function action(name, args = {}) {
+    if (disposed || stale || !bridgeReady || pendingActions.length >= 8) return;
+    stateEpoch++; pendingActions.push({name,args});
+    el("error").textContent = "";
+    render(name); // Immediate feedback, before any network round trip.
+    void drainActions();
   }
   window.addEventListener("message", event => {
     if (event.source !== window.parent || disposed) return;
@@ -245,6 +295,9 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
       if (message.error) pending.reject(Error(message.error.message || "Host rejected the request."));
       else pending.resolve(message.result);
     } else if (message.method === "ui/notifications/tool-result") {
+      // Some hosts also broadcast a tool result before its RPC completes.
+      // The owning response settles pending clicks exactly once.
+      if (busy || pendingActions.length) return;
       try { accept(message.params); } catch (error) { el("error").textContent = error.message; }
     } else if (message.method === "ui/notifications/host-context-changed") {
       const theme = message.params?.theme;
@@ -253,7 +306,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
       dispose(); window.parent.postMessage({jsonrpc:"2.0",id:message.id,result:{}}, hostOrigin || "*");
     }
   });
-  el("play-pause").onclick = () => action(playback?.state === "playing" ? "pause" : "resume");
+  el("play-pause").onclick = () => action(displayedPlayback?.state === "playing" ? "pause" : "resume");
   el("previous").onclick = () => action("previous"); el("next").onclick = () => action("next");
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
   const polling = setInterval(refresh, 3000);
@@ -263,7 +316,7 @@ button{font:inherit;border:0;cursor:pointer;color:#555856;background:#d5d8d5b0;d
   });
   resize.observe(document.body);
   function dispose() {
-    disposed = true; clearInterval(polling);
+    disposed = true; pendingActions.length = 0; clearInterval(polling);
     resize.disconnect(); clearTransition(); reducedMotion.removeEventListener("change",motionChanged);
     for (const p of requests.values()) { clearTimeout(p.timer); p.reject(Error("Player closed.")); }
     requests.clear();

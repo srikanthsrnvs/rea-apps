@@ -16,6 +16,15 @@ const transport = new StdioClientTransport({ command: process.execPath,
 let browser, server, viewer;
 let rejectNext = false, failedCalls = 0, holdStatus = false, statusCalls = 0;
 let releaseLateArtwork;
+let heldAction = null;
+const actionGates = [];
+function holdAction(name, reject = false) {
+  let entered,release;
+  const started = new Promise(resolve => { entered = resolve; });
+  const wait = new Promise(resolve => { release = resolve; });
+  const gate = {name,reject,entered,release,wait,started};
+  actionGates.push(gate); heldAction = gate; return gate;
+}
 const calls = [];
 try {
   await client.connect(transport);
@@ -42,7 +51,11 @@ try {
         while (holdStatus) await new Promise(r => setTimeout(r, 20));
       }
       let result;
-      if (rejectNext && args.name === "spotify_next") {
+      const gate = heldAction?.name === args.name ? heldAction : null;
+      if (gate) { heldAction = null; gate.entered(); await gate.wait; }
+      if (gate?.reject) {
+        result = {isError:true,structuredContent:{ok:false,error:{code:"DISCONNECTED",message:"Device disconnected; action was not repeated."}}};
+      } else if (rejectNext && args.name === "spotify_next") {
         rejectNext = false; failedCalls++;
         result = { isError: true, structuredContent: { ok: false, error: { code: "DISCONNECTED", message: "Device disconnected; action was not repeated." } } };
       } else result = await client.callTool(args);
@@ -79,15 +92,52 @@ try {
   assert.equal(await frame.locator("#artwork-previous").isHidden(),true);
   assert.equal(await frame.locator("#cover-image-next").getAttribute("src"),"https://i.scdn.co/image/test-two");
   const initialImageRequests = imageRequests.length;
+  const pausedGate = holdAction("spotify_pause");
+  await frame.getByRole("button",{name:"Pause",exact:true}).click();
+  await pausedGate.started;
+  assert.equal(await frame.locator("#play-icon").isVisible(),true,"Pause must show the play triangle before the server responds");
+  assert.equal(await frame.locator("#pause-icon").isVisible(),false);
+  assert.equal(await frame.locator("#loading-ring").isVisible(),true);
+  assert.equal(await frame.locator("#play-pause").isEnabled(),true,"The user can change their intent while an action is in flight");
+  assert.equal((await client.callTool({name:"spotify_status",arguments:{}})).structuredContent.result.state,"playing");
+  const resumesBefore = calls.filter(c=>c.name === "spotify_resume").length;
+  await frame.getByRole("button",{name:"Resume",exact:true}).click();
+  assert.equal(await frame.locator("#pause-icon").isVisible(),true,"A queued resume must update the icon immediately");
+  assert.equal(calls.filter(c=>c.name === "spotify_resume").length,resumesBefore,"Commands are sent in the user's click order");
+  pausedGate.release();
+  await frame.locator('#play-pause[aria-busy="false"]').waitFor();
+  assert.equal((await client.callTool({name:"spotify_status",arguments:{}})).structuredContent.result.state,"playing");
+  const rejectedPause = holdAction("spotify_pause",true);
+  await frame.getByRole("button",{name:"Pause",exact:true}).click();
+  await rejectedPause.started;
+  assert.equal(await frame.locator("#play-icon").isVisible(),true);
+  const skipsBeforeRejected = calls.filter(c=>c.name === "spotify_next").length;
+  await frame.getByRole("button",{name:"Next track",exact:true}).click();
+  await frame.getByRole("heading",{name:"Second <script>song</script>",exact:true}).waitFor();
+  rejectedPause.release();
+  await frame.getByRole("status").filter({hasText:"Device disconnected"}).waitFor();
+  await frame.locator('#play-pause[aria-busy="false"]').waitFor();
+  assert.equal(await frame.locator("#pause-icon").isVisible(),true,"Rejected pause rolls back to the actual state");
+  assert.equal(calls.filter(c=>c.name === "spotify_next").length,skipsBeforeRejected,"An uncertain or rejected action cannot release later queued commands");
+  await frame.getByRole("heading",{name:"First song",exact:true}).waitFor();
   await frame.getByRole("button", { name: "Pause", exact: true }).click();
   await frame.getByRole("button", { name: "Resume", exact: true }).waitFor();
+  assert.equal(await frame.locator("#play-icon").isVisible(),true);
+  assert.equal(await frame.locator("#pause-icon").isVisible(),false);
   assert.equal(await frame.locator("#artwork .disc").evaluate(e => getComputedStyle(e).animationPlayState), "paused");
+  await frame.locator('#play-pause[aria-busy="false"]').waitFor();
   assert.equal((await client.callTool({ name: "spotify_status", arguments: {} })).structuredContent.result.state, "paused");
   await frame.getByRole("button", { name: "Resume", exact: true }).click();
   await frame.getByRole("button", { name: "Pause", exact: true }).waitFor();
+  await frame.locator('#play-pause[aria-busy="false"]').waitFor();
   assert.equal(imageRequests.length, initialImageRequests, "Polling and pause/resume must not reload unchanged artwork");
+  const nextGate = holdAction("spotify_next");
   await frame.getByRole("button", { name: "Next track", exact: true }).click();
+  await nextGate.started;
   await frame.getByRole("heading", { name: "Second <script>song</script>" }).waitFor();
+  assert.equal(await frame.locator("#loading-ring").isVisible(),true);
+  assert.equal(await frame.locator("#previous").isEnabled(),true);
+  assert.equal((await client.callTool({name:"spotify_status",arguments:{}})).structuredContent.result.track.name,"First song","Preview moves before the command finishes");
   await frame.locator('#artwork[data-state="ready"]').waitFor();
   assert.equal(await frame.locator("#cover-image").getAttribute("src"), "https://i.scdn.co/image/test-two");
   await frame.locator('#artwork-window[data-transition="next"]').waitFor();
@@ -98,6 +148,8 @@ try {
   await frame.locator('#artwork-window:not([data-transition])').waitFor();
   assert.equal(await frame.locator(".artwork-ghost").count(),0);
   assert.equal(await frame.locator("#cover-image-previous").getAttribute("src"),"https://i.scdn.co/image/test-one");
+  nextGate.release();
+  await frame.locator('#play-pause[aria-busy="false"]').waitFor();
   assert.equal(await frame.locator("#cover-image-next").getAttribute("src"),"https://i.scdn.co/image/test-three");
   assert.equal(await frame.locator("h1 script").count(), 0);
   await frame.getByRole("button", { name: "Previous track", exact: true }).click();
@@ -113,7 +165,8 @@ try {
   await frame.getByRole("status").filter({ hasText: "Device disconnected" }).waitFor();
   assert.equal(failedCalls, 1);
   assert.equal(await frame.getByRole("heading").textContent(), "First song");
-  assert.equal(await frame.locator(".artwork-ghost").count(),0,"A rejected skip must not animate into another song");
+  await frame.locator('#artwork-window:not([data-transition])').waitFor();
+  assert.equal(await frame.locator(".artwork-ghost").count(),0,"A rejected skip must restore the original cover");
   await frame.locator("#play-pause:enabled").waitFor();
   assert.ok(calls.some(c => c.name === "spotify_status" && c.arguments.refresh === true), "Error recovery must bypass stale read caches");
   const previousStatusCalls = statusCalls;
@@ -169,6 +222,7 @@ try {
   artState.structuredContent.component.props.playback.track.imageUrl = "https://i.scdn.co/image/late";
   await page.evaluate(result => window.player.update(result), artState);
   await lateArtwork;
+  assert.equal(await frame.locator("#loading-ring").isVisible(),true,"Loading new cover art keeps the pending indicator visible");
   await page.evaluate(result => window.player.update(result), long);
   await frame.locator('#artwork[data-state="ready"]').waitFor();
   const currentCover = await frame.locator("#cover-image").getAttribute("src");
@@ -214,13 +268,19 @@ try {
   await live.getByRole("button",{name:"Pause",exact:true}).click();
   try { await live.getByRole("button",{name:"Resume",exact:true}).waitFor({timeout:5000}); }
   catch (error) { console.error(JSON.stringify({browserErrors:errors,viewerError:await live.locator("#error").textContent(),state:(await client.callTool({name:"spotify_status",arguments:{}})).structuredContent.result.state})); throw error; }
+  assert.equal(await live.locator("#play-icon").isVisible(),true);
+  assert.equal(await live.locator("#pause-icon").isVisible(),false);
+  await live.locator('#play-pause[aria-busy="false"]').waitFor();
   await live.getByRole("button",{name:"Resume",exact:true}).click();
   await live.getByRole("button",{name:"Pause",exact:true}).waitFor();
+  assert.equal(await live.locator("#pause-icon").isVisible(),true);
+  await live.locator('#play-pause[aria-busy="false"]').waitFor();
   await standalone.screenshot({path:fileURLToPath(new URL("../.runtime/player-viewer.png",import.meta.url))});
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "album art and track changes", "artwork fallback and origin validation", "late artwork response", "disc animation and reduced motion", "pause", "resume", "next", "previous", "minimal neutral design", "cropped queue previews", "directional cover motion", "single-line title scrolling", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal", "authenticated standalone viewer"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png", ".runtime/player-viewer.png"] }));
+  console.log(JSON.stringify({ ok: true, checks: ["initialize", "playlist", "album art and track changes", "artwork fallback and origin validation", "late artwork response", "disc animation and reduced motion", "visible play/pause SVG icons", "immediate feedback before acknowledgement", "loading ring", "ordered rapid clicks", "rollback cancels unsent actions", "pause", "resume", "next", "previous", "minimal neutral design", "cropped queue previews", "directional cover motion", "single-line title scrolling", "escaped titles", "mutation failure", "external playback refresh", "mobile layout", "action allowlist", "Spotify restrictions", "disposal", "authenticated standalone viewer"], screenshots: [".runtime/player-desktop.png", ".runtime/player-mobile.png", ".runtime/player-viewer.png"] }));
 } finally {
   holdStatus = false;
+  for (const gate of actionGates) gate.release();
   releaseLateArtwork?.();
   await browser?.close();
   await viewer?.close();
