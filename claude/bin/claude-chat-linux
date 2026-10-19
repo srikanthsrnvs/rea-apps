@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+claude_chat_node=${CLAUDE_CHAT_NODE:-$workspace/.runtime/node}
+if [ ! -x "$claude_chat_node" ]; then
+  printf '%s\n' 'Run claude/scripts/setup-linux.sh first, or set CLAUDE_CHAT_NODE to a compatible Node executable.' >&2
+  exit 1
+fi
+exec "$claude_chat_node" "$workspace/src/cli.mjs" "$@"
