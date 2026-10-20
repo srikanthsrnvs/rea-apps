@@ -1,0 +1,26 @@
+{
+  "name": "chatgpt-account-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless ChatGPT account and Codex tools",
+  "bin": {
+    "chatgpt": "bin/chatgpt"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=24.21"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scripts/",
+    "docs/",
+    "README.md"
+  ],
+  "dependencies": {
+    "ws": "8.22.0"
+  }
+}
