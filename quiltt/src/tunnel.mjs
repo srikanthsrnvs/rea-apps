@@ -12,4 +12,3 @@ export async function startTunnel(binary, port, { spawnImpl = spawn } = {}) {
     return { child, url };
   } catch (error) { child.kill(); throw error; }
 }
-
