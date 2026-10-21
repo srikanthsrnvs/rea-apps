@@ -1,0 +1,11 @@
+{
+  "name": "amex-account-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Amex native-protocol account tools with guarded payment reviews",
+  "bin": { "amex": "bin/amex" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=24.21" },
+  "files": ["bin/", "src/", "scripts/", "docs/", "README.md"]
+}
