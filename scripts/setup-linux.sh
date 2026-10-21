@@ -14,8 +14,9 @@ case "${1:-}" in
   --chatgpt-only) [ "$#" = 1 ] || exit 2; mode=chatgpt; spotify_option= ;;
   --amazon-only) [ "$#" = 1 ] || exit 2; mode=amazon; spotify_option= ;;
   --airbnb-only) [ "$#" = 1 ] || exit 2; mode=airbnb; spotify_option= ;;
+  --quiltt-only) [ "$#" = 1 ] || exit 2; mode=quiltt; spotify_option= ;;
   --amex-only) [ "$#" = 1 ] || exit 2; mode=amex; spotify_option= ;;
-  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only|--instagram-only|--resy-only|--opentable-only|--erewhon-only|--expedia-only|--amazon-only|--claude-only|--chatgpt-only|--airbnb-only|--amex-only]' >&2; exit 2 ;;
+  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only|--instagram-only|--resy-only|--opentable-only|--erewhon-only|--expedia-only|--amazon-only|--claude-only|--chatgpt-only|--airbnb-only|--amex-only|--quiltt-only]' >&2; exit 2 ;;
 esac
 if [ "$mode" = both ]; then
   if [ -n "$spotify_option" ]; then
@@ -44,6 +45,7 @@ if [ "$mode" = both ]; then
   AMAZON_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/amazon/scripts/setup-linux.sh"
   AIRBNB_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/airbnb/scripts/setup-linux.sh"
   AMEX_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/amex/scripts/setup-linux.sh"
+  QUILTT_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/quiltt/scripts/setup-linux.sh"
 elif [ "$mode" = uber ]; then
   "$workspace/uber/scripts/setup-linux.sh"
 elif [ "$mode" = instagram ]; then
@@ -62,6 +64,8 @@ elif [ "$mode" = chatgpt ]; then
   "$workspace/chatgpt/scripts/setup-linux.sh"
 elif [ "$mode" = airbnb ]; then
   "$workspace/airbnb/scripts/setup-linux.sh"
+elif [ "$mode" = quiltt ]; then
+  "$workspace/quiltt/scripts/setup-linux.sh"
 elif [ "$mode" = amex ]; then
   "$workspace/amex/scripts/setup-linux.sh"
 else

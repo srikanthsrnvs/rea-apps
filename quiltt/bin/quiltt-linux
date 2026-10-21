@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+quiltt_node=${QUILTT_NODE:-$workspace/.runtime/node}
+if [ ! -x "$quiltt_node" ]; then
+  printf '%s\n' 'Run quiltt/scripts/setup-linux.sh first, or set QUILTT_NODE to a compatible Node executable.' >&2
+  exit 1
+fi
+exec "$quiltt_node" "$workspace/bin/quiltt" "$@"

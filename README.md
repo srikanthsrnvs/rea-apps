@@ -1,6 +1,6 @@
 # REA apps
 
-Standalone tools reconstructed from installed apps, with separate Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude, ChatGPT, Airbnb and Amex CLIs.
+Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude, ChatGPT, Airbnb, Amex and Quiltt.
 
 | App | Commands | Runtime |
 | --- | --- | --- |
@@ -16,8 +16,9 @@ Standalone tools reconstructed from installed apps, with separate Spotify, Uber,
 | [ChatGPT](chatgpt/README.md) | Device-code login, conversation listing/search, reading, new chats and replies; Codex cloud task reads, models and environments | Node HTTP/WebSocket; official device approval in the user's browser; no host browser or Android |
 | [Airbnb](airbnb/README.md) | Phone-code login, destinations, paginated stays, listing details, calendars, saved lists, trips and inbox; checkout review and guarded booking/cancellation | Node HTTP; official verification in the user's browser when requested; no host browser or Android |
 | [Amex](amex/README.md) | Experimental user-ID/password + MFA, card balances, transactions and guarded payment/cancellation reviews; account integration testing pending | Node HTTP only; anonymous initialization verified on Linux ARM64; no host browser or Android |
+| [Quiltt](quiltt/README.md) | Sandbox Connector sign-in, mock bank linking, accounts, balances, connections and paginated transactions | Node HTTP; official Quiltt browser sign-in on the user’s device; temporary callback tunnel or stable HTTPS proxy |
 
-The CLIs output JSON and expose tool definitions for models. Uber, OpenTable and Erewhon accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Amazon uses official code approval at amazon.com/code. Subsequent use is headless; no developer API key is required.
+The CLIs output JSON and expose tool definitions for models. Uber, OpenTable and Erewhon accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Amazon uses official code approval at amazon.com/code. Subsequent use is headless. Quiltt can begin with its browser session; its optional private environment API secret enables persistent server access.
 
 ## Install on Linux
 
@@ -27,9 +28,9 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `expedia`, `amazon`, `claude-chat`, `chatgpt`, `airbnb` and experimental `amex` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia, Claude and Airbnb also install cloudflared for temporary verification relays.
+The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `expedia`, `amazon`, `claude-chat`, `chatgpt`, `airbnb`, experimental `amex` and Sandbox `quiltt` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia, Claude, Airbnb and Quiltt also install cloudflared for temporary verification relays.
 
-For one native app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, `--chatgpt-only`, `--airbnb-only`, or `--amex-only`.
+For one app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, `--chatgpt-only`, `--airbnb-only`, `--amex-only`, or `--quiltt-only`.
 
 For an existing Spotify installation, rerun setup and complete the new native `spotify login` pairing. Once native commands work, stop the old desktop container with `spotify/bin/spotify-headless service stop` to reclaim RAM. Its saved profile volume can remain as a recovery copy; native sessions are separate. See the [migration guide](spotify/docs/headless-linux.md#existing-desktop-deployments).
 
@@ -72,6 +73,8 @@ Airbnb uses `airbnb login --phone +COUNTRYCODE_NUMBER --country US`. Open its ve
 
 Amex has native user-ID/password and verification-code contracts, rather than an established browser approval link. `amex connection` tests anonymous startup; `amex login --prompt` accepts a password privately in a terminal. Account login and payment integration remain unverified; see its [guide and current limits](amex/README.md).
 
+Quiltt starts with `quiltt configure --connector-id ID` for a Sandbox Connector, followed by `quiltt login`. Configure the returned Exit Redirect with Send Token enabled, then open its private approval link on the user’s device. The Orin validates the returned session and reads Profile data through the official API; see the [Sandbox guide and callback setup](quiltt/README.md).
+
 Read the app-specific guides for commands, installation on macOS, and protocol details. Uber, Resy, OpenTable and Airbnb booking/cancellation use reviewed plans. Models must show the current terms and obtain user approval before confirming a real booking or cancellation. Erewhon likewise requires an approved order review before `order confirm --plan-id ID --confirm` places and pays for an order.
 
 ## Development
@@ -93,6 +96,7 @@ npm --prefix chatgpt ci --ignore-scripts
 npm --prefix chatgpt test
 npm --prefix airbnb test
 npm --prefix amex test
+npm --prefix quiltt test
 ```
 
 The apps have separate dependency trees and private session storage. Native Spotify stores its session under `~/.config/spotify-cli`; historical desktop Docker files remain only for recovery/comparison. Instagram stores its session under `~/.config/instagram-cli`, Uber under `~/.config/uber-cli`, Resy under `~/.config/resy-cli`, OpenTable under `~/.config/opentable-cli`, and Erewhon under `~/.config/erewhon-cli` (or `$XDG_CONFIG_HOME/APP-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.
