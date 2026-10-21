@@ -25,6 +25,9 @@ test("real stdio MCP catalog and pre-execution argument rejection", async () => 
     const pause = tools.find((t) => t.name === "spotify_pause");
     assert.equal(pause.annotations.readOnlyHint, false);
     assert.equal(tools.find((t) => t.name === "spotify_search").annotations.readOnlyHint, true);
+    assert.equal(tools.find(t => t.name === "spotify_radio").annotations.readOnlyHint, true);
+    assert.equal(tools.find(t => t.name === "spotify_radio_play").annotations.readOnlyHint, false);
+    assert.equal(tools.find(t => t.name === "spotify_radio_play")._meta.ui.resourceUri, "ui://spotify/player-v1.html");
     assert.equal(
       tools.find((t) => t.name === "spotify_unsave").annotations.destructiveHint,
       true,
@@ -32,6 +35,9 @@ test("real stdio MCP catalog and pre-execution argument rejection", async () => 
     const bad = await client.callTool({ name: "spotify_volume", arguments: { percent: 101 } });
     assert.equal(bad.isError, true);
     assert.match(bad.content[0].text, /101|maximum|100|validation|outside/i);
+    const wrongSeed = await client.callTool({ name: "spotify_radio", arguments: { uri: "spotify:album:one" } });
+    assert.equal(wrongSeed.isError, true);
+    assert.equal(wrongSeed.structuredContent.error.code, "INVALID_ARGUMENT");
   } finally {
     await client.close();
   }

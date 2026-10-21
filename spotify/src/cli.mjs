@@ -3,10 +3,10 @@ import { catalog, parseCommand, invalid } from "./catalog.mjs";
 import { execute } from "./client.mjs";
 import { connectSpotify } from "./lifecycle.mjs";
 import { playbackResult, playerResource } from "./player.mjs";
-import { backendName, nativeCommands, nativeCapabilities } from "./standalone/capabilities.mjs";
+import { backendName, nativeCommands, nativeOnlyCommands, nativeCapabilities } from "./standalone/capabilities.mjs";
 
 const raw = process.argv.slice(2);
-const available = catalog.filter(c => backendName() === "desktop" ? c.name !== "logout" : nativeCommands.has(c.name));
+const available = catalog.filter(c => backendName() === "desktop" ? !nativeOnlyCommands.has(c.name) : nativeCommands.has(c.name));
 const portIndex = raw.indexOf("--port");
 let port = Number(process.env.SPOTIFY_PORT ?? 9222);
 if (portIndex !== -1) {
@@ -19,7 +19,7 @@ const print = (value) =>
   );
 try {
   if (raw.length === 1 && ["--version", "-v"].includes(raw[0])) {
-    process.stdout.write("0.3.1\n");
+    process.stdout.write("0.3.2\n");
     process.exit(0);
   }
   if (!Number.isInteger(port) || port < 1024 || port > 65535)
@@ -53,7 +53,7 @@ try {
       throw invalid("Usage: spotify component [--pretty]");
     print({ contents: [await playerResource()] });
   } else if (parsed.name === "tools") {
-    print({ name: "spotify", version: "0.3.1", backend: backendName(),
+    print({ name: "spotify", version: "0.3.2", backend: backendName(),
       ...(backendName() === "native" ? { capabilities: nativeCapabilities } : {}), commands: available });
   } else if (parsed.name === "connect") {
     if (parsed.tokens.some((t) => !["--restart", "--json", "--pretty"].includes(t)))

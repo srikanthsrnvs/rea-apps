@@ -2,12 +2,18 @@ import { withStateLock, saveState, readState } from "./state.mjs";
 import { login, loginStatus, logout, getSession } from "./auth.mjs";
 import { createRequest } from "./http.mjs";
 import { executeConnect, resolveConnectEndpoints, isConnectRead } from "./connect.mjs";
-import { spotifyUris } from "./uri.mjs";
+import { spotifyUris, spotifyId } from "./uri.mjs";
 import { catalog as commands } from "../catalog.mjs";
 import { createReadCache, cacheRequests, invalidateReadCache } from "./read-cache.mjs";
 
 const controls = new Set(["status", "devices", "play", "pause", "resume", "toggle", "next", "previous", "seek", "volume", "shuffle", "repeat", "transfer", "queue", "queue-add", "queue-remove", "queue-move", "queue-clear"]);
 export async function executeStandalone(name, args = {}, options = {}) {
+  const isRadio = name === "radio" || name === "radio-play";
+  if (isRadio) {
+    if (Boolean(args.uri) === Boolean(args.query)) throw Object.assign(new Error("Choose exactly one seed song URI or search query."), { code: "INVALID_ARGUMENT" });
+    if (args.uri) spotifyId(args.uri, "track");
+    if (args.query && (!args.query.trim() || args.query.length > 1000)) throw Object.assign(new Error("Seed search terms must contain 1 to 1000 characters."), { code: "INVALID_ARGUMENT" });
+  }
   if (name === "login") return login();
   if (name === "login-status") return loginStatus();
   if (name === "logout") {
@@ -44,6 +50,11 @@ export async function executeStandalone(name, args = {}, options = {}) {
     const run = async () => {
       let endpoints, catalog, playlists;
       const getEndpoints = async () => endpoints ??= await resolveConnectEndpoints(request);
+      const control = (command, input) => executeConnect(command, input, request, {
+        getAccessToken: async () => (session = await getSession()).accessToken,
+        controllerId: session.controllerId, username: session.username,
+        resolveEndpoints: getEndpoints,
+      });
       const getCatalog = async () => {
         if (!catalog) {
           const { NativeCatalogBackend } = await import("./catalog-backend.mjs");
@@ -63,19 +74,28 @@ export async function executeStandalone(name, args = {}, options = {}) {
         session = { ...session, username: profile.username };
         await saveState("session", session);
       }
-      if (name === "play" && args.query) {
+      if ((name === "play" || isRadio) && args.query) {
         if (args.uri) throw Object.assign(new Error("Choose a URI or a search query, not both."), { code: "INVALID_ARGUMENT" });
         const found = await (await getCatalog()).search({ query: args.query, type: "track", offset: 0, limit: 5 });
         const uri = found.tracks?.items?.find(item => item.uri && item.isPlayable !== false)?.uri;
         if (!uri) throw Object.assign(new Error("No playable search result found."), { code: "NOT_FOUND" });
         args = { ...args, query: undefined, uri };
       }
+      if (isRadio) {
+        const radio = await (await getCatalog()).radio(args);
+        if (name === "radio") return radio;
+        if (radio.total === 0 || (radio.total === null && !radio.items.length))
+          throw Object.assign(new Error("Spotify returned no tracks for this radio mix."), { code: "RADIO_UNAVAILABLE" });
+        if (Number.isInteger(radio.total) && (args.index ?? 0) >= radio.total)
+          throw Object.assign(new Error("The starting index is outside this radio mix."), { code: "INVALID_ARGUMENT" });
+        try { return { ...await control("play", { uri: radio.uri, index: args.index ?? 0 }), radio }; }
+        catch (error) {
+          error.details = { ...error.details, radioUri: radio.uri, seedUri: radio.seedUri };
+          throw error;
+        }
+      }
       if (controls.has(name)) {
-        const result = await executeConnect(name, args, request, {
-          getAccessToken: async () => (session = await getSession()).accessToken,
-          controllerId: session.controllerId, username: session.username,
-          resolveEndpoints: getEndpoints,
-        });
+        const result = await control(name, args);
         if (name === "devices" && args.network !== false) {
           const { discoverSpeakers, mergeDevices } = await import("./discovery.mjs");
           const network = await discoverSpeakers({ refresh: args.refresh });

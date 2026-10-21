@@ -1,6 +1,7 @@
 // HTTP catalog/library adapter. Query identities and variables are pinned to
 // shipped first-party artifacts; no renderer or downloaded JavaScript executes.
 export const PATHFINDER_URL = "https://api-partner.spotify.com/pathfinder/v2/query";
+export const RADIO_URL = "https://spclient.wg.spotify.com/inspiredby-mix/v2/seed_to_playlist";
 const desktopSource = Object.freeze({
   applicationVersion: "1.3.5.3058",
   artifact: "Spotify.app/Contents/Resources/Apps/xpui.spa",
@@ -211,6 +212,21 @@ export class NativeCatalogBackend {
       revision: safeText(data.revisionId), ...normalizePage(data.content, page) };
   }
 
+  async radio(args = {}) {
+    const seedUri = resourceUri(args.uri, "track"), page = paging(args);
+    // First-party song-radio navigation resolves the seed to a generated mix
+    // playlist. Do not invent a station URI or copy recommendations into a list.
+    const data = await this.request(`${RADIO_URL}/${seedUri}`, { query: { "response-format": "json" }, readTtlMs: 15000 });
+    if (!isObject(data) || !Array.isArray(data.mediaItems)) invalidResponse();
+    if (!data.mediaItems.length) fail("RADIO_UNAVAILABLE", "Spotify did not return a radio mix for this song. Account, region or personalized-recommendation restrictions may apply.");
+    const uri = data.mediaItems[0]?.uri;
+    if (typeof uri !== "string" || !/^spotify:playlist:[A-Za-z0-9]+$/.test(uri)) invalidResponse();
+    const playlist = await this.playlist({ uri, ...page });
+    if (playlist.uri !== uri) invalidResponse();
+    return { kind: "song-radio", seedUri, ...playlist,
+      url: `https://open.spotify.com/playlist/${uri.slice("spotify:playlist:".length)}` };
+  }
+
   async contains(args = {}) {
     const uris = uriList(args.uris);
     if (uris.some((uri) => !/^spotify:(track|album|artist|episode|show):/u.test(uri)))
@@ -255,6 +271,7 @@ export class NativeCatalogBackend {
       case "library": return this.library(args);
       case "playlists": return this.library({ ...args, filter: "playlist" });
       case "playlist": return this.playlist(args);
+      case "radio": return this.radio(args);
       case "contains": return this.contains(args);
       case "save": case "unsave": return this.changeSaved(name, args);
       case "recent": return this.recent();

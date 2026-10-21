@@ -42,6 +42,22 @@ Tokens are stored in owner-only files and renewed before expiry under a shared c
 
 The endpoint results above were additionally tested through direct Node/Python requests on the Orin. Those are ordinary runtime experiments, distinct from the REA evidence. Their raw account-specific responses and tokens remain private outside Git.
 
+## Song radio and mixes
+
+The native CLI resolves a track through:
+
+```text
+GET https://spclient.wg.spotify.com/inspiredby-mix/v2/seed_to_playlist/spotify:track:ID?response-format=json
+```
+
+The first returned `mediaItems[0].uri` is Spotify's generated radio playlist. Its tracks and pagination come from the existing pinned `fetchPlaylist` query. The CLI validates a track seed and the returned playlist identity, preserves exact row UIDs, and reports an empty/unsupported response explicitly. It does not construct recommendations or add the mix to the library. `radio-play` passes that playlist context to the existing native Connect controller and confirms playback without automatically retrying a write. It preserves the resolved radio URI in errors when playback is uncertain.
+
+The contract comes from the first-party `web-player.0079e2e5.js` artifact already identified above (SHA-256 `1129f07952e06b00be6af909364b0a6285f80636164613019cf4fa5fefe64062`). Module `97270` defines the `inspiredby-mix/v2` host; module `57285` issues the authenticated GET with `response-format=json` and no market argument; the song-radio menu consumes `body.mediaItems[0].uri`. Zero-based, end-exclusive source ranges are `[3194003,3195576)`, `[3195578,3195820)`, and `[967635,967800)` respectively. No separate song-mix contract or force-regeneration parameter was established. Spotify controls recommendation availability and refresh cadence.
+
+REA evidence `ev_e932a9badb5ca2081696cf2944493fd562949c85cc7298a351ea9cb04258f4db` parsed the selected 4,475,202-byte bundle successfully (one JavaScript file, zero parse failures). Five other inventoried files were outside that selected analysis, and graph coverage is partial. These are static observations; no downloaded bundle is executed by the CLI.
+
+Direct requests and the normal CLI/MCP tool on the headless ARM64 Orin on October 20, 2026 returned a generated radio playlist with 50 tracks from a liked-song seed. CLI generation also worked by song-name search. The native playlist read resolved the seed as the first track and returned a second page without overlap. No audio was started for these checks. All 110 tests passed on macOS and Linux ARM64, including radio playback, cache invalidation, invalid seeds, malformed/empty responses, rate-limit propagation and uncertain-write behavior; a live radio playback change was not part of this feature check.
+
 ## Validation and limits
 
 Verified live: independent pairing, token renewal, dealer handshake, Connect cluster, native profile, search, liked songs, library, playlists and playlist contents. A same-value speaker volume command succeeded through native Connect. After stopping the desktop container, normal CLI status/devices/search/liked and the prebuilt component continued to work. Peak RSS measured with per-process OS resource accounting was approximately 97–99 MiB for these commands. The previous desktop container sample was 1.218 GiB and 242% CPU; these are workload observations, not general resource guarantees.

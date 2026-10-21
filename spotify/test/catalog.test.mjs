@@ -64,3 +64,13 @@ test("discovery and refresh boolean flags share exact CLI/MCP values", () => {
   assert.throws(() => parseCommand(["devices", "--network=maybe"]), { code: "INVALID_ARGUMENT" });
   assert.throws(() => parseCommand(["discover", "--timeout-ms", "6000"]), { code: "INVALID_ARGUMENT" });
 });
+
+test("song radio preview and playback expose distinct shared CLI/tool schemas", () => {
+  assert.deepEqual(parseCommand(["radio", "spotify:track:seed", "--limit", "5", "--refresh"]).args,
+    { uri: "spotify:track:seed", offset: 0, limit: 5, refresh: true });
+  assert.deepEqual(parseCommand(["radio", "play", "--query", "Exact song", "--index", "2"]),
+    { name: "radio-play", args: { query: "Exact song", index: 2 } });
+  assert.equal(catalog.find(c => c.name === "radio").effect, "read");
+  assert.equal(catalog.find(c => c.name === "radio-play").effect, "write");
+  assert.throws(() => parseCommand(["radio-play", "spotify:track:seed", "--index", "-1"]), { code: "INVALID_ARGUMENT" });
+});

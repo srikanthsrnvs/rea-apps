@@ -4,10 +4,10 @@ import { catalog } from "./catalog.mjs";
 import { execute } from "./client.mjs";
 import { connectSpotify } from "./lifecycle.mjs";
 import { PLAYER_URI, PLAYER_MIME, playerCommands, playerToolMeta, playerResource, playbackResult } from "./player.mjs";
-import { backendName, nativeCommands } from "./standalone/capabilities.mjs";
+import { backendName, nativeCommands, nativeOnlyCommands } from "./standalone/capabilities.mjs";
 
 export function createMcpServer(options = {}, { run = execute, connect = connectSpotify } = {}) {
-  const server = new McpServer({ name: "spotify-desktop", version: "0.3.1" });
+  const server = new McpServer({ name: "spotify-desktop", version: "0.3.2" });
   server.registerResource("spotify-player", PLAYER_URI,
     { mimeType: PLAYER_MIME, description: "Prebuilt Spotify playback controls" },
     async () => ({ contents: [await playerResource()] }));
@@ -60,7 +60,7 @@ export function createMcpServer(options = {}, { run = execute, connect = connect
     (args) => connect({ ...options, restart: args.restart ?? false }),
   );
   for (const command of catalog)
-    if (backendName() === "desktop" ? command.name !== "logout" : nativeCommands.has(command.name))
+    if (backendName() === "desktop" ? !nativeOnlyCommands.has(command.name) : nativeCommands.has(command.name))
     register(
       `spotify_${command.name.replaceAll("-", "_")}`,
       command.description,

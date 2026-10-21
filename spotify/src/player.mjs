@@ -4,7 +4,7 @@ export const PLAYER_URI = "ui://spotify/player-v1.html";
 export const PLAYER_MIME = "text/html;profile=mcp-app";
 export const playerCommands = new Set([
   "status", "play", "pause", "resume", "toggle", "next", "previous", "seek",
-  "shuffle", "repeat", "transfer", "player", "volume",
+  "shuffle", "repeat", "transfer", "player", "volume", "radio-play",
 ]);
 
 export const playerToolMeta = {

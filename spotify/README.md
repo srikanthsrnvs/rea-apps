@@ -52,6 +52,21 @@ Repeated reads reuse small, account-scoped snapshots: one second for playback st
 
 Playback commands return the observed state, not just a request acknowledgement. An uncertain mutation is never automatically repeated; inspect status before retrying. Seeking through the host adapter includes the expected track URI so a stale client cannot seek a replacement track.
 
+## Song radio and mixes
+
+Generate Spotify's song radio from a specific track URI, track link, or search:
+
+```sh
+spotify radio spotify:track:2LD2gT7gwAurzdQDQtILds --limit 10
+spotify radio --query "Veridis Quo Daft Punk"
+spotify radio play --query "Veridis Quo Daft Punk"
+# Equivalent playback command: spotify radio-play TRACK_URI
+```
+
+`radio` returns Spotify's generated mix playlist URI/link, seed URI, name and a page of track metadata. It leaves playback and library membership unchanged. Use `playlist RETURNED_PLAYLIST_URI --offset NEXT_OFFSET --limit 20` to continue reading the same mix. `radio-play` generates the mix and plays its playlist context on the active Connect receiver; `--index N` selects a zero-based starting position. Playback returns confirmed state and the prebuilt player component. Search selects the first playable track result, as with `play --query`; use an exact track URI when the song name is ambiguous.
+
+The corresponding model tools are `spotify_radio` and `spotify_radio_play`. Both use the existing login and native HTTP backend. Spotify calls this service `inspiredby-mix`; it decides the recommendations and refresh schedule. `radio --refresh` bypasses the CLI's short read cache and does not guarantee a different playlist. Generation does not create a saved custom playlist. Account and regional recommendation restrictions are reported explicitly. See [protocol evidence](docs/native-protocol.md#song-radio-and-mixes).
+
 ## Prebuilt music controls
 
 Playback results also include a versioned `spotify.player` component reference with current song, artist, album artwork, adjacent tracks, playback position, device and control bindings. Its static HTML uses a neutral frosted card, a rounded album sleeve beside an animated CD, blurred previous/next covers, and directional transitions. The visible controls are previous, play/pause and next; seek and volume remain available through CLI tools and the host adapter. Artwork and neighbors use existing native playback metadata, with no extra Spotify API request. Long titles scroll on one line. The model never generates the component or handles button clicks.

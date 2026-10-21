@@ -19,6 +19,10 @@ const pagination = {
 const uri = text("Spotify URI, open.spotify.com URL, or liked");
 const many = text("One or more Spotify URIs or URLs, separated by commas");
 const uid = text("Exact row UID returned by queue or playlist");
+const radioSeed = {
+  uri: text("Seed song: Spotify track URI or open.spotify.com track URL; use exactly one of uri or query"),
+  query: text("Find a seed song by name; selects the first playable track result instead of uri"),
+};
 const entry = (
   name,
   description,
@@ -87,6 +91,12 @@ export const catalog = [
     ["uri"],
     "write",
   ),
+  entry("radio", "Get Spotify's radio/mix playlist from one song, including a playable URI and tracks; does not play or save it", {
+    ...radioSeed, ...pagination,
+  }, [], ["uri"]),
+  entry("radio-play", "Generate Spotify's song radio/mix and play its playlist on the active Connect receiver", {
+    ...radioSeed, index: integer("Zero-based starting track index in the generated radio playlist", 0, undefined, { default: 0 }),
+  }, [], ["uri"], "write"),
   ...["pause", "resume", "toggle", "next", "previous"].map((name) =>
     entry(
       name,
@@ -391,7 +401,7 @@ export function parseCommand(argv) {
   let name = tokens.shift() ?? "help";
   if (name === "--help" || name === "-h") name = "help";
   if (
-    ["queue", "playlist", "folder"].includes(name) &&
+    ["queue", "playlist", "folder", "radio"].includes(name) &&
     tokens[0] &&
     !tokens[0].startsWith("-") &&
     catalog.some((c) => c.name === `${name}-${tokens[0]}`)
