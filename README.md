@@ -1,6 +1,6 @@
 # REA apps
 
-Standalone tools reconstructed from installed apps, with separate Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude and ChatGPT CLIs.
+Standalone tools reconstructed from installed apps, with separate Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude, ChatGPT and Airbnb CLIs.
 
 | App | Commands | Runtime |
 | --- | --- | --- |
@@ -14,6 +14,7 @@ Standalone tools reconstructed from installed apps, with separate Spotify, Uber,
 | [Amazon](amazon/README.md) | Official code pairing, product search, cart, orders and checkout review; guarded submissions with live mutation verification pending | Node HTTP and HTML parsing; no host browser or Android runtime |
 | [Claude](claude/README.md) | Email login, paginated chats, content search, full conversations, new chats, replies and completion stops | Node HTTP; official verification in the user's browser during login; no host browser, Android or Mac helper |
 | [ChatGPT](chatgpt/README.md) | Device-code login, conversation listing/search, reading, new chats and replies; Codex cloud task reads, models and environments | Node HTTP/WebSocket; official device approval in the user's browser; no host browser or Android |
+| [Airbnb](airbnb/README.md) | Phone-code login, destinations, paginated stays, listing details, calendars, saved lists, trips and inbox; checkout review and guarded booking/cancellation | Node HTTP; official verification in the user's browser when requested; no host browser or Android |
 
 The CLIs output JSON and expose tool definitions for models. Uber, OpenTable and Erewhon accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Amazon uses official code approval at amazon.com/code. Subsequent use is headless; no developer API key is required.
 
@@ -25,9 +26,9 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `expedia`, `amazon`, `claude-chat` and `chatgpt` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia and Claude also install cloudflared for temporary verification relays.
+The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `expedia`, `amazon`, `claude-chat`, `chatgpt` and `airbnb` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia, Claude and Airbnb also install cloudflared for temporary verification relays.
 
-For one native app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, or `--chatgpt-only`.
+For one native app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, `--chatgpt-only`, or `--airbnb-only`.
 
 For an existing Spotify installation, rerun setup and complete the new native `spotify login` pairing. Once native commands work, stop the old desktop container with `spotify/bin/spotify-headless service stop` to reclaim RAM. Its saved profile volume can remain as a recovery copy; native sessions are separate. See the [migration guide](spotify/docs/headless-linux.md#existing-desktop-deployments).
 
@@ -66,7 +67,9 @@ Claude uses `claude-chat login --email ADDRESS`, then accepts the email code/but
 
 ChatGPT uses `chatgpt login`, which returns an official approval link and a device code. After approval, run `chatgpt auth poll --login-id ID`. The host makes HTTP requests only. Chat listing, reading and a new message with its reply were verified on Linux ARM64; see its [guide](chatgpt/README.md).
 
-Read the app-specific guides for commands, installation on macOS, and protocol details. Uber, Resy and OpenTable booking/cancellation use reviewed plans. Models must show the current terms and obtain user approval before confirming a real booking or cancellation. Erewhon likewise requires an approved order review before `order confirm --plan-id ID --confirm` places and pays for an order.
+Airbnb uses `airbnb login --phone +COUNTRYCODE_NUMBER --country US`. Open its verification link in the user's own browser if requested, run `auth verification resume --login-id ID`, then submit the SMS code with `auth verify`. Login and account reads were verified on Linux ARM64; see its [guide and booking verification limits](airbnb/README.md).
+
+Read the app-specific guides for commands, installation on macOS, and protocol details. Uber, Resy, OpenTable and Airbnb booking/cancellation use reviewed plans. Models must show the current terms and obtain user approval before confirming a real booking or cancellation. Erewhon likewise requires an approved order review before `order confirm --plan-id ID --confirm` places and pays for an order.
 
 ## Development
 
@@ -85,6 +88,7 @@ npm --prefix amazon test
 npm --prefix claude test
 npm --prefix chatgpt ci --ignore-scripts
 npm --prefix chatgpt test
+npm --prefix airbnb test
 ```
 
 The apps have separate dependency trees and private session storage. Native Spotify stores its session under `~/.config/spotify-cli`; historical desktop Docker files remain only for recovery/comparison. Instagram stores its session under `~/.config/instagram-cli`, Uber under `~/.config/uber-cli`, Resy under `~/.config/resy-cli`, OpenTable under `~/.config/opentable-cli`, and Erewhon under `~/.config/erewhon-cli` (or `$XDG_CONFIG_HOME/APP-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.

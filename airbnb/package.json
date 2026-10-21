@@ -1,0 +1,11 @@
+{
+  "name": "airbnb-account-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lightweight Airbnb account tools using the native HTTP protocol",
+  "bin": { "airbnb": "bin/airbnb" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=24.21" },
+  "files": ["bin/", "src/", "scripts/", "docs/", "README.md"]
+}
