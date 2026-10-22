@@ -1,5 +1,5 @@
 const string = { type: 'string' }, boolean = { type: 'boolean' };
-const define = (command, description, properties = {}, required = []) => ({ name: `quiltt_${command.replaceAll(' ', '_')}`, command, description,
+const define = (command, description, properties = {}, required = []) => ({ name: `bank_accounts_${command.replaceAll(' ', '_')}`, command, description,
   inputSchema: { type: 'object', properties, required, additionalProperties: false } });
 export const toolDefinitions = [
   define('configure', 'Configure a Sandbox Connector, verified against its official Quiltt-hosted configuration. Optional private API secret enables server access after browser session expiry; only same-environment SANDBOX keys are accepted.', { 'connector-id': string, 'api-key-file': string, 'api-key-stdin': boolean, prompt: boolean }, ['connector-id']),

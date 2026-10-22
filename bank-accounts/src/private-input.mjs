@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { emitKeypressEvents } from 'node:readline';
-import { QuilttError } from './errors.mjs';
-const invalid = message => { throw new QuilttError('PRIVATE_INPUT_REQUIRED', message); };
+import { BankAccountsError } from './errors.mjs';
+const invalid = message => { throw new BankAccountsError('PRIVATE_INPUT_REQUIRED', message); };
 export async function privateInput({ file, stdin = false, prompt = false } = {}, input = process.stdin) {
   if ([file !== undefined, stdin, prompt].filter(Boolean).length !== 1) invalid('Choose exactly one private key input: file, stdin or hidden terminal prompt.');
   let value;
@@ -12,7 +12,7 @@ export async function privateInput({ file, stdin = false, prompt = false } = {},
       handle = await fs.open(file, constants.O_RDONLY | constants.O_NOFOLLOW); const stat = await handle.stat();
       if (!stat.isFile() || stat.size > 16384 || stat.mode & 0o077 || process.getuid && stat.uid !== process.getuid()) invalid('Use an owner-only regular credential file (chmod 600).');
       value = await handle.readFile('utf8');
-    } catch (error) { if (error instanceof QuilttError) throw error; invalid('The private credential file could not be read.'); }
+    } catch (error) { if (error instanceof BankAccountsError) throw error; invalid('The private credential file could not be read.'); }
     finally { await handle?.close(); }
   } else if (stdin) {
     value = ''; for await (const part of input) { value += part.toString(); if (Buffer.byteLength(value) > 16384) invalid('Private credential input is too large.'); }
@@ -22,7 +22,7 @@ export async function privateInput({ file, stdin = false, prompt = false } = {},
     const raw = input.isRaw, paused = input.isPaused(); emitKeypressEvents(input); input.setRawMode(true); input.resume(); value = '';
     try { await new Promise((resolve, reject) => {
       const cleanup = () => { input.off('keypress', keypress); input.off('end', cancelled); };
-      const cancelled = () => { cleanup(); reject(new QuilttError('INPUT_CANCELLED', 'Credential entry was cancelled.')); };
+      const cancelled = () => { cleanup(); reject(new BankAccountsError('INPUT_CANCELLED', 'Credential entry was cancelled.')); };
       const keypress = (text, key = {}) => {
         if (key.ctrl && ['c', 'd'].includes(key.name)) return cancelled();
         if (['return', 'enter'].includes(key.name)) { cleanup(); return resolve(); }

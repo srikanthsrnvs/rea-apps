@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { readState, saveState, removeState, withStateLock } from './state.mjs';
-import { QuilttError } from './errors.mjs';
+import { BankAccountsError } from './errors.mjs';
 import { requireConfig, inspectConnector } from './config.mjs';
 
 const active = value => value && ['starting', 'waiting', 'validating'].includes(value.status) && value.expiresAt > Date.now();
@@ -21,30 +21,34 @@ export function loginResult(value) {
 export async function findCloudflared(explicit) {
   if (explicit) {
     try { await fs.access(explicit, 1); if (!(await fs.stat(explicit)).isFile()) throw new Error(); return await fs.realpath(explicit); }
-    catch { throw new QuilttError('TUNNEL_UNAVAILABLE', 'The requested cloudflared path is not an executable file.'); }
+    catch { throw new BankAccountsError('TUNNEL_UNAVAILABLE', 'The requested cloudflared path is not an executable file.'); }
   }
-  const paths = [fileURLToPath(new URL('../.runtime/cloudflared', import.meta.url)), process.env.QUILTT_CLOUDFLARED, process.env.QUILTT_CLI_CLOUDFLARED, ...(process.env.PATH || '').split(path.delimiter).filter(Boolean).map(directory => path.join(directory, 'cloudflared')), '/opt/homebrew/bin/cloudflared', '/usr/local/bin/cloudflared', '/usr/bin/cloudflared', `${process.env.HOME}/.local/bin/cloudflared`].filter(Boolean);
+  const paths = [process.env.BANK_ACCOUNTS_CLOUDFLARED, process.env.BANK_ACCOUNTS_CLI_CLOUDFLARED,
+    process.env.QUILTT_CLOUDFLARED, process.env.QUILTT_CLI_CLOUDFLARED,
+    fileURLToPath(new URL('../.runtime/cloudflared', import.meta.url)),
+    ...(process.env.PATH || '').split(path.delimiter).filter(Boolean).map(directory => path.join(directory, 'cloudflared')),
+    '/opt/homebrew/bin/cloudflared', '/usr/local/bin/cloudflared', '/usr/bin/cloudflared', `${process.env.HOME}/.local/bin/cloudflared`].filter(Boolean);
   for (const candidate of paths) { try { await fs.access(candidate, 1); if ((await fs.stat(candidate)).isFile()) return await fs.realpath(candidate); } catch {} }
-  throw new QuilttError('TUNNEL_UNAVAILABLE', 'Install cloudflared or supply an HTTPS --public-url reverse proxy for remote login.');
+  throw new BankAccountsError('TUNNEL_UNAVAILABLE', 'Install cloudflared or supply an HTTPS --public-url reverse proxy for remote login.');
 }
 
 export async function startLogin({ timeoutSeconds = 600, replace = false, publicUrl, port = 0, cloudflaredPath, connect = false } = {}, { spawnImpl = spawn, pause = delay } = {}) {
-  if (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 30 || timeoutSeconds > 3600) throw new QuilttError('INVALID_ARGUMENT', 'Login timeout must be 30–3600 seconds.');
-  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new QuilttError('INVALID_ARGUMENT', 'Port must be 0–65535.');
+  if (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 30 || timeoutSeconds > 3600) throw new BankAccountsError('INVALID_ARGUMENT', 'Login timeout must be 30–3600 seconds.');
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new BankAccountsError('INVALID_ARGUMENT', 'Port must be 0–65535.');
   let publicOrigin;
   if (publicUrl) {
-    let parsed; try { parsed = new URL(publicUrl); } catch { throw new QuilttError('INVALID_ARGUMENT', 'Public URL must be an HTTPS origin.'); }
-    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash || !port) throw new QuilttError('INVALID_ARGUMENT', 'Public URL must be an HTTPS origin, with a fixed loopback port.');
+    let parsed; try { parsed = new URL(publicUrl); } catch { throw new BankAccountsError('INVALID_ARGUMENT', 'Public URL must be an HTTPS origin.'); }
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash || !port) throw new BankAccountsError('INVALID_ARGUMENT', 'Public URL must be an HTTPS origin, with a fixed loopback port.');
     publicOrigin = parsed.origin;
   }
   const config = await requireConfig();
   const environment = await inspectConnector(config.connectorId);
-  if (environment.id !== config.environment.id) throw new QuilttError('ENVIRONMENT_CHANGED', 'The Connector no longer matches the configured Sandbox.');
+  if (environment.id !== config.environment.id) throw new BankAccountsError('ENVIRONMENT_CHANGED', 'The Connector no longer matches the configured Sandbox.');
   const session = await withStateLock(() => readState('session'));
-  if (connect && session?.validated !== true) throw new QuilttError('AUTH_REQUIRED', 'Run quiltt login before linking another bank.');
+  if (connect && session?.validated !== true) throw new BankAccountsError('AUTH_REQUIRED', 'Run bank-accounts login before linking another bank.');
   const usable = session?.validated === true && session.environmentId === config.environment.id
     && (config.secret || Date.parse(session.expiresAt) > Date.now());
-  if (usable && !replace && !connect) return { status: 'authenticated', profile: session.profile, next: 'Use quiltt connect to link another bank, or login --replace to switch Profile.' };
+  if (usable && !replace && !connect) return { status: 'authenticated', profile: session.profile, next: 'Use bank-accounts connect to link another bank, or login --replace to switch Profile.' };
   const existing = await withStateLock(() => readState('login'));
   if (!replace && active(existing)) return loginResult(existing);
   const tunnelPath = publicOrigin ? null : await findCloudflared(cloudflaredPath);
@@ -79,7 +83,7 @@ export async function pollLogin() {
   });
 }
 export async function waitLogin({ timeoutSeconds = 600 } = {}, { pause = delay } = {}) {
-  if (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 1 || timeoutSeconds > 3600) throw new QuilttError('INVALID_ARGUMENT', 'Wait timeout must be 1–3600 seconds.');
+  if (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 1 || timeoutSeconds > 3600) throw new BankAccountsError('INVALID_ARGUMENT', 'Wait timeout must be 1–3600 seconds.');
   const deadline = Date.now() + timeoutSeconds * 1000;
   for (;;) { const value = await pollLogin(); if (!['starting', 'waiting', 'validating'].includes(value.status) || Date.now() >= deadline) return value; await pause(1000); }
 }

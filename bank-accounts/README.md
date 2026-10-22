@@ -1,4 +1,4 @@
-# Quiltt Sandbox CLI
+# Bank Accounts
 
 Bank linking and read-only account data through Quiltt's official Connector and
 API. Runs on Linux ARM64/x86_64 or macOS using Node HTTP. No browser, Android,
@@ -14,15 +14,15 @@ rejected. An optional API secret must also belong to that same Sandbox.
 From the repository root on Linux:
 
 ```sh
-./scripts/setup-linux.sh --quiltt-only
+./scripts/setup-linux.sh --bank-accounts-only
 export PATH="$HOME/.local/bin:$PATH"
-quiltt configure --connector-id YOUR_SANDBOX_CONNECTOR_ID
-quiltt login
+bank-accounts configure --connector-id YOUR_SANDBOX_CONNECTOR_ID
+bank-accounts login
 ```
 
-Use `QUILTT_NODE=/absolute/path/to/node` to reuse Node 24.21 or newer. The
+Use `BANK_ACCOUNTS_NODE=/absolute/path/to/node` to reuse Node 24.21 or newer. The
 installer otherwise downloads and verifies Node for the host architecture.
-On macOS, use `node quiltt/bin/quiltt COMMAND` with a compatible runtime.
+On macOS, use `node bank-accounts/bin/bank-accounts COMMAND` with a compatible runtime.
 
 The Sandbox Connector should have Authenticate (email or phone OTP), Enroll and
 Connect with Account Balances and Transactions enabled. Use a mock/test bank to
@@ -30,7 +30,7 @@ exercise the flow without a real account.
 
 ## Sign-in handoff
 
-`quiltt login` returns:
+`bank-accounts login` returns:
 
 - `approvalUrl`: a short-lived private link to send to the user.
 - `connectorSetup.redirectUrl`: the callback URL for the Connector's **Exit Redirect**.
@@ -46,9 +46,9 @@ that session with Quiltt's introspection endpoint and independently queries the
 same Profile before saving it.
 
 ```sh
-quiltt auth poll
-quiltt auth wait --timeout-seconds 60
-quiltt auth status
+bank-accounts auth poll
+bank-accounts auth wait --timeout-seconds 60
+bank-accounts auth status
 ```
 
 The final browser page is deliberately blank; its title is “Connection complete.”
@@ -61,14 +61,14 @@ Exit Redirect setting. For a repeatable deployment, use a stable HTTPS reverse
 proxy to the Orin's loopback listener:
 
 ```sh
-quiltt login --public-url https://YOUR_STABLE_HOST --port 61800
+bank-accounts login --public-url https://YOUR_STABLE_HOST --port 61800
 ```
 
 Configure that stable `/callback` URL once. Browser and CLI access must use the
 same hostname. A public URL requires a fixed local port. TLS must terminate at
 the reverse proxy; the Node listener binds only to `127.0.0.1`.
 
-`quiltt connect` starts another bank-linking flow for the saved Profile. It
+`bank-accounts connect` starts another bank-linking flow for the saved Profile. It
 refuses a callback for a different Profile. `login --replace` explicitly permits
 switching Profile after a fresh validated handoff. Failed or cancelled flows
 preserve the previous saved session. `auth cancel` stops a pending flow, and
@@ -77,13 +77,13 @@ preserve the previous saved session. `auth cancel` stops a pending flow, and
 ## Read data
 
 ```sh
-quiltt connections --pretty
-quiltt accounts --pretty
-quiltt balances --pretty
-quiltt transactions --limit 50 --pretty
-quiltt transactions --cursor RETURNED_CURSOR
-quiltt transactions --start-date 2026-10-01 --end-date 2026-10-21 --status POSTED
-quiltt transactions --entry-type DEBIT
+bank-accounts connections --pretty
+bank-accounts accounts --pretty
+bank-accounts balances --pretty
+bank-accounts transactions --limit 50 --pretty
+bank-accounts transactions --cursor RETURNED_CURSOR
+bank-accounts transactions --start-date 2026-10-01 --end-date 2026-10-21 --status POSTED
+bank-accounts transactions --entry-type DEBIT
 ```
 
 Transaction pages contain at most 100 records and expose an opaque local cursor.
@@ -106,7 +106,7 @@ For persistent server access to the same validated Profile, configure the
 environment's API secret privately on your trusted personal Orin:
 
 ```sh
-quiltt configure --connector-id YOUR_SANDBOX_CONNECTOR_ID --prompt
+bank-accounts configure --connector-id YOUR_SANDBOX_CONNECTOR_ID --prompt
 ```
 
 The terminal hides the key. `--api-key-file FILE` (owner-only regular file,
@@ -121,16 +121,22 @@ devices, keep it on a trusted backend and give each device only its user's
 credentials; this personal Sandbox setup is not a multi-tenant key distribution
 design.
 
-State is stored under `~/.config/quiltt-cli`, `$XDG_CONFIG_HOME/quiltt-cli` or
-`$QUILTT_STATE_DIR`, with directory mode 700 and record mode 600. Sessions, API
+State is stored under `~/.config/bank-accounts-cli`, `$XDG_CONFIG_HOME/bank-accounts-cli` or
+`$BANK_ACCOUNTS_STATE_DIR`, with directory mode 700 and record mode 600. Sessions, API
 secrets and private connection-link capabilities stay outside Git. The CLI does
 not store passwords, OTPs, transaction pages or bank credentials.
+
+Existing installations automatically reuse their `quiltt-cli` state directory
+when the new directory does not exist, preserving the saved login and transaction
+cursors. The older `QUILTT_STATE_DIR`, runtime environment variables and installer
+flag remain compatibility inputs. New commands, tool names and installations use
+`bank-accounts` and `BANK_ACCOUNTS_*`.
 
 ## Development and verification
 
 ```sh
-npm --prefix quiltt test
-quiltt tools
+npm --prefix bank-accounts test
+bank-accounts tools
 ```
 
 The implementation uses API version `2026-04-01`. Offline tests exercise Sandbox

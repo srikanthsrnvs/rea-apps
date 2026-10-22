@@ -21,10 +21,10 @@ export function beginPage(loginId) {
   if (typeof loginId !== 'string' || !/^[A-Za-z0-9_-]{32}$/u.test(loginId)) throw new Error('Invalid login identifier');
   const nonce = randomBytes(24).toString('base64');
   return { headers: { ...headers, 'content-type': 'text/html; charset=utf-8', 'content-security-policy': `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'` },
-    html: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quiltt</title></head><body><script nonce="${nonce}">
+    html: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bank Accounts</title></head><body><script nonce="${nonce}">
 const key=new URLSearchParams(location.hash.slice(1)).get('key');
 history.replaceState(null,'',location.pathname);
-if(key&&/^[A-Za-z0-9_-]{43}$/.test(key))fetch('/pair/${loginId}/begin',{method:'POST',headers:{'x-quiltt-pair-key':key},credentials:'same-origin'}).then(async response=>{const result=await response.json();if(response.ok)location.replace(result.url);else document.title='Connection unavailable';}).catch(()=>{document.title='Connection unavailable';});
+if(key&&/^[A-Za-z0-9_-]{43}$/.test(key))fetch('/pair/${loginId}/begin',{method:'POST',headers:{'x-bank-accounts-pair-key':key},credentials:'same-origin'}).then(async response=>{const result=await response.json();if(response.ok)location.replace(result.url);else document.title='Connection unavailable';}).catch(()=>{document.title='Connection unavailable';});
 </script></body></html>` };
 }
 export function callbackToken(url) {
@@ -48,12 +48,12 @@ export function createLoginServer({ loginId, origin, read = readState, save = sa
         const page = beginPage(loginId); response.writeHead(200, page.headers); return response.end(page.html);
       }
       if (req.method === 'POST' && url.pathname === `/pair/${loginId}/begin`) {
-        if (pending.status !== 'waiting' || req.headers.origin !== origin() || !sameSecret(req.headers['x-quiltt-pair-key'], pending.secret)) return send(response, 403, { status: 'forbidden' });
-        return send(response, 200, { url: `https://${pending.connectorId}.quiltt.app/` }, { 'set-cookie': `__Host-quiltt-pair=${loginId}.${pending.secret}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${Math.max(1, Math.floor((pending.expiresAt - Date.now()) / 1000))}` });
+        if (pending.status !== 'waiting' || req.headers.origin !== origin() || !sameSecret(req.headers['x-bank-accounts-pair-key'], pending.secret)) return send(response, 403, { status: 'forbidden' });
+        return send(response, 200, { url: `https://${pending.connectorId}.quiltt.app/` }, { 'set-cookie': `__Host-bank-accounts-pair=${loginId}.${pending.secret}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${Math.max(1, Math.floor((pending.expiresAt - Date.now()) / 1000))}` });
       }
       if (req.method !== 'GET' || url.pathname !== '/callback') return send(response, 404, { status: 'not_found' });
-      const cookies = (req.headers.cookie ?? '').split(';').map(part => part.trim()).filter(part => part.startsWith('__Host-quiltt-pair='));
-      const expectedPrefix = `__Host-quiltt-pair=${loginId}.`;
+      const cookies = (req.headers.cookie ?? '').split(';').map(part => part.trim()).filter(part => part.startsWith('__Host-bank-accounts-pair='));
+      const expectedPrefix = `__Host-bank-accounts-pair=${loginId}.`;
       if (cookies.length !== 1 || !cookies[0].startsWith(expectedPrefix) || !sameSecret(cookies[0].slice(expectedPrefix.length), pending.secret)) return send(response, 403, { status: 'forbidden' });
       let token;
       try { token = callbackToken(url); }
@@ -89,7 +89,7 @@ export function createLoginServer({ loginId, origin, read = readState, save = sa
         await save('login', { ...latest, status: 'authenticated', secret: undefined, approvalUrl: undefined }); return true;
       });
       if (!committed) return send(response, 409, { status: 'cancelled' });
-      response.writeHead(303, { ...headers, location: '/done', 'set-cookie': '__Host-quiltt-pair=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0' }); return response.end();
+      response.writeHead(303, { ...headers, location: '/done', 'set-cookie': '__Host-bank-accounts-pair=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0' }); return response.end();
     } catch { if (!response.headersSent) send(response, 400, { status: 'invalid_request' }); else response.end(); }
   });
   server.requestTimeout = 10_000; server.headersTimeout = 10_000; server.keepAliveTimeout = 1000; return server;

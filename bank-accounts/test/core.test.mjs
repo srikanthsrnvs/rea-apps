@@ -42,7 +42,7 @@ test('transaction cursors retain profile, dates, page size and upstream paginati
     assertProfile:async context=>assert.equal(context.session.profile.id,profile),now:()=>time,uuid:()=> '00000000-0000-4000-8000-000000000001',
     query:async query=>{calls.push(query);return {transactions:{count:2,nodes:[{id:'txn_test'}],pageInfo:{hasNextPage:calls.length===1,endCursor:'upstream-private-cursor'}}};}});
   const first=await tools.transactions({limit:1,startDate:'2026-10-01',status:'POSTED'});
-  assert.equal(first.hasMore,true);assert.match(first.cursor,/^quiltt-transactions:/);assert.equal(JSON.stringify(first).includes('upstream-private-cursor'),false);
+  assert.equal(first.hasMore,true);assert.match(first.cursor,/^bank-accounts-transactions:/);assert.equal(JSON.stringify(first).includes('upstream-private-cursor'),false);
   const second=await tools.transactions({cursor:first.cursor});assert.equal(second.hasMore,false);
   assert.match(calls[1],/after:"upstream-private-cursor"/);assert.match(calls[1],/date_gte:"2026-10-01"/);assert.match(calls[1],/first:1/);
   await assert.rejects(tools.transactions({cursor:first.cursor,status:'PENDING'}),{code:'CURSOR_MISMATCH'});
@@ -57,6 +57,16 @@ test('dates/enums cannot inject queries, null balances stay null, and nonadvanci
   for(const options of [{startDate:'2026-02-30'},{status:'POSTED} mutation {'},{limit:101},{entryType:'UNKNOWN'}]) await assert.rejects(tools.transactions(options),{code:'INVALID_ARGUMENT'});
   assert.equal(calls,0);assert.equal((await tools.balances()).balances[0].balance,null);
   await assert.rejects(tools.transactions(),{code:'INVALID_RESPONSE'});
+});
+test('cursors saved under the previous command name continue with the new name', async () => {
+  const id='00000000-0000-4000-8000-000000000001';
+  const records=new Map([[`cursor-${id}`,{profileId:'p_test',environmentId:'env_test',filters:{status:'POSTED'},limit:1,after:'legacy-upstream-cursor',expiresAt:2000}]]);
+  const tools=createDataTools({context:async()=>({config:{environment:{id:'env_test'}},session:{profile:{id:'p_test'},token:'synthetic-token-00000'}}),
+    lock:async op=>op(),read:async key=>records.get(key),save:async(key,value)=>records.set(key,value),assertProfile:async()=>{},now:()=>1000,uuid:()=>id,
+    query:async query=>{assert.match(query,/after:"legacy-upstream-cursor"/);assert.match(query,/status:\[POSTED\]/);return {transactions:{nodes:[{id:'txn_next'}],pageInfo:{hasNextPage:true,endCursor:'next-upstream-cursor'}}};}});
+  const result=await tools.transactions({cursor:`quiltt-transactions:${id}`});
+  assert.equal(result.cursor,`bank-accounts-transactions:${id}`);
+  assert.equal(records.get(`cursor-${id}`).after,'next-upstream-cursor');
 });
 test('callback requires one genuine token candidate; untrusted Profile metadata is not an authentication grant',()=>{
   assert.equal(callbackToken(new URL('https://example.test/callback?token=aaa.bbb.ccc&profileId=p_other')),'aaa.bbb.ccc');
@@ -77,8 +87,8 @@ test('connection server binds the browser to its private link and validates once
   }
   try {
     assert.equal((await call('/callback?token=aaa.bbb.ccc')).status,403);assert.equal(validations,0);
-    assert.equal((await call(`/pair/${loginId}/begin`,{origin,'x-quiltt-pair-key':'wrong'},'POST')).status,403);
-    const begin=await call(`/pair/${loginId}/begin`,{origin,'x-quiltt-pair-key':secret},'POST');assert.equal(begin.status,200);
+    assert.equal((await call(`/pair/${loginId}/begin`,{origin,'x-bank-accounts-pair-key':'wrong'},'POST')).status,403);
+    const begin=await call(`/pair/${loginId}/begin`,{origin,'x-bank-accounts-pair-key':secret},'POST');assert.equal(begin.status,200);
     const cookie=begin.headers['set-cookie'][0];assert.match(cookie,/Secure; HttpOnly; SameSite=Lax/);
     const result=await call('/callback?token=aaa.bbb.ccc&profileId=p_forged',{cookie:cookie.split(';')[0]});assert.equal(result.status,303);assert.equal(result.headers.location,'/done');
     assert.equal(records.get('session').profile.id,'p_test');assert.equal(records.get('login').secret,undefined);assert.equal(validations,1);
@@ -97,7 +107,7 @@ test('failed validation and cancellation during validation never replace the pre
       }});
     server.listen(0,'127.0.0.1');await once(server,'listening');
     try {
-      const status=await new Promise((resolve,reject)=>{const req=http.get({host:'127.0.0.1',port:server.address().port,path:'/callback?token=aaa.bbb.ccc',headers:{host:'public.example.test',cookie:`__Host-quiltt-pair=${loginId}.${secret}`}},res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});req.on('error',reject);});
+      const status=await new Promise((resolve,reject)=>{const req=http.get({host:'127.0.0.1',port:server.address().port,path:'/callback?token=aaa.bbb.ccc',headers:{host:'public.example.test',cookie:`__Host-bank-accounts-pair=${loginId}.${secret}`}},res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});req.on('error',reject);});
       assert.equal(status,scenario==='cancelled'?409:401);assert.deepEqual(records.get('session'),old);
     } finally { await new Promise(resolve=>server.close(resolve)); }
   }

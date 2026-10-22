@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+bank_accounts_node=${BANK_ACCOUNTS_NODE:-${QUILTT_NODE:-$workspace/.runtime/node}}
+if [ ! -x "$bank_accounts_node" ]; then
+  printf '%s\n' 'Run bank-accounts/scripts/setup-linux.sh first, or set BANK_ACCOUNTS_NODE to a compatible Node executable.' >&2
+  exit 1
+fi
+exec "$bank_accounts_node" "$workspace/bin/bank-accounts" "$@"

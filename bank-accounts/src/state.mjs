@@ -1,12 +1,17 @@
 import fs from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 
-export const stateDirectory = process.env.QUILTT_STATE_DIR || path.join(
-  process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'quiltt-cli',
-);
+const configRoot = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+const defaultDirectory = path.join(configRoot, 'bank-accounts-cli');
+const legacyDirectory = path.join(configRoot, 'quiltt-cli');
+// Reuse an existing installation's private session and cursors. Never merge
+// profiles from two directories; an existing new directory takes precedence.
+export const stateDirectory = process.env.BANK_ACCOUNTS_STATE_DIR || process.env.QUILTT_STATE_DIR
+  || (existsSync(defaultDirectory) || !existsSync(legacyDirectory) ? defaultDirectory : legacyDirectory);
 
 function checkName(name) { if (typeof name !== "string" || !/^[A-Za-z0-9_-]{1,100}$/.test(name)) throw new TypeError("Invalid state record name"); }
 
@@ -113,8 +118,8 @@ export async function withStateLock(operation, {
       if (remaining <= 0) break;
       await delay(Math.min(pollIntervalMs, remaining));
     }
-    const error = new Error(`Timed out waiting for the Quiltt state lock after ${timeoutMs} ms`);
-    error.code = 'QUILTT_STATE_LOCK_TIMEOUT';
+    const error = new Error(`Timed out waiting for the Bank Accounts state lock after ${timeoutMs} ms`);
+    error.code = 'BANK_ACCOUNTS_STATE_LOCK_TIMEOUT';
     throw error;
   } finally { await fs.rm(ownFile, { force: true }); }
 }
