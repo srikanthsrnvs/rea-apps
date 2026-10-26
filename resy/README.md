@@ -33,7 +33,7 @@ The proxy must forward `/pair/` to `127.0.0.1:8787` on the CLI host, preserve th
 Requires Linux x86_64 or ARM64, glibc 2.28 or newer, Git, curl, tar, xz, and sha256sum. The installer reuses a compatible Node or supplies checksummed Node 24. It reuses cloudflared or supplies a checksummed, pinned binary in user-local storage. System Node is unchanged. No npm dependencies, display server, Android device, or Chrome installation are needed.
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+git clone https://github.com/srikanthsrnvs/rea-apps.git
 cd rea-apps
 ./scripts/setup-linux.sh --resy-only
 export PATH="$HOME/.local/bin:$PATH"

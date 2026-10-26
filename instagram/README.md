@@ -28,7 +28,7 @@ The default local approval deadline is ten minutes, configurable with `login --t
 The installer supports Linux x86_64 and ARM64 with glibc 2.28 or newer. It reuses a compatible Node runtime or downloads a checksummed Node 24 archive. Git, curl, tar, xz, and sha256sum are required when downloading Node. It leaves system Node unchanged.
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+git clone https://github.com/srikanthsrnvs/rea-apps.git
 cd rea-apps
 ./scripts/setup-linux.sh --instagram-only
 export PATH="$HOME/.local/bin:$PATH"

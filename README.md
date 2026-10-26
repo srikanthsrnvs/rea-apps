@@ -23,7 +23,7 @@ The CLIs output JSON and expose tool definitions for models. Uber, OpenTable and
 ## Install on Linux
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+git clone https://github.com/srikanthsrnvs/rea-apps.git
 cd rea-apps
 ./scripts/setup-linux.sh
 ```

@@ -9,7 +9,7 @@ This is a remote controller for Spotify Connect devices such as your speaker. It
 Linux ARM64 or x86-64:
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+git clone https://github.com/srikanthsrnvs/rea-apps.git
 cd rea-apps/spotify
 ./scripts/setup-headless.sh
 export PATH="$HOME/.local/bin:$PATH"

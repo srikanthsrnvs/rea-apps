@@ -97,7 +97,7 @@ uber login --phone +15555550123
 On Linux, the native installer reuses a compatible Node runtime or downloads a checksummed Node 24 release. It supports x86_64 and ARM64 with glibc 2.28 or newer and requires Git, curl, tar, xz and sha256sum if Node must be downloaded. It leaves system Node unchanged:
 
 ```sh
-git clone https://github.com/srikanthsrnvs/spotify-desktop-cli.git rea-apps
+git clone https://github.com/srikanthsrnvs/rea-apps.git
 cd rea-apps
 ./scripts/setup-linux.sh --uber-only
 export PATH="$HOME/.local/bin:$PATH"
