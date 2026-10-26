@@ -1,6 +1,6 @@
 # REA apps
 
-Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude, ChatGPT, Airbnb, Amex and Bank Accounts.
+Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude, ChatGPT, Airbnb, Amex, Bank Accounts and Charts.
 
 | App | Commands | Runtime |
 | --- | --- | --- |
@@ -17,6 +17,8 @@ Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia,
 | [Airbnb](airbnb/README.md) | Phone-code login, destinations, paginated stays, listing details, calendars, saved lists, trips and inbox; checkout review and guarded booking/cancellation | Node HTTP; official verification in the user's browser when requested; no host browser or Android |
 | [Amex](amex/README.md) | Experimental user-ID/password + MFA, card balances, transactions and guarded payment/cancellation reviews; account integration testing pending | Node HTTP only; anonymous initialization verified on Linux ARM64; no host browser or Android |
 | [Bank Accounts](bank-accounts/README.md) | Sandbox Connector sign-in, mock bank linking, accounts, balances, connections and paginated transactions | Node HTTP; official Quiltt browser sign-in on the user’s device; temporary callback tunnel or stable HTTPS proxy |
+| [Charts](charts/README.md) | Market discovery, quotes, candles, ratings, screening, studies, strategy reports, account reads and finite streams; native callback login awaits real account verification | Native Node HTTP/WebSocket; JSON CLI and optional MCP; no host browser or persistent helper |
+
 
 The CLIs output JSON and expose tool definitions for models. Uber, OpenTable and Erewhon accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Amazon uses official code approval at amazon.com/code. Subsequent use is headless. Bank Accounts can begin with its browser session; its optional private environment API secret enables persistent server access.
 
@@ -28,9 +30,9 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `expedia`, `amazon`, `claude-chat`, `chatgpt`, `airbnb`, experimental `amex` and Sandbox `bank-accounts` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia, Claude, Airbnb and Bank Accounts also install cloudflared for temporary verification relays.
+The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `expedia`, `amazon`, `claude-chat`, `chatgpt`, `airbnb`, experimental `amex`, Sandbox `bank-accounts` and `charts` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia, Claude, Airbnb and Bank Accounts also install cloudflared for temporary verification relays.
 
-For one app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, `--chatgpt-only`, `--airbnb-only`, `--amex-only`, or `--bank-accounts-only`.
+For one app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, `--chatgpt-only`, `--airbnb-only`, `--amex-only`, `--bank-accounts-only` or `--charts-only`.
 
 For an existing Spotify installation, rerun setup and complete the new native `spotify login` pairing. Once native commands work, stop the old desktop container with `spotify/bin/spotify-headless service stop` to reclaim RAM. Its saved profile volume can remain as a recovery copy; native sessions are separate. See the [migration guide](spotify/docs/headless-linux.md#existing-desktop-deployments).
 
@@ -97,6 +99,8 @@ npm --prefix chatgpt test
 npm --prefix airbnb test
 npm --prefix amex test
 npm --prefix bank-accounts test
+npm --prefix charts ci --ignore-scripts
+npm --prefix charts test
 ```
 
 The apps have separate dependency trees and private session storage. Native Spotify stores its session under `~/.config/spotify-cli`; historical desktop Docker files remain only for recovery/comparison. Instagram stores its session under `~/.config/instagram-cli`, Uber under `~/.config/uber-cli`, Resy under `~/.config/resy-cli`, OpenTable under `~/.config/opentable-cli`, and Erewhon under `~/.config/erewhon-cli` (or `$XDG_CONFIG_HOME/APP-cli`). APKs, analysis tools, captured account data and session files are excluded from Git and release packages. REA is an investigation tool and is not required to run any CLI.

@@ -1,0 +1,22 @@
+{
+  "name": "charts-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Unified market-data tools with a TradingView provider, JSON CLI and MCP stdio",
+  "bin": { "charts": "bin/charts" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:live": "node scripts/verify-live.mjs",
+    "start": "node bin/charts"
+  },
+  "dependencies": {
+    "@mathieuc/tradingview": "4.1.0",
+    "@modelcontextprotocol/core": "2.3.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "ws": "8.22.0"
+  },
+  "devDependencies": { "@modelcontextprotocol/client": "2.3.1" },
+  "engines": { "node": ">=24.21.0" },
+  "files": ["bin/", "src/", "scripts/", "docs/", "README.md", "ai.md"]
+}

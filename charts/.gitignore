@@ -1,0 +1,6 @@
+session.json
+pending-login.json
+candidate-session.json
+.state-lock/
+.record-*.tmp
+.session-*.tmp

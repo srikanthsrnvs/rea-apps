@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in /*) script=$link ;; *) script="$(dirname -- "$script")/$link" ;; esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+charts_node=${CHARTS_NODE:-$workspace/.runtime/node}
+[ -x "$charts_node" ] || { printf '%s\n' 'Run charts/scripts/setup-linux.sh first, or set CHARTS_NODE to a compatible Node executable.' >&2; exit 1; }
+charts_heap=${CHARTS_HEAP_MB:-64}
+case "$charts_heap" in ''|*[!0-9]*) printf '%s\n' 'CHARTS_HEAP_MB must be an integer from 32 to 256.' >&2; exit 1 ;; esac
+[ "$charts_heap" -ge 32 ] && [ "$charts_heap" -le 256 ] || { printf '%s\n' 'CHARTS_HEAP_MB must be 32–256.' >&2; exit 1; }
+exec "$charts_node" --max-old-space-size="$charts_heap" "$workspace/bin/charts" "$@"
