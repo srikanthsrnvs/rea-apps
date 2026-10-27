@@ -43,7 +43,7 @@ test('callback exchange saves only after independent validation and keeps creden
   const { directory, store } = await fixture(t); let exchanges = 0, reads = 0;
   const auth = createAuth({ store, sdk: async () => ({ getUser: async credentials => {
     reads++; assert.equal(credentials.session, 'synthetic-session'); return { id: 42, username: 'expected', authToken: 'never-return' };
-  } }), request: async (url, options) => { exchanges++; assert.equal(new URL(url).pathname, '/accounts/tvd/complete/'); assert.equal(options.redirect, 'manual'); return issued(); } });
+  } }), request: async (url, options) => { exchanges++; assert.equal(new URL(url).pathname, '/accounts/tvd/complete/'); assert.equal(options.method, 'POST'); assert.equal(options.redirect, 'manual'); return issued(); } });
   const login = await auth.login({ username: 'expected' });
   assert.equal((await auth.login({})).loginId, login.loginId);
   const result = await auth.complete({ 'login-id': login.loginId, 'callback-url': callback }, AbortSignal.timeout(5000));
@@ -54,6 +54,22 @@ test('callback exchange saves only after independent validation and keeps creden
   assert.equal((await fs.stat(path.join(directory, 'session.json'))).mode & 0o777, 0o600);
   assert.equal((await auth.complete({ 'login-id': login.loginId }, AbortSignal.timeout(5000))).status, 'authenticated');
   assert.equal(exchanges, 1);
+});
+
+test('successful 201/202/204 exchanges validate their cookies instead of discarding them', async t => {
+  for (const status of [201, 202, 204]) {
+    const { store } = await fixture(t); let validations = 0;
+    const auth = createAuth({ store, sdk: async () => ({ getUser: async credentials => {
+      validations++; assert.equal(credentials.session, 'synthetic-created'); return { id: 42, username: 'expected' };
+    } }), request: async (url, options) => {
+      assert.equal(options.method, 'POST');
+      return new Response(status === 204 ? null : '{}', { status, headers: { 'set-cookie': 'sessionid=synthetic-created; Domain=.tradingview.com; Path=/; Secure; HttpOnly' } });
+    } });
+    const login = await auth.login({ username: 'expected' });
+    const result = await auth.complete({ 'login-id': login.loginId, 'callback-url': callback }, AbortSignal.timeout(5000));
+    assert.equal(result.status, 'authenticated'); assert.equal(validations, 1);
+    assert.equal((await store.load()).account.id, 42);
+  }
 });
 
 test('failed validation preserves the existing account and retry never repeats the exchange', async t => {
@@ -172,6 +188,20 @@ test('unexpected authorization JSON stays uncertain and cannot be replayed', asy
   const login = await auth.login({});
   await assert.rejects(auth.complete({ 'login-id': login.loginId, 'callback-url': callback }, AbortSignal.timeout(5000)), { code: 'PROTOCOL_ERROR' });
   assert.equal((await auth.status()).pending.phase, 'exchange_uncertain');
+  await assert.rejects(auth.complete({ 'login-id': login.loginId, 'callback-url': callback }, AbortSignal.timeout(5000)), { code: 'AUTH_OUTCOME_UNKNOWN' });
+  assert.equal(exchanges, 1);
+});
+
+test('rejected exchanges expose only HTTP status and cannot be retried', async t => {
+  const { store } = await fixture(t); let exchanges = 0;
+  const auth = createAuth({ store, sdk: async () => ({}), request: async () => {
+    exchanges++; return new Response(JSON.stringify({ error: 'private-provider-detail' }), { status: 403 });
+  } });
+  const login = await auth.login({});
+  await assert.rejects(auth.complete({ 'login-id': login.loginId, 'callback-url': callback }, AbortSignal.timeout(5000)), { code: 'AUTH_REJECTED' });
+  const status = await auth.status();
+  assert.equal(status.pending.httpStatus, 403); assert.equal(status.pending.sessionCookieIssued, false); assert.equal(status.pending.responseHasError, true);
+  assert.doesNotMatch(JSON.stringify(status), /private-provider-detail|keySource|synthetic-grant/);
   await assert.rejects(auth.complete({ 'login-id': login.loginId, 'callback-url': callback }, AbortSignal.timeout(5000)), { code: 'AUTH_OUTCOME_UNKNOWN' });
   assert.equal(exchanges, 1);
 });

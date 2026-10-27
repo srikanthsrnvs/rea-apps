@@ -18,7 +18,9 @@ Persist the pending proof before returning the approval URL. Mark an exchange as
 
 Recover a persisted candidate if interruption occurred before its phase update. Reconcile a committed login ID before applying the previous-account binding check, so a post-save cleanup failure cannot strand a successfully validated account. Keep file reads bounded by actual bytes, refuse FIFOs/symlinks and respect cancellation while waiting for state locks.
 
-Native extra 2FA currently returns an explicit unsupported result. The callback flow has protocol/fixture evidence but no successful real account integration test yet. Do not describe Pine, saved scripts, populated watchlists, strategies or private layouts as live-verified until tested with a user-authorized account and matching UI observations.
+Native extra 2FA currently returns an explicit unsupported result. Callback exchange, independent identity validation, saved-session reuse, watchlist reads and authenticated quotes were verified on the actual Orin. See research/orin-auth-results.json. Do not extend that evidence to private Pine, saved scripts, populated-watchlist UI parity, strategies or private layouts.
+
+The client on the user's device must receive the native `tradingview://browser-auth/` callback. A plain browser approval link cannot complete that handoff without a registered receiver; Safari's invalid-address message demonstrates this. The test used a temporary Mac receiver, then removed it. Never turn that client requirement into a browser or desktop-app dependency on the Orin. The completion request is POST, not GET. Accept 2xx responses with independently validated session cookies: the real service returned 201 Created despite the inspected desktop client's narrower status checks.
 
 ## Data pitfalls
 

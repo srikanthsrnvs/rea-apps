@@ -12,7 +12,7 @@ export const provider = {
   capabilities: ['symbols', 'quotes', 'candles', 'technicals', 'screening', 'indicators', 'strategy_reports', 'drawings', 'bounded_streams'],
   accountCapabilities: ['pine_studies', 'saved_indicators', 'watchlists', 'private_layouts'],
   login: 'native_callback_handoff', hostBrowser: false, orderExecution: false,
-  authenticationVerification: 'protocol_and_fixture_tested_live_login_pending', additionalNative2faSupported: false,
+  authenticationVerification: 'orin_callback_and_account_reads_verified', additionalNative2faSupported: false,
 };
 const accountCommands = new Set(['auth validate', 'indicators saved', 'watchlists']);
 const page = (rows, o) => ({ data: rows.slice(o.offset, o.offset + o.limit), pagination: {

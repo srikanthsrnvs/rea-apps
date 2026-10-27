@@ -4,7 +4,7 @@ A native Node CLI and optional stdio MCP server for market research. Its 27 tool
 
 The Orin uses HTTP and WebSocket only. No Chrome, CDP, Playwright, desktop app, emulator or display server is used, including during login. Public tools work anonymously. Account authorization happens on the user's separate device through TradingView's native callback protocol.
 
-Anonymous tools passed thirteen bounded live checks. Account login and account-dependent features have fixture coverage but still require a real user-approved integration test. An additional native-app 2FA challenge is explicitly unsupported; no session is saved in that case.
+Anonymous tools passed thirteen bounded live checks. User-approved callback login, session reuse, watchlist reading and authenticated quotes were verified on an NVIDIA Jetson AGX Orin with Node 24.21.0. An additional native-app 2FA challenge remains unsupported. Private Pine scripts, strategy reports and UI parity have not been independently verified.
 
 ## Install
 
@@ -63,7 +63,9 @@ charts stream candles --symbol COINBASE:BTCUSD --timeframe 1m --seconds 5 --max-
 charts login --username YOUR_TRADINGVIEW_USERNAME
 ```
 
-Open the returned `approvalUrl` on your own phone or computer, sign in and approve access. Copy the final **Open TradingView** app-button link (`tradingview://browser-auth/?token=...`) into an owner-only local file, then complete the exchange on the Orin:
+The device opening `approvalUrl` needs a client receiver registered for **`tradingview://browser-auth/`**. The client must forward that native callback to the Orin. A browser alone cannot perform the handoff: Safari reports an invalid address if no receiver is registered. A generic HTTPS redirect is not supported by this provider grant.
+
+With the receiver ready, open the returned `approvalUrl` on that device, sign in and approve access. The client captures `tradingview://browser-auth/?token=...`; for CLI testing, transfer it privately into an owner-only file on the Orin, then complete the exchange:
 
 ```sh
 chmod 600 /private/path/tradingview-callback.txt
@@ -77,7 +79,7 @@ The callback is a credential: keep its contents out of logs and delete the file 
 
 `auth status` inspects local metadata. If a candidate was acquired but independent account validation failed, repeat `auth complete --login-id LOGIN_ID` without a callback to retry validation. Completion also recovers an interrupted candidate save or post-save cleanup without repeating the exchange. An exchange with an uncertain outcome and no acquired candidate is never replayed: use `auth cancel` and start again. `login --replace` preserves the previous account until the new one validates. `logout` removes local authorization.
 
-The native protocol was recovered by static inspection and tested with fixtures; a successful real account exchange has not been verified here. Extra native-app 2FA requires a separate protocol implementation and returns `additional_verification_required`. See [protocol evidence and lifecycle](docs/auth-protocol.md).
+The successful Orin test used a temporary callback receiver on the user's Mac. That receiver was removed after the test; no TradingView Desktop app, browser or tunnel ran on the Orin. The receiver is a responsibility of the client opening the approval link, rather than an Orin runtime dependency. Extra native-app 2FA still requires a separate protocol implementation and returns `additional_verification_required`. See [protocol evidence and lifecycle](docs/auth-protocol.md).
 
 ## MCP
 
@@ -102,6 +104,8 @@ One online operation or authorization mutation runs at a time per process. HTTP 
 
 Development measurements on macOS ARM64/Node 25.6.1: tool discovery peaked near 47 MiB RSS, one anonymous quote command near 68 MiB, and the expanded thirteen-check live harness near 113 MiB with a 64 MiB old-space target. These are not Orin measurements or guarantees. Measure again on the deployed runtime; lower requested counts when history or study responses exceed the caps.
 
+On the actual Jetson AGX Orin/Linux ARM64/Node 24.21.0, an anonymous quote peaked at 71.8 MiB RSS; a sequential authenticated watchlist/quote check peaked at 104.6 MiB. Both used a 64 MiB old-space target. The second figure measures the whole sequence in one process, not isolated per-command usage. See the [Orin authentication results](research/orin-auth-results.json).
+
 Private state lives under `$CHARTS_STATE_DIR`, otherwise `$XDG_CONFIG_HOME/charts-cli` or `~/.config/charts-cli`. Directories use 0700, files 0600, and authorization changes use a cross-process state lock. Account cookies and proof values are excluded from output and Git.
 
 ```sh
@@ -109,7 +113,7 @@ npm --prefix charts test
 npm --prefix charts run test:live
 ```
 
-The 32 deterministic tests cover argument validation, normalization, crash recovery, cancellation, private-file bounds, secret redaction, real stdio MCP transport, bounded HTTP/WebSocket transports and stream cleanup. The opt-in live harness makes thirteen sequential anonymous reads/samples; [recorded results](research/live-tools-results.json) identify platform, runtime flags and RSS. No human UI comparison or account-dependent integration test is claimed.
+The 34 deterministic tests cover argument validation, normalization, crash recovery, cancellation, private-file bounds, POST/2xx callback exchange, secret redaction, real stdio MCP transport, bounded HTTP/WebSocket transports and stream cleanup. The opt-in live harness makes thirteen sequential anonymous reads/samples; [recorded results](research/live-tools-results.json) identify platform, runtime flags and RSS. The separate Orin record covers real callback authorization and account reads. No broader human UI parity, private Pine or additional-2FA verification is claimed.
 
 - [Agent guide](ai.md)
 - [Provider assessment and official MCP correction](docs/provider-assessment.md)

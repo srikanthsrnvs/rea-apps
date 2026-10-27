@@ -29,7 +29,7 @@ export function completionUrl(pending, token) {
   return url;
 }
 export function approvalResult(pending) {
-  return { status: 'authorization_required', message: 'Open approvalUrl on your own device and authorize TradingView. Copy the final Open TradingView app link and supply it to auth complete, preferably through --callback-file.',
+  return { status: 'authorization_required', message: 'Open approvalUrl on your own device and authorize TradingView. A receiver on that device must capture the tradingview://browser-auth/ callback and pass it to auth complete. A browser without a receiver cannot finish the handoff.',
     loginId: pending.id, approvalUrl: pending.approvalUrl, expiresAt: new Date(pending.expiresAt).toISOString(),
-    callbackType: CALLBACK, hostRuntime: 'Node HTTP only', automaticPolling: false };
+    callbackType: CALLBACK, callbackReceiverRequired: true, hostRuntime: 'Node HTTP only', automaticPolling: false };
 }

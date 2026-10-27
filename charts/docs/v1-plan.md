@@ -103,7 +103,7 @@ Cache keys must include provider, instrument, timeframe, session, adjustment, cu
 
 ## Authentication and operations
 
-The anonymous read path must run headlessly without a session, browser, emulator or API key. Treat account access as an additional capability with independent validation. The upstream password login cannot complete 2FA/CAPTCHA; the native callback handoff is now implemented from static protocol evidence but still requires a successful real account integration test. Its extra native-app 2FA step is not implemented. Do not promise device-code/OAuth login that TradingView has not documented.
+The anonymous read path must run headlessly without a session, browser, emulator or API key. Treat account access as an additional capability with independent validation. The upstream password login cannot complete 2FA/CAPTCHA. The native callback handoff, independent account validation and authenticated reads have now passed on an Orin; the user's separate device must receive the native callback. Its extra native-app 2FA step is not implemented. Do not promise device-code/OAuth login that TradingView has not documented.
 
 When account integration is built, persist only session material with restrictive permissions, redact it from tool results and logs, and expose expiration as actionable state. Login occurs only on the user's separate device. Never run a browser, desktop app, CDP session or emulator on the host, including for authentication. See the [actual native callback protocol](auth-protocol.md). Do not require HAR files, sniffers or manual cookie pasting as the normal user flow.
 
@@ -131,4 +131,4 @@ For backtesting later, distinguish local strategies over a frozen dataset from T
 - First technical adapter: wrap the exact tested `@mathieuc/tradingview@4.1.0` package.
 - Rendering direction: official Lightweight Charts; Advanced Charts only if its additional UI justifies access/licensing and integration costs.
 - Additional Python wrappers: references for now, not redundant runtime dependencies.
-- Deployment baseline is native Node 24.21.0. Anonymous tools have deterministic and bounded live evidence; the native callback lifecycle has fixture evidence. Still open: successful real account exchange and extra 2FA, Orin RSS measurements, feed permissions for distribution, sustained streaming, GUI parity and prioritized specialist crypto datasets.
+- Deployment baseline is native Node 24.21.0. Anonymous tools have deterministic and bounded live evidence. A real native callback exchange, saved-session reuse, watchlist read and authenticated quote passed on an Orin, with peak RSS measured at 71.8 MiB for an anonymous quote and 104.6 MiB for the authenticated validation/read sequence. See the [Orin test record](../research/orin-auth-results.json). Still open: extra native-app 2FA, feed permissions for distribution, sustained streaming, GUI parity and prioritized specialist crypto datasets.

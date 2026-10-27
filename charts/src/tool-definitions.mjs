@@ -34,7 +34,7 @@ const define = (command, description, properties = {}, required = [], effect = '
 export const toolDefinitions = [
   define('state', 'Inspect local provider capabilities and session state. This does not validate the saved session with TradingView.'),
   define('providers', 'List the data providers and their supported operations.'),
-  define('login', 'Create a native TradingView approval link for the user to open on another device. Complete with the official app callback link. No host browser, cookie export or background worker.', {
+  define('login', 'Create a native TradingView approval link for the user to open on another device. That device needs a client receiver for tradingview://browser-auth/; forward the captured callback to auth complete. No host browser, cookie export or background worker.', {
     replace: flag('Replace the saved account only after independent validation.'),
     username: text('Optional expected TradingView username; a different validated account is rejected.'),
     'timeout-ms': integer('Bootstrap deadline.', 1000, 60000, 15000),

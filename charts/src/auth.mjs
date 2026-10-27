@@ -67,7 +67,9 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
         const pending = await store.read('pending-login');
         return { ...sessionStatus(await store.load()), pending: pending ? { loginId: pending.id,
           phase: pending.phase === 'awaiting_callback' && pending.expiresAt <= now() ? 'expired' : pending.phase,
-          expiresAt: new Date(pending.expiresAt).toISOString() } : null };
+          expiresAt: new Date(pending.expiresAt).toISOString(),
+          ...(pending.httpStatus === undefined ? {} : { httpStatus: pending.httpStatus,
+            sessionCookieIssued: pending.sessionCookieIssued, responseHasError: pending.responseHasError }) } : null };
       }, { signal });
     },
     async cancel(signal) {
@@ -108,7 +110,7 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
         await store.write('pending-login', { ...pending, phase: 'exchanging' });
         let response, body;
         try {
-          response = await request(completionUrl(pending, token), { method: 'GET', redirect: 'manual', signal,
+          response = await request(completionUrl(pending, token), { method: 'POST', redirect: 'manual', signal,
             headers: { referer: 'https://www.tradingview.com/', accept: 'application/json' } });
           const text = await response.text();
           body = text ? JSON.parse(text) : {};
@@ -122,8 +124,9 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
           return { status: 'additional_verification_required', message: 'TradingView requires an additional native-app 2FA step. This step is not yet implemented; no session was saved. The existing account is unchanged.' };
         }
         const credentials = credentialsFromHeaders(response.headers, response.url || 'https://auth.tradingview.com/');
-        if (![200, 409].includes(response.status) || body.error || !credentials.session) {
-          await store.write('pending-login', { ...pending, phase: 'rejected', keySource: undefined });
+        if (!(response.ok || response.status === 409) || body.error || !credentials.session) {
+          await store.write('pending-login', { ...pending, phase: 'rejected', keySource: undefined, httpStatus: response.status,
+            sessionCookieIssued: Boolean(credentials.session), responseHasError: Boolean(body.error) });
           throw new ChartsError('AUTH_REJECTED', 'TradingView did not issue an authenticated session for this callback. The exchange was not repeated.');
         }
         const acquired = { version: 1, loginId: pending.id, credentials };
