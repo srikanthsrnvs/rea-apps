@@ -11,7 +11,7 @@ import { toolManifest, advancedToolManifest, orderingToolManifest } from './tool
 
 const print = value => console.log(JSON.stringify(value,null,2));
 const options = Object.fromEntries([
-  'profile','json','recipe','name','product-ref','phone','login-id','code','code-file','query','index','department','brand','category','sub-category','page','limit','day','id','store-id','address-id','type','lat','lon','date-key','trn-cpk','trn-pk','product-id','quantity','instruction','modifier-size-id','modifiers-file','request','cart-product-id','payment-method-id','schedule-type-id','time','date','shopper-tip-id','driver-tip-id','redeem-points','coupon-code','plan-id','operation-id',
+  'profile','json','recipe','name','product-ref','phone','login-id','code','code-file','query','index','department','brand','category','sub-category','page','limit','day','id','store-id','address-id','type','lat','lon','date-key','trn-cpk','trn-pk','product-id','quantity','instruction','modifier-size-id','modifiers-file','request','cart-product-id','item-ref','payment-method-id','schedule-type-id','time','date','shopper-tip-id','driver-tip-id','redeem-points','coupon-code','plan-id','operation-id',
 ].map(key=>[key,{type:'string'}]));
 Object.assign(options,{help:{type:'boolean',short:'h'},advanced:{type:'boolean'},raw:{type:'boolean'},replace:{type:'boolean'},confirm:{type:'boolean'},'order-method-key':{type:'string',multiple:true}});
 
@@ -42,7 +42,8 @@ try {
     'order prepare':['recipe','json','payment-method-id','schedule-type-id','time','date','shopper-tip-id','driver-tip-id','redeem-points','coupon-code'],
     'order confirm':['plan-id','confirm'],'order status':['plan-id'],
     'recipe save':['name','request','json'],'recipe show':['name'],'recipe reset':['name'],
-    'product find':['query','json'],'product options':['product-ref']
+    'product find':['query','json'],'product options':['product-ref'],
+    'cart add-saved':['name','quantity'],'cart set-quantity':['item-ref','quantity'],'cart view':[]
   };
   if(specificOptions[command])for(const key of Object.keys(v))if(!['help','raw',...specificOptions[command]].includes(key))throw new Error(`--${key} is not valid for ${command}. Put product quantity and choices in the recipe/request.`);
   if(command==='order prepare'&&v.recipe&&v.json!==undefined)throw new Error('Use a recipe name or an inline request, not both.');
@@ -78,6 +79,9 @@ erewhon recipe save --name usual-coffee --request FILE
 erewhon recipe show|reset --name usual-coffee
 erewhon product --id CATALOG_REF
 erewhon cart
+erewhon cart view
+erewhon cart add-saved --name "my usual coffee" [--quantity 1]
+erewhon cart set-quantity --item-ref ITEM_REF --quantity 3
 erewhon cart add --product-id ID [--quantity 1 --modifier-size-id ID --modifiers-file FILE]
 erewhon cart update --request FILE   JSON: {"items":[{"cartProductId":"ID","quantity":1}]}
 erewhon cart remove --cart-product-id ID
@@ -126,6 +130,9 @@ Only order confirm dispatches and pays. Show the full review and obtain approval
     else if(command==='recipe reset')result=await recipes.reset({name:v.name});
     else if(command==='product')result=await catalog.product({productId:v.id});
     else if(command==='cart')result=await ordering.cart();
+    else if(command==='cart view')result=await ordering.viewCart();
+    else if(command==='cart add-saved')result=await recipes.addSaved({name:v.name,...(v.quantity!==undefined?{quantity:number(v.quantity)}:{})});
+    else if(command==='cart set-quantity')result=await ordering.setCartQuantity({itemRef:v['item-ref'],quantity:number(v.quantity)});
     else if(command==='cart add')result=await ordering.addCartItem({productId:v['product-id'],quantity:number(v.quantity,1),instruction:v.instruction,modifierSizeId:v['modifier-size-id'],...(v['modifiers-file']?{modifiers:await jsonFile(v['modifiers-file'])}:{})});
     else if(command==='cart update')result=await ordering.updateCartItems(await jsonFile(v.request));
     else if(command==='cart remove')result=await ordering.removeCartItem({cartProductId:v['cart-product-id']});

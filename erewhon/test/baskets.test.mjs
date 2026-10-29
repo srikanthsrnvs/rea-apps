@@ -62,7 +62,7 @@ test('changing fulfillment outside the recipe cannot reuse a draft with the wron
 });
 test('ordering profile separates fresh baskets from saved preparations and requires full identity',async()=>{
  const {orderingToolManifest}=await import('../src/tools.mjs');const tools=orderingToolManifest.tools;
- assert.equal(tools.length,6);assert.equal(new Set(tools.map(t=>t.name)).size,6);
+ assert.equal(tools.length,10);assert.equal(new Set(tools.map(t=>t.name)).size,10);
  assert.equal(tools.some(t=>t.name==='recipe_show'||t.name==='recipe_reset'||t.name==='recipe_save'),false);
  assert.deepEqual(tools.find(t=>t.name==='order_prepare_saved').inputSchema.required,['name']);
  const schema=tools.find(t=>t.name==='order_prepare').inputSchema;

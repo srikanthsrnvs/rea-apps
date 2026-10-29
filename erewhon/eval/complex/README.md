@@ -29,6 +29,16 @@ correctly rejected at discovery without making a doomed preparation call.
 Final prose and trajectory comparisons still require inspection: regex checks
 cannot establish that every statement is true or that every agent will succeed.
 
+## Cart follow-ups in v0.3.2
+
+The [live multi-turn cart comparison](../cart-revision/README.md) exposed a gap
+in the six-tool profile: saved-name guessing and quantity edits. Four tools now
+separate cart work from checkout. On the corrected interface, the reference and
+Qwen both added a saved coffee then changed its total to three in two calls,
+with the same persistent Pi session and no checkout or purchase. All 185 tests
+pass on macOS and Linux ARM64. Earlier results below describe their original
+tool profiles and have not been relabeled as new model runs.
+
 ## Batch discovery in v0.3.1
 
 `product_find` accepts all basket queries together and can include saved delivery

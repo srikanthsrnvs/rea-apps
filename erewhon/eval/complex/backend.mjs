@@ -35,6 +35,14 @@ export function backend({failQuery,failAddress=false}={}) {
   if(path.startsWith('/v1/set_address/'))return {error:0};
   if(path==='/v1/select_ordermethod'){f.type=opts.form.order_method;return {error:0};}
   if(path==='/v1/validate_cart')return {error:0};
+  if(path==='/v1/cart_update'){
+   const updates=JSON.parse(opts.form.cart_products);
+   for(const update of updates){const row=f.rows.find(row=>row.cart_product_id===update.cart_product_id);if(!row)throw new Error('Unknown cart row');row.product_price=(Number(row.product_price)/row.quantity*update.quantity).toFixed(2);row.quantity=update.quantity;}
+   f.rows=f.rows.filter(row=>row.quantity>0);
+   if(f.dropUpdate)throw new Error('Lost quantity update response');
+   if(f.changeUpdate&&f.rows[0])f.rows[0].product_instruction='Unexpected change';
+   return {error:0};
+  }
   if(path==='/v1/getproduct')return {error:0,product:products().find(p=>p.internal_product_id===opts.form.internal_product_id)};
   if(path.startsWith('/v1/addtocart/')) {
    const p=products().find(p=>`/v1/addtocart/${p._id}`===path);if(!p)throw new Error('Stale native identity');

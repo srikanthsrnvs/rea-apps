@@ -26,6 +26,32 @@ erewhon tools
 
 There are no npm runtime dependencies. Installation does not copy an Android session or credentials from another app.
 
+## Cart-only favorites and follow-up edits
+
+Use one call per user turn; no search, native IDs, temporary files or checkout:
+
+```sh
+erewhon cart add-saved --name "my usual coffee"
+# Copy itemRef from the returned cart; this sets three TOTAL, not three more.
+erewhon cart set-quantity --item-ref ITEM_REF --quantity 3
+```
+
+The matching agent tools are `cart_add_saved({name})` and
+`cart_set_quantity({itemRef, quantity:3})`. Both return the verified server cart,
+including choices, quantities and references for subsequent edits. Saved names
+accept spaces and a leading "my"; missing names stop without guessing another
+recipe. Adding resolves the current product and modifier identities. An optional
+quantity on `cart_add_saved` overrides a single-item recipe for this cart only.
+Saved preferences remain unchanged. Occupied carts outside the unchanged saved
+draft stop without replacing anything. Different customizations have different
+references. An interrupted edit can be inspected with `cart_view`; setting the
+same absolute quantity again makes no mutation if it is already correct.
+
+These calls do not quote checkout, reserve inventory or buy. When the user later
+requests checkout, use `order_prepare_cart` (`erewhon order prepare`) to review
+the current cart. Edits invalidate prior approval: show a fresh review before
+`order_confirm`. Existing low-level cart commands remain available for scripts.
+
 ## Recommended agent workflow: named recipes
 
 Save what the user wants, not the backend's IDs. The CLI resolves the current

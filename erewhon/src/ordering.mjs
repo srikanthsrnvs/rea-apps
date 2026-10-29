@@ -3,6 +3,7 @@ import * as disk from './state.mjs';
 import { authenticatedOperation } from './http.mjs';
 import { createCatalog } from './catalog.mjs';
 import { namedSelections, normalizeLabel } from './product-choices.mjs';
+import { cartView, cartItemRef, cartContentsDigest } from './cart-view.mjs';
 import { endpoints,cartBinding,cartRows,serializeRows,accountBinding,ownerBinding,publicData,confirmedOrder,orderSnapshot,orderPayload,reviewSnapshot,checkoutForm,orderFingerprint,id,scalar,fail } from './ordering-protocol.mjs';
 const unresolved=new Set(['submitting','uncertain','additional_auth_required','pending']);
 function identifier(value,label){return id(value,label);}
@@ -22,6 +23,25 @@ export function createOrdering({operation=authenticatedOperation,store=disk,now=
  async function readCart(context,cart){return context.send(endpoints.cart,{form:cartBinding(cart),readOnly:true});}
  async function persistCartResponse(cart,result){const newId=typeof result.cart_id==='string'?result.cart_id:result.cart_id?._id;if(newId){cart.cartId=newId;await store.saveState('cart',cart);}return publicData(result);}
  async function cart(){return operation(async context=>{const state=await load(context);return publicData({cartId:state.cartId,...await readCart(context,state)});});}
+ async function viewCart(){return operation(async context=>{const state=await load(context);return cartView(context.session,state,await readCart(context,state));});}
+ async function setCartQuantity({itemRef,quantity}={}){
+  if(typeof itemRef!=='string'||!/^item-[a-f0-9]{24}$/.test(itemRef))fail('INVALID_ARGUMENT','Copy itemRef from the returned cart.');
+  scalar(quantity,'total quantity',{max:1000});
+  return operation(async context=>{
+   await guard();const state=await load(context),before=await readCart(context,state);
+   const matches=cartRows(before).filter(row=>row.quantity>0&&cartItemRef(context.session,state,row)===itemRef);
+   if(matches.length!==1)fail('CART_ITEM_CHANGED','That exact cart item is no longer present. Read cart_view and choose the intended row; no item was changed.');
+   if(matches[0].quantity===quantity)return {...cartView(context.session,state,before),changed:false};
+   const expected=structuredClone(before);
+   cartRows(expected).find(row=>row.cart_product_id===matches[0].cart_product_id).quantity=quantity;
+   const rows=serializeRows(before);rows.find(row=>row.cart_product_id===matches[0].cart_product_id).quantity=quantity;
+   const changed=await context.send(endpoints.update,{form:{...cartBinding(state),cart_products:JSON.stringify(rows)}});
+   await persistCartResponse(state,changed);
+   const after=await readCart(context,state);
+   if(cartContentsDigest(context.session,state,after)!==cartContentsDigest(context.session,state,expected))fail('CART_UPDATE_UNVERIFIED','The server did not confirm the exact quantity edit with all other items and choices preserved. Read cart_view; do not claim success.',{orderPlaced:false});
+   return {...cartView(context.session,state,after),changed:true};
+  });
+ }
  async function addCartItem({productId,quantity=1,instruction,modifierSizeId,modifiers,size,choices,expectedName,expectedSku,validateOnly=false,beforeAdd,substituteOption,substituteItemId}={}){identifier(productId,'product ID');scalar(quantity,'quantity',{min:Number.EPSILON,max:1000});if(instruction!==undefined&&(typeof instruction!=='string'||instruction.length>2000))fail('INVALID_ARGUMENT','Supply an instruction of at most 2000 characters.');return operation(async context=>{await guard();const state=await load(context);const detail=await context.send(endpoints.product,{form:{internal_product_id:productId,cart_id:state.cartId},readOnly:true});const p=detail.product;if(!p?._id)fail('INVALID_RESPONSE','Erewhon did not return the product identity.');if(expectedName&&normalizeLabel(p.name)!==normalizeLabel(expectedName))fail('PRODUCT_CHANGED','The fresh product name does not match the requested recipe.');if(expectedSku&&p.sku!==expectedSku)fail('PRODUCT_CHANGED','The fresh product SKU does not match the requested recipe.');if(size!==undefined||choices!==undefined){if(modifierSizeId||modifiers)fail('INVALID_ARGUMENT','Use named choices or native IDs, not both.');({modifierSizeId,modifiers}=namedSelections(p,{size,choices}));}if(Array.isArray(detail.quantity_dropdown)&&detail.quantity_dropdown.length&&!detail.quantity_dropdown.some(q=>Number(q.value)===quantity))fail('INVALID_QUANTITY','Choose one of the product quantity options returned by Erewhon.');if(p.cart_types?.some(t=>t.type==='preorder'))fail('PREORDER_UNSUPPORTED','This item requires a preorder cart, which has a separate checkout.');const form={...cartBinding(state),device_id:context.session.deviceId,product_quantity:quantity,...modifiersFor(p,{modifierSizeId,modifiers}),...(instruction!==undefined?{product_instruction:instruction}:{})};if(substituteOption!==undefined){if(!detail.substitute_options?.some(s=>s.value===substituteOption))fail('INVALID_SUBSTITUTION','Choose a server substitution option.');form.substitute_option=substituteOption;if(substituteItemId){identifier(substituteItemId,'substitute product ID');form.substitute_item_id=substituteItemId;}}
  if(validateOnly)return {validated:true};
  if(beforeAdd)await beforeAdd({modifierSizeId,selectedModifiers:form.modifier_sets?JSON.parse(form.modifier_sets):[]});return persistCartResponse(state,await context.send(`${endpoints.add}/${identifier(p._id,'native product ID')}`,{form}));});}
@@ -40,6 +60,6 @@ export function createOrdering({operation=authenticatedOperation,store=disk,now=
  async function orderStatus({planId}={}){identifier(planId,'plan ID');const plan=await operation(async context=>{const value=await store.readState(`order-plan-${planId}`);if(!value)fail('INVALID_PLAN','No such order review exists.');if((value.owner??value.snapshot?.account)!==(value.owner?ownerBinding(context.session):accountBinding(context.session)))fail('ACCOUNT_CHANGED','This order review belongs to another login.');return value;});if(plan.operationId)return {planId,...await inspectOrderOperation({operationId:plan.operationId})};return {status:plan.status==='prepared'&&plan.expiresAt<=now()?'expired':plan.status,orderPlaced:false,planId,expiresAt:new Date(plan.expiresAt).toISOString(),nextAction:plan.expiresAt<=now()?'prepare_again':'confirm_after_user_approval'};}
  async function orders({type='online',page,dateKey,methodKeys}={}){if(type!=='online')fail('INVALID_ARGUMENT','Use account purchase history for in-store purchases.');if(page!==undefined&&page!==1)fail('UNSUPPORTED_PAGINATION','The observed online order endpoint provides upcoming and past lists without page support.');const form={type};if(dateKey!==undefined){if(typeof dateKey!=='string'||dateKey.length>200)fail('INVALID_ARGUMENT','Choose a server date filter.');form.date_key=dateKey;}if(methodKeys!==undefined){if(!Array.isArray(methodKeys)||methodKeys.some(m=>typeof m!=='string'||m.length>100))fail('INVALID_ARGUMENT','Supply server order method filter keys.');form.order_method_key=methodKeys.join(',');}return operation(async context=>publicData(await context.send(endpoints.orders,{form,readOnly:true})));}
  async function order({orderId}={}){identifier(orderId,'order ID');return operation(async context=>publicData(await context.send(endpoints.order,{form:{order_id:orderId},readOnly:true})));}
- return {cart,addCartItem,updateCartItems,removeCartItem,checkout,prepareOrder,confirmOrder,inspectOrderOperation,orderStatus,orders,order};
+ return {cart,viewCart,setCartQuantity,addCartItem,updateCartItems,removeCartItem,checkout,prepareOrder,confirmOrder,inspectOrderOperation,orderStatus,orders,order};
 }
-const ordering=createOrdering();export const {cart,addCartItem,updateCartItems,removeCartItem,checkout,prepareOrder,confirmOrder,inspectOrderOperation,orderStatus,orders,order}=ordering;
+const ordering=createOrdering();export const {cart,viewCart,setCartQuantity,addCartItem,updateCartItems,removeCartItem,checkout,prepareOrder,confirmOrder,inspectOrderOperation,orderStatus,orders,order}=ordering;

@@ -10,6 +10,11 @@ function nameKey(name) {
   if (typeof name !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(name)) fail('INVALID_ARGUMENT', 'Recipe names use lowercase letters, numbers and hyphens.');
   return `recipe-${name}`;
 }
+function savedName(value) {
+  if(typeof value!=='string'||value.length>100)fail('INVALID_ARGUMENT','Supply a saved recipe name.');
+  const name=value.trim().toLowerCase().replace(/^my\s+/, '').replace(/\s+/g,'-');
+  nameKey(name);return name;
+}
 function only(object, keys, label) {
   if (!object || typeof object !== 'object' || Array.isArray(object) || Object.keys(object).some(key => !keys.includes(key))) fail('INVALID_RECIPE', `Invalid ${label}; use named product choices, not native IDs.`);
 }
@@ -164,13 +169,20 @@ export function createRecipes({ operation = authenticatedOperation, store = disk
         next:'All requested searches are returned together. Reuse included options and do not search completed products again. Retry only failed queries; for a failed address read use queries:[] and includeAddresses:true. If each intended product and its choices are established, call order_prepare ONCE for the entire basket; ask about unresolved ambiguity instead of choosing for the user.'};
     });
   }
-  async function prepare({ name, checkoutOptions = {} }) {
-    nameKey(name);
+  async function prepare({ name, checkoutOptions = {}, cartOnly = false, quantity }) {
+    name=savedName(name);
+    if(quantity!==undefined&&(!Number.isFinite(quantity)||quantity<=0||quantity>1000))fail('INVALID_ARGUMENT','Supply a positive total quantity no greater than 1000.');
     return operation(async context => {
       let active = await store.readState('order-active');
       if(active&&blocked.has(active.status)){const recorded=await store.readState(`order-operation-${active.operationId}`);if(recorded&&['confirmed','rejected'].includes(recorded.status)){active=recorded;await store.saveState('order-active',recorded);}}
       if (active && blocked.has(active.status)) fail('ORDER_UNRESOLVED', 'Resolve the recorded order operation before preparing another recipe.');
       const { recipe } = await show({ name });
+      if(quantity!==undefined){
+        const items=recipeItems(recipe);
+        if(items.length!==1)fail('RECIPE_QUANTITY_AMBIGUOUS','Quantity overrides require a single-item saved recipe. A basket recipe keeps each saved quantity.');
+        items[0].quantity=quantity;
+        if(!recipe.items)recipe.quantity=quantity;
+      }
       const unlocked = fn => fn(context);
       const catalog = createCatalog({ operation: unlocked, store, now, fetchImpl });
       const ordering = createOrdering({ operation: unlocked, store });
@@ -234,6 +246,7 @@ export function createRecipes({ operation = authenticatedOperation, store = disk
         }
       }
 
+      if(cartOnly)return {...await ordering.viewCart(),recipe:name};
       const quote = await ordering.checkout();
       const asap = quote.schedule_types?.filter(value => value.type === 'schedule_asap');
       if (asap?.length !== 1) fail('ASAP_UNAVAILABLE', 'The server did not offer one unambiguous ASAP option. Review checkout manually.');
@@ -271,7 +284,11 @@ export function createRecipes({ operation = authenticatedOperation, store = disk
     await save({name,recipe:specification});
     return prepare({name,checkoutOptions});
   }
-  return { save, show, find, options, prepare, prepareRequest, reset };
+  async function addSaved(args={}) {
+    only(args,['name','quantity'],'saved cart request');
+    return prepare({...args,cartOnly:true});
+  }
+  return { save, show, find, options, prepare, prepareRequest, reset, addSaved };
 }
 
 export const recipes = createRecipes();

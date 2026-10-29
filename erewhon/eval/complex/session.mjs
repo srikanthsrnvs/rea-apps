@@ -16,6 +16,10 @@ export async function session(key,trace){
   try {
    if(++count>16)throw new Error('Tool-call limit reached. Explain the blocker.');
    if(name==='order_prepare')result=await f.api.prepareRequest({request:args});
+   else if(name==='cart_add_saved')result=await f.api.addSaved(args);
+   else if(name==='cart_set_quantity')result=await f.ordering.setCartQuantity(args);
+   else if(name==='cart_view')result=await f.ordering.viewCart();
+   else if(name==='order_prepare_cart')result=await f.ordering.prepareOrder();
    else if(name==='order_prepare_saved')result=await f.api.prepare(args);
    else if(name==='addresses')result=await f.catalog.addresses();
    else if(name==='recipe_save')result=await f.api.save(args);

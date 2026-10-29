@@ -11,15 +11,15 @@ export default function (pi) {
   const socket=process.env.EREWHON_EVAL_SSH_SOCKET;
   if(!host||!socket)throw new Error('Set EREWHON_EVAL_SSH_HOST and EREWHON_EVAL_SSH_SOCKET.');
   const cli=process.env.EREWHON_EVAL_REMOTE_CLI ?? '/home/truffle/.local/bin/erewhon';
-  const allowed=new Set(['product_find','product_options','recipe_show','order_prepare','order_prepare_saved','order_status','addresses']);
+  const allowed=new Set(['product_find','product_options','recipe_show','order_prepare','order_prepare_saved','order_status','addresses','cart_add_saved','cart_set_quantity','cart_view','order_prepare_cart']);
   for(const tool of orderingToolManifest.tools.filter(tool=>allowed.has(tool.name)))pi.registerTool({
     name:tool.name,label:tool.name,description:tool.description,parameters:tool.inputSchema,
     async execute(_id,args){
-      const commands={order_prepare_saved:['order','prepare','--recipe',args.name],addresses:['addresses'],product_find:['product','find','--json',JSON.stringify(args)],product_options:['product','options','--product-ref',args.productRef],recipe_show:['recipe','show','--name',args.name],order_status:['order','status','--plan-id',args.planId],
+      const commands={cart_add_saved:['cart','add-saved','--name',args.name,...(args.quantity!==undefined?['--quantity',String(args.quantity)]:[])],cart_set_quantity:['cart','set-quantity','--item-ref',args.itemRef,'--quantity',String(args.quantity)],cart_view:['cart','view'],order_prepare_cart:['order','prepare'],order_prepare_saved:['order','prepare','--recipe',args.name],addresses:['addresses'],product_find:['product','find','--json',JSON.stringify(args)],product_options:['product','options','--product-ref',args.productRef],recipe_show:['recipe','show','--name',args.name],order_status:['order','status','--plan-id',args.planId],
         order_prepare:args.recipe?['order','prepare','--recipe',args.recipe]:['order','prepare','--json',JSON.stringify(args)]};
       let result;
       try{
-        const response=await exec('ssh',['-S',socket,'-o','BatchMode=yes','-o','HostKeyAlias=truffle-2217.local','-o','StrictHostKeyChecking=yes',host,[cli,...commands[tool.name]].map(quote).join(' ')],{timeout:60_000,maxBuffer:2*1024*1024});
+        const response=await exec('ssh',['-S',socket,'-o','BatchMode=yes','-o',`HostKeyAlias=${process.env.EREWHON_EVAL_SSH_ALIAS??'truffle-2217.local'}`,'-o','StrictHostKeyChecking=yes',host,[cli,...commands[tool.name]].map(quote).join(' ')],{timeout:60_000,maxBuffer:2*1024*1024});
         result=JSON.parse(response.stdout);
       }catch(error){try{result=JSON.parse(error.stderr);}catch{result={error:{message:'The remote CLI did not return a confirmed result. No request was repeated.'}};}}
       if(process.env.EREWHON_EVAL_TRACE)fs.appendFileSync(process.env.EREWHON_EVAL_TRACE,JSON.stringify({name:tool.name,args,result})+'\n',{mode:0o600});

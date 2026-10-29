@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-29",
+  "version": "0.3.2",
+  "environment": {
+    "model": "qwen3.6:35b",
+    "parameters": 35505251456,
+    "quantization": "Q4_K_M",
+    "architecture": "MoE: 256 experts, 8 selected",
+    "pi": "0.99.2",
+    "ollama": "0.30.7",
+    "temperature": 0,
+    "seed": 20261029,
+    "thinking": "low",
+    "cliHost": "Linux ARM64",
+    "inferenceHost": "macOS Apple Silicon",
+    "samePiSessionAcrossTurns": true,
+    "confirmationExposed": false
+  },
+  "baseline": {
+    "version": "0.3.1",
+    "turns": [
+      {
+        "prompt": "Add my usual coffee to the cart.",
+        "attemptedCalls": [
+          {
+            "name": "order_prepare_saved",
+            "args": {
+              "name": "my usual coffee"
+            }
+          },
+          {
+            "name": "order_prepare_saved",
+            "args": {
+              "name": "my-usual-coffee"
+            }
+          }
+        ],
+        "cartQuantity": 0
+      },
+      {
+        "prompt": "Make it 3 actually.",
+        "attemptedCalls": [],
+        "cartQuantity": 0
+      }
+    ],
+    "success": false,
+    "errors": [
+      "INVALID_ARGUMENT",
+      "RECIPE_NOT_FOUND"
+    ],
+    "missingCapability": "The simple tools had no quantity edit."
+  },
+  "corrected": {
+    "reference": {
+      "type": "primary-agent-authored and executed, not an independently sampled second model",
+      "toolsByTurn": [
+        [
+          "cart_add_saved"
+        ],
+        [
+          "cart_set_quantity"
+        ]
+      ],
+      "quantities": [
+        1,
+        3
+      ]
+    },
+    "qwen": {
+      "toolsByTurn": [
+        [
+          "cart_add_saved"
+        ],
+        [
+          "cart_set_quantity"
+        ]
+      ],
+      "quantities": [
+        1,
+        3
+      ],
+      "attemptedCalls": 2,
+      "executedCalls": 2,
+      "argumentErrors": 0,
+      "extraHintsBetweenTurns": false
+    },
+    "sameToolSequence": true,
+    "sameBasket": true,
+    "savedRecipeUnchanged": true,
+    "checkoutCalls": 0,
+    "purchaseCalls": 0,
+    "finalCartQuantity": 3,
+    "finalCartLeftIntact": true
+  },
+  "automatedChecks": {
+    "macOS": 185,
+    "linuxARM64": 185
+  },
+  "limitations": [
+    "One live two-turn conversation does not establish universal model reliability.",
+    "The reference was authored and executed by the primary coding agent.",
+    "Initial native control found a missing size label in the compact view; this was fixed and the reference rerun before the scored Qwen run.",
+    "After inference, the live adapter gained a configurable SSH host alias; its default and the production code are unchanged."
+  ],
+  "sourceHashes": {
+    "src/cart-view.mjs": "589eea22e9ece6ff656c8eaea8c90279317db38333e11c1096dff2d1c1d76a19",
+    "src/recipes.mjs": "80b14ed58464e616dba3655d2a14a11a7de0d4f915cef643d80e7418e51fd517",
+    "src/ordering.mjs": "509730984d64d531f5b15c39699ed6c9202f5cce086d93a9373feec1fd605006",
+    "src/tools.mjs": "248b9542c93140c5fcca7cf7085b64ab6e44a962fdf1a4e826f1062f7f045448",
+    "src/cli.mjs": "9262a6a17c86d75e69aaba55c14a16010a4aa99c61bbdc9066e4a41880139d8d",
+    "eval/pi-live-extension.mjs": "7a07331f5c29eeeca79fd9676b5cf057aec872f309ca1adeec89871429970161",
+    "eval/cart-revision/run.mjs": "6c4f3e7cd95ef5b71f2f19a90c21b38c40db8bb5d82a82703f7cb91d2dad66fc"
+  }
+}
