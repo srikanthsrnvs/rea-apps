@@ -2,7 +2,7 @@ import * as disk from './state.mjs';
 import { authenticatedOperation } from './http.mjs';
 import { createCatalog } from './catalog.mjs';
 import { createOrdering } from './ordering.mjs';
-import { cartRows, endpoints, cartBinding, fingerprint, ownerBinding, fail } from './ordering-protocol.mjs';
+import { cartRows, endpoints, cartBinding, fingerprint, ownerBinding, fail, publicData } from './ordering-protocol.mjs';
 import { normalizeLabel, productOptions } from './product-choices.mjs';
 
 const blocked = new Set(['submitting', 'uncertain', 'additional_auth_required', 'pending']);
@@ -124,18 +124,44 @@ export function createRecipes({ operation = authenticatedOperation, store = disk
       return productOptions(detail.product);
     });
   }
-  async function find({ query }) {
-    text(query, 'a product search query');
+  async function find(args={}) {
+    if(!args||typeof args!=='object'||Array.isArray(args)||Object.keys(args).some(key=>!['query','queries','includeAddresses'].includes(key)))fail('INVALID_ARGUMENT','Discovery accepts queries and optional includeAddresses.');
+    const {query,queries,includeAddresses=false}=args;
+    if(typeof includeAddresses!=='boolean')fail('INVALID_ARGUMENT','includeAddresses must be a boolean.');
+    if(query!==undefined&&queries!==undefined)fail('INVALID_ARGUMENT','Supply queries or query, not both.');
+    const batch=queries!==undefined;
+    const requested=batch?queries:[query];
+    if(!Array.isArray(requested)||(!requested.length&&!includeAddresses)||requested.length>12)fail('INVALID_ARGUMENT','Supply up to 12 queries; an empty list is allowed only with includeAddresses:true.');
+    requested.forEach(value=>text(value,'a product search query'));
+    const unique=[...new Map(requested.map(value=>[normalizeLabel(value),value.trim()])).values()];
     return operation(async context => {
-      const catalog = createCatalog({ operation: fn => fn(context), store, now, fetchImpl });
-      await catalog.loadCart(context);
-      const result = await catalog.search({ query, limit: 20 });
-      const exact = result.items.filter(item=>normalizeLabel(item.ProductName)===normalizeLabel(query));
-      let options;
-      if(exact.length===1){const detail=await catalog.product({productId:String(exact[0].ECRSID??exact[0].objectID)});if(detail.product)options=productOptions(detail.product);}
-      return { ...(options?{options}:{}), products: result.items.map(item => ({ name: item.ProductName, brand: item.BrandName, sku: item.SKU,
-        item:{name:item.ProductName,brand:item.BrandName??'',sku:item.SKU??'',quantity:1,choices:[],instruction:''}, productRef: String(item.ECRSID ?? item.objectID), referenceKind: 'catalog_reference', hasOptions: item.has_modifier })),
-        status:'search_results_only',orderPrepared:false,orderPlaced:false,nextTool:options?'order_prepare':'product_options',next: 'If options are included, use those exact labels directly; otherwise read product_options. Copy the selected product item identity (including brand and SKU), fill its quantity and exact choices, then call order_prepare for the entire basket. Never omit brand/SKU when returned. A modifier count is PER UNIT: two extra shots on three coffees means count:2 and quantity:3. Search prices are not checkout totals. Never invent a total or native IDs.', hasMore: result.hasMore };
+      const catalog=createCatalog({operation:fn=>fn(context),store,now,fetchImpl});
+      const cart=await catalog.loadCart(context);
+      const addressRequest=includeAddresses?context.send(endpoints.addresses,{form:cartBinding(cart),readOnly:true}).then(value=>({addresses:publicData(value).address})).catch(error=>({addressesError:{code:error.code??'ADDRESSES_FAILED',message:error.message}})):Promise.resolve({});
+      const settled=await Promise.allSettled(unique.map(async searchQuery=>{
+        const result=await catalog.search({query:searchQuery,limit:20});
+        const exact=result.items.filter(item=>normalizeLabel(item.ProductName)===normalizeLabel(searchQuery));
+        const selected=exact.length===1?exact[0]:result.items.length===1?result.items[0]:null;
+        let options;
+        if(selected){
+          const detail=await context.send(endpoints.product,{form:{internal_product_id:String(selected.ECRSID??selected.objectID),cart_id:cart.cartId},readOnly:true});
+          if(detail.product)options=productOptions(detail.product);
+        }
+        const products=result.items.map(item=>({name:item.ProductName,brand:item.BrandName,sku:item.SKU,
+          item:{name:item.ProductName,brand:item.BrandName??'',sku:item.SKU??'',quantity:1,choices:[],instruction:''},
+          productRef:String(item.ECRSID??item.objectID),referenceKind:'catalog_reference',hasOptions:item.has_modifier}));
+        return {query:searchQuery,...(options?{options}:{}),products,
+          status:'search_results_only',orderPrepared:false,orderPlaced:false,
+          nextTool:options||products.length&&products.every(item=>item.hasOptions===false)?'order_prepare':'product_options',
+          next:'Use included options; do not fetch them again. Copy the selected item identity, quantity and exact choices into order_prepare for the whole basket. Confirm ambiguous products with the user; never invent choices or totals. A count is per item and defaults to one.',hasMore:result.hasMore};
+      }));
+      const addressResult=await addressRequest;
+      if(!batch){if(settled[0].status==='rejected')throw settled[0].reason;return {...settled[0].value,...addressResult};}
+      const results=settled.map((entry,index)=>entry.status==='fulfilled'?entry.value:{query:unique[index],status:'discovery_failed',error:{code:entry.reason.code??'DISCOVERY_FAILED',message:entry.reason.message},orderPrepared:false,orderPlaced:false});
+      return {status:results.some(entry=>entry.error)||addressResult.addressesError?'partial_search_results':'search_results_only',
+        ...addressResult, results,orderPrepared:false,orderPlaced:false,
+        nextTool:results.some(entry=>entry.error)?'product_find':addressResult.addressesError?'product_find':unique.length?'order_prepare':undefined,
+        next:'All requested searches are returned together. Reuse included options and do not search completed products again. Retry only failed queries; for a failed address read use queries:[] and includeAddresses:true. If each intended product and its choices are established, call order_prepare ONCE for the entire basket; ask about unresolved ambiguity instead of choosing for the user.'};
     });
   }
   async function prepare({ name, checkoutOptions = {} }) {

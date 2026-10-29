@@ -15,7 +15,7 @@ export default function (pi) {
   for(const tool of orderingToolManifest.tools.filter(tool=>allowed.has(tool.name)))pi.registerTool({
     name:tool.name,label:tool.name,description:tool.description,parameters:tool.inputSchema,
     async execute(_id,args){
-      const commands={order_prepare_saved:['order','prepare','--recipe',args.name],addresses:['addresses'],product_find:['product','find','--query',args.query],product_options:['product','options','--product-ref',args.productRef],recipe_show:['recipe','show','--name',args.name],order_status:['order','status','--plan-id',args.planId],
+      const commands={order_prepare_saved:['order','prepare','--recipe',args.name],addresses:['addresses'],product_find:['product','find','--json',JSON.stringify(args)],product_options:['product','options','--product-ref',args.productRef],recipe_show:['recipe','show','--name',args.name],order_status:['order','status','--plan-id',args.planId],
         order_prepare:args.recipe?['order','prepare','--recipe',args.recipe]:['order','prepare','--json',JSON.stringify(args)]};
       let result;
       try{

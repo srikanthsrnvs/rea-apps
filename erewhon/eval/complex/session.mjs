@@ -39,7 +39,7 @@ export async function session(key,trace){
   let passed=!placements;
   if(s.error){
    const discoveryStop = ['missing','ambiguous','unavailable','invalidtail'].includes(key) && results.some(e=>e.name==='product_find'||e.name==='product_options')
-    && (key==='missing'?/cannot find|unable to find|could not find|not find|not.*available|unavailable/i.test(final):key==='ambiguous'?/which|brand|prefer|choose/i.test(final):/unavailable|not available|not.*offer|not.*available|only.*whole/i.test(final));
+    && (key==='missing'?/cannot find|unable to find|could not find|not find|not.*available|unavailable/i.test(final):key==='ambiguous'?/which|brand|prefer|choose/i.test(final):/unavailable|not available|not.*offer|not.*available|only.*whole|isn.t listed|not listed/i.test(final));
    passed&&=(results.some(e=>e.result.error?.code===s.error)||discoveryStop)&&!prepared;
    if(s.occupied||s.partial)passed&&=JSON.stringify(f.rows)===JSON.stringify(initial);
    else if(s.error!=='PAYMENT_CHANGED')passed&&=f.rows.length===0;

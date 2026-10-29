@@ -8,7 +8,7 @@ harness, tools and inference ran locally on the Mac; live shopping requests
 were made by the headless Orin CLI.
 
 The expanded multi-item comparison and reproduction instructions are in
-[complex/README.md](complex/README.md). The seven ordering tools now separate
+[complex/README.md](complex/README.md). The ordering tools now separate
 fresh basket preparation from saved recipe preparation, and discovery includes
 options for a unique exact name match.
 

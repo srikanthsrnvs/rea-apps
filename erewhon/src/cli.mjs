@@ -42,10 +42,11 @@ try {
     'order prepare':['recipe','json','payment-method-id','schedule-type-id','time','date','shopper-tip-id','driver-tip-id','redeem-points','coupon-code'],
     'order confirm':['plan-id','confirm'],'order status':['plan-id'],
     'recipe save':['name','request','json'],'recipe show':['name'],'recipe reset':['name'],
-    'product find':['query'],'product options':['product-ref']
+    'product find':['query','json'],'product options':['product-ref']
   };
   if(specificOptions[command])for(const key of Object.keys(v))if(!['help','raw',...specificOptions[command]].includes(key))throw new Error(`--${key} is not valid for ${command}. Put product quantity and choices in the recipe/request.`);
   if(command==='order prepare'&&v.recipe&&v.json!==undefined)throw new Error('Use a recipe name or an inline request, not both.');
+  if(command==='product find'&&v.query!==undefined&&v.json!==undefined)throw new Error('Use --query or --json, not both.');
   if(command==='recipe save'&&v.request&&v.json!==undefined)throw new Error('Use --json or --request, not both.');
   const checkoutOptions=()=>Object.fromEntries(Object.entries({paymentMethodId:v['payment-method-id'],scheduleTypeId:v['schedule-type-id'],time:v.time,scheduleDate:v.date,shopperTipId:v['shopper-tip-id'],driverTipId:v['driver-tip-id'],redeemPoints:number(v['redeem-points']),couponCode:v['coupon-code']}).filter(([,value])=>value!==undefined));
   let result;
@@ -71,6 +72,7 @@ erewhon fulfillment select --type delivery --address-id ID [--store-id ID]
 erewhon categories [--department SLUG]
 erewhon search --query TEXT [--index STORE_INDEX --page 0 --limit 20]
 erewhon product find --query NAME
+erewhon product find --json DISCOVERY_JSON   JSON: {"queries":["Cappuccino","Breakfast Burrito"]}
 erewhon product options --product-ref REF
 erewhon recipe save --name usual-coffee --request FILE
 erewhon recipe show|reset --name usual-coffee
@@ -117,7 +119,7 @@ Only order confirm dispatches and pays. Show the full review and obtain approval
     else if(command==='fulfillment select')result=await catalog.selectFulfillment({type:v.type,storeId:v['store-id'],addressId:v['address-id']});
     else if(command==='categories')result=await catalog.categories({department:v.department});
     else if(command==='search')result=await catalog.search({query:v.query??'',index:v.index,department:v.department,brand:v.brand,category:v.category,subCategory:v['sub-category'],page:number(v.page,0),limit:number(v.limit,20),day:number(v.day)});
-    else if(command==='product find')result=await recipes.find({query:v.query});
+    else if(command==='product find')result=await recipes.find(v.json!==undefined?parseJSON(v.json):{query:v.query});
     else if(command==='product options')result=await recipes.options({productRef:v['product-ref']});
     else if(command==='recipe save')result=await recipes.save({name:v.name,recipe:v.json!==undefined?parseJSON(v.json):await jsonFile(v.request)});
     else if(command==='recipe show')result=await recipes.show({name:v.name});

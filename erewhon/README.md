@@ -1,6 +1,6 @@
 # Erewhon CLI
 
-Headless HTTP tools for Erewhon SMS login, account information, membership, rewards, purchase history, product search, pickup and delivery carts, and reviewed order submission. Commands return JSON; `erewhon tools` exposes the recommended interface for models. `tools --profile ordering` gives a small model seven ordering tools (including saved recipes and delivery addresses); `tools --advanced` includes the native ID/file interface.
+Headless HTTP tools for Erewhon SMS login, account information, membership, rewards, purchase history, product search, pickup and delivery carts, and reviewed order submission. Commands return JSON; `erewhon tools` exposes the recommended interface for models. `tools --profile ordering` gives a small model six ordering tools (including saved recipes and delivery addresses); `tools --advanced` includes the native ID/file interface.
 
 The runtime needs Node.js 22.19 or newer. Login accepts the verification code in the CLI. No Android device, Java, browser, display server, tunnel, or developer API key input is required. Search uses the public search key shipped by Erewhon’s website.
 
@@ -64,9 +64,30 @@ Use `order_prepare_saved({name: "usual-coffee"})` for an existing recipe; this
 is one tool call. Recipe management commands remain available in
 `tools --advanced`.
 
-Discover choices with `product find --query Cappuccino`. A unique exact name
-match includes named sizes and groups in the same response; use
-`product options --product-ref CATALOG_REFERENCE` if options were not included. `recipe show --name usual-coffee` reads the saved intent.
+Discover the whole basket in one call:
+
+```sh
+erewhon product find --json '{"queries":["Cappuccino","Breakfast Burrito","Mountain Spring Water"]}'
+# Delivery: return saved addresses in the same response.
+erewhon product find --json '{"queries":["Cappuccino"],"includeAddresses":true}'
+# Address-only lookup, with no product searches.
+erewhon product find --json '{"queries":[],"includeAddresses":true}'
+```
+
+The model tool is `product_find({queries, includeAddresses?})`. Results include
+options for an unambiguous exact name or sole search result; this does not select
+an ambiguous product for the user. Repeated query names are deduplicated. Each
+result identifies its query, so partial failures can be retried without repeating
+successful lookups. Up to twelve distinct product searches fit in one call.
+`product options --product-ref CATALOG_REFERENCE` remains available when options
+were not included. Single-product `product find --query NAME` stays compatible.
+The standalone `addresses` command also remains available, including in the
+advanced tool manifest; the small ordering profile uses combined discovery.
+If exact product identities and choices are already known, prepare directly;
+the CLI still resolves fresh server IDs internally. A saved recipe needs only
+`order_prepare_saved`.
+
+`recipe show --name usual-coffee` reads saved intent without preparing an order.
 Names match exactly, ignoring case and whitespace. Ambiguous products, missing
 options or occupied carts stop explicitly; the CLI does not guess or clear the
 cart. Repeating preparation of an unchanged recipe draft reuses its existing

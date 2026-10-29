@@ -9,7 +9,7 @@ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'erewhon-cli-'));
 const run=(...args)=>spawnSync(process.execPath,[new URL('../bin/erewhon',import.meta.url).pathname,...args],{encoding:'utf8',env:{...process.env,EREWHON_CLI_STATE_DIR:directory}});
 test.after(()=>fs.rm(directory,{recursive:true,force:true}));
 test('CLI exposes authenticated account, catalog, both fulfillment modes and reviewed ordering tools',()=>{
- const result=run('tools');assert.equal(result.status,0);const tools=JSON.parse(run('tools','--advanced').stdout).tools;assert.ok(!JSON.parse(result.stdout).tools.some(t=>t.name==='cart_add'));assert.equal(JSON.parse(run('tools','--profile','ordering').stdout).tools.length,7);
+ const result=run('tools');assert.equal(result.status,0);const tools=JSON.parse(run('tools','--advanced').stdout).tools;assert.ok(!JSON.parse(result.stdout).tools.some(t=>t.name==='cart_add'));assert.equal(JSON.parse(run('tools','--profile','ordering').stdout).tools.length,6);
  for(const name of ['auth_login','auth_complete','membership','rewards','history','receipt','search','fulfillment_select','cart_add','order_prepare','order_confirm','order_operation','product_find','product_options','recipe_save','recipe_show','recipe_reset','order_status'])assert.ok(tools.some(t=>t.name===name));
  assert.match(run('help').stdout,/pickup and delivery/);assert.equal(JSON.parse(run('login').stdout).status,'phone_required');
 });
@@ -33,4 +33,15 @@ test('ordering rejects ignored quantity flags and conflicting recipe inputs befo
  for(const args of [['order','prepare','--recipe','usual-coffee','--quantity','4'],['order','prepare','--recipe','usual-coffee','--json','{}'],['recipe','save','--name','coffee','--request','missing.json','--json','{}'],['order','confirm','--plan-id','id','--quantity','4','--confirm']]){
   const result=run(...args);assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/not valid|not both/);
  }
+});
+
+test('batch discovery rejects conflicting sources, malformed input and unsupported fields before authentication',()=>{
+ for(const args of [
+  ['product','find','--query','Cappuccino','--json','{"queries":["Cappuccino"]}'],
+  ['product','find','--json','{"queries":[]}'],
+  ['product','find','--json','{"queries":["Cappuccino"],"quantity":4}']
+ ]){const result=run(...args);assert.equal(result.status,1);assert.equal(result.stdout,'');assert.doesNotMatch(result.stderr,/AUTH_REQUIRED/);}
+ const manifest=JSON.parse(run('tools','--profile','ordering').stdout);
+ const schema=manifest.tools.find(t=>t.name==='product_find').inputSchema;
+ assert.deepEqual(schema.required,['queries']);assert.equal(schema.properties.includeAddresses.type,'boolean');
 });

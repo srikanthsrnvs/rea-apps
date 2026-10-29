@@ -29,6 +29,31 @@ correctly rejected at discovery without making a doomed preparation call.
 Final prose and trajectory comparisons still require inspection: regex checks
 cannot establish that every statement is true or that every agent will succeed.
 
+## Batch discovery in v0.3.1
+
+`product_find` accepts all basket queries together and can include saved delivery
+addresses. Address-only reads use an empty query list plus `includeAddresses:true`.
+The six-tool ordering profile retains the standalone address capability through
+combined discovery; the original `addresses` CLI/advanced tool is unchanged.
+Fresh preparations can therefore use discovery → prepare; saved preparations
+still take one call. Known exact labels can go straight to preparation.
+
+An eight-case frozen Pi/Qwen comparison kept all cart/outcome assertions passing
+while reducing total attempted calls from 23 to 20 against the latest prior
+runs of those same cases. Rejected argument calls count toward this total.
+Clarifying the base-product query and fallback-only options descriptions then
+passed five targeted checks: mixed baskets and delivery each took two calls,
+an unavailable-choice request stopped after discovery, and known labels used
+one successful preparation plus one rejected argument attempt. These phases
+are recorded separately in `results.json`, with source hashes.
+
+All 173 automated checks pass on macOS and Linux ARM64. Read-only live Linux
+checks returned two actual products with options and saved addresses in one CLI
+call, and verified address-only lookup. No cart item or order was created.
+Partial errors preserve completed lookups; retry only failed queries. Duplicate
+queries are coalesced and cart context initializes once per batch. Fresh cart,
+identity, modifier and checkout validation during preparation is unchanged.
+
 ## Observed results (October 29, 2026)
 
 - The frozen 27-case comparison passed all cart/outcome assertions, including

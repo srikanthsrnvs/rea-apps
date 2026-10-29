@@ -23,6 +23,8 @@ export const scenarios={
 };
 // Regression for a real-menu failure: capacity was mistaken for requested count.
 scenarios['modifier-defaults']={prompt:'Prepare 2 Large 16 oz Cappuccinos with Oat Milk, Vanilla Syrup, Extra Hot. Venice pickup ASAP. Do not add extra espresso shots. Show the real quote; do not buy.',request:{...cap(2,{choices:[choice('Milk','Oat Milk'),choice('Extras','Vanilla Syrup'),choice('Temperature','Extra Hot')]}),fulfillment:pickup},generousLimits:true};
+// Product identities/labels already known from prior discovery: no new lookup needed.
+scenarios['known-labels']={prompt:'Prepare for Venice pickup ASAP using these already known exact catalog labels: Cappuccino, brand Erewhon, SKU CAP; quantity 1, size Large 16 oz; choice group Milk, option Whole Milk, one portion; no kitchen instructions. Show the current server checkout total and do not buy.',request:{...cap(1,{choices:[choice('Milk','Whole Milk')]}),fulfillment:pickup},known:true};
 // Held-out variations generated before running Qwen, using a fixed seed.
 // The prompts and expected specifications are shared by both evaluations.
 let randomState=20261029;

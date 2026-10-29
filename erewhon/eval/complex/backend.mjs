@@ -13,7 +13,7 @@ export const catalogData=[
  {name:'Spring Water',sku:'WAT',brand:'Mountain',price:3,groups:[]},
  {name:'Spring Water',sku:'WAT2',brand:'Alpine',price:4,groups:[]},
 ];
-export function backend() {
+export function backend({failQuery,failAddress=false}={}) {
  const f={rows:[],calls:[],records:new Map(),rotation:'initial',type:'pickup',storeName:'Venice',dropAt:0,addCount:0,retired:false,forceAmbiguous:false,reverseRows:false};
  const session={token:'fixture-only',deviceId:'eval-device',account:{id:'eval-user'}};
  const store={readState:async key=>clone(f.records.get(key)??null),saveState:async(key,val)=>f.records.set(key,clone(val))};
@@ -30,6 +30,7 @@ export function backend() {
   if(path==='/v1/usercart')return {error:0,cart:{allow_checkout:true,all_product_available:true,departments:[{products:clone(f.reverseRows?[...f.rows].reverse():f.rows)}]}};
   if(path==='/v1/stores')return {error:0,stores:['Venice','Grove'].map(name=>({_id:name.toLowerCase(),name}))};
   if(path==='/v1/default_stores'){f.storeName=opts.form.store_id==='grove'?'Grove':'Venice';return {error:0};}
+  if(path==='/v1/alladdress'&&failAddress)throw new Error('Injected address read failure');
   if(path==='/v1/alladdress')return {error:0,address:[address]};
   if(path.startsWith('/v1/set_address/'))return {error:0};
   if(path==='/v1/select_ordermethod'){f.type=opts.form.order_method;return {error:0};}
@@ -52,7 +53,7 @@ export function backend() {
   throw new Error(`Unexpected endpoint ${path}`);
  }
  const operation=fn=>enqueue(()=>fn({session,send}));
- const fetchImpl=async (_url,opts)=>{const {query,page,hitsPerPage}=JSON.parse(opts.body);let hits=products().filter(p=>query.toLowerCase().split(/\s+/).filter(Boolean).every(token=>`${p.brands.name} ${p.name}`.toLowerCase().includes(token.replace(/s$/,'')))).map(p=>({ProductName:p.name,BrandName:p.brands.name,SKU:p.sku,ECRSID:p.internal_product_id,DisplayPrice:p.price,has_modifier:Boolean(p.modifier_size?.length||p.modifier_groups?.modifier_sets.length)}));
+ const fetchImpl=async (_url,opts)=>{const {query,page,hitsPerPage}=JSON.parse(opts.body);if(query===failQuery)throw new Error("Injected catalog connection failure");let hits=products().filter(p=>query.toLowerCase().split(/\s+/).filter(Boolean).every(token=>`${p.brands.name} ${p.name}`.toLowerCase().includes(token.replace(/s$/,'')))).map(p=>({ProductName:p.name,BrandName:p.brands.name,SKU:p.sku,ECRSID:p.internal_product_id,DisplayPrice:p.price,has_modifier:Boolean(p.modifier_size?.length||p.modifier_groups?.modifier_sets.length)}));
  if(f.forceAmbiguous)hits=hits.flatMap(h=>[h,{...h,ECRSID:`duplicate-${h.ECRSID}`}]);
  return {ok:true,json:async()=>({page,nbPages:Math.ceil(hits.length/hitsPerPage),nbHits:hits.length,hits:hits.slice(page*hitsPerPage,(page+1)*hitsPerPage)})};};
  const dependencies={operation,store,fetchImpl};
