@@ -7,7 +7,14 @@ architecture `qwen35moe`. It was not trained or fine-tuned for this task. The
 harness, tools and inference ran locally on the Mac; live shopping requests
 were made by the headless Orin CLI.
 
-## What changed after actual failures
+The expanded multi-item comparison and reproduction instructions are in
+[complex/README.md](complex/README.md). The seven ordering tools now separate
+fresh basket preparation from saved recipe preparation, and discovery includes
+options for a unique exact name match.
+
+## Earlier v0.2 evaluation (historical)
+
+### What changed after actual failures
 
 The first broad-interface run eventually prepared a drink, but needed ten tool
 calls and two errors, including putting modifier JSON into a filename argument.
@@ -27,7 +34,7 @@ The revised surface therefore:
 - Distinguishes a prepared review, confirmed placement and an unknown payment
   outcome explicitly. Unknown results warn against starting over or paying again.
 
-## Final bounded results
+### Original bounded results
 
 | Scenario | Observed tool calls | Result |
 | --- | --- | --- |
@@ -39,7 +46,7 @@ The revised surface therefore:
 | Repeated preparation | show → prepare | One cart row, quantity one |
 | Ambiguous product | show → prepare | Asks for clarification; no addition |
 
-All seven final scenarios passed. The implementation also passed all 146
+All seven final scenarios passed on the v0.2 tool surface. The implementation also passed all 146
 automated checks on both macOS and Linux ARM64. `results.json` records the calls and state
 assertions. Final responses were also inspected; grading checks for fabricated
 prices/alternatives and unsafe retry advice. This is a bounded regression

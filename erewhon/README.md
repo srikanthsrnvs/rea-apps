@@ -1,6 +1,6 @@
 # Erewhon CLI
 
-Headless HTTP tools for Erewhon SMS login, account information, membership, rewards, purchase history, product search, pickup and delivery carts, and reviewed order submission. Commands return JSON; `erewhon tools` exposes the recommended interface for models. `tools --profile ordering` gives a small model just eight ordering tools; `tools --advanced` includes the native ID/file interface.
+Headless HTTP tools for Erewhon SMS login, account information, membership, rewards, purchase history, product search, pickup and delivery carts, and reviewed order submission. Commands return JSON; `erewhon tools` exposes the recommended interface for models. `tools --profile ordering` gives a small model seven ordering tools (including saved recipes and delivery addresses); `tools --advanced` includes the native ID/file interface.
 
 The runtime needs Node.js 22.19 or newer. Login accepts the verification code in the CLI. No Android device, Java, browser, display server, tunnel, or developer API key input is required. Search uses the public search key shipped by Erewhon’s website.
 
@@ -56,17 +56,72 @@ Delivery minimums and other existing checkout checks still apply.
 For a one-off order, use `order prepare --json REQUEST_JSON` with the same recipe
 shape. No saved recipe or temporary file is needed. `recipe save` also accepts
 inline `--json RECIPE_JSON`, while `--request FILE` remains available for scripts.
-The machine tool schema accepts the structured `request` or `recipe` object.
+Agent tools use a flat call shape with `order_prepare({items, pickupStore})` or
+`order_prepare({items, deliveryAddressId})`. Each item copies `name`, `brand` and
+`sku` from discovery, plus quantity, size, named choices and literal kitchen
+instructions (empty if none). The CLI accepts this same shape with `--json`.
+Use `order_prepare_saved({name: "usual-coffee"})` for an existing recipe; this
+is one tool call. Recipe management commands remain available in
+`tools --advanced`.
 
-Discover choices once with `product find --query cappuccino`, then
-`product options --product-ref CATALOG_REFERENCE`. These return concise named
-sizes and groups. `recipe show --name usual-coffee` reads the saved intent.
+Discover choices with `product find --query Cappuccino`. A unique exact name
+match includes named sizes and groups in the same response; use
+`product options --product-ref CATALOG_REFERENCE` if options were not included. `recipe show --name usual-coffee` reads the saved intent.
 Names match exactly, ignoring case and whitespace. Ambiguous products, missing
 options or occupied carts stop explicitly; the CLI does not guess or clear the
 cart. Repeating preparation of an unchanged recipe draft reuses its existing
 item rather than adding another. If an addition was interrupted, inspect the
 cart first; after removing that draft's item, `recipe reset --name usual-coffee`
 clears its journal only if the cart is empty.
+
+Mixed orders use `items` with one named specification per customization:
+
+```json
+{
+  "pickupStore": "Venice",
+  "items": [
+    {
+      "name": "Cappuccino",
+      "brand": "Erewhon",
+      "sku": "030162",
+      "quantity": 2,
+      "size": "Large 16 oz",
+      "choices": [
+        {
+          "group": "Milk",
+          "option": "Organic Whole Milk (Clover Sonoma)"
+        }
+      ],
+      "instruction": ""
+    },
+    {
+      "name": "Cappuccino",
+      "brand": "Erewhon",
+      "sku": "030162",
+      "quantity": 1,
+      "size": "Small 8 oz",
+      "choices": [
+        {
+          "group": "Milk",
+          "option": "Organic Whole Milk (Clover Sonoma)"
+        }
+      ],
+      "instruction": ""
+    }
+  ]
+}
+```
+
+Copy current labels from discovery; this example does not establish availability.
+An omitted modifier `count` means **one**. `maxAllowedCount` is only a limit,
+not the amount to select. An explicit `count` applies to **each item**: three drinks with two extra shots
+means `quantity: 3` and the shot choice's `count: 2`. All basket lines are
+validated before the first addition. A missing choice in the last line leaves
+no partial basket. A network failure during additions can leave a partial cart;
+the durable journal then blocks replay. The CLI never clears it automatically.
+Separate customizations remain separate lines; identical specifications combine
+quantities. The final review verifies each line, including instructions, against
+the server cart. Legacy single-product requests remain supported.
 
 Search's `ECRSID`/`objectID` is a **catalog reference**. The returned
 `product._id` is a different **native product ID**, used only internally for

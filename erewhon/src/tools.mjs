@@ -10,7 +10,7 @@ export const advancedToolManifest={
   recommendedWorkflow:['product_find → product_options once','recipe_save with product name, size and named options','order_prepare with recipe name → show returned review','order_confirm only after approval','order_status after interruption; completed means orderPlaced:true with orderId'],
   identityRules:'Catalog references (ECRSID/internal_product_id) and native product._id are different. Never persist native product, size, modifier, cart-row, schedule or payment IDs in a recurring recipe. Recipes resolve fresh catalog and modifier identities inside the CLI. Prepared is not placed; uncertain means unknown, never success.',
   tools:[
-    tool('product_find','erewhon product find --query NAME','Find products in the currently selected store. Returns clearly labelled catalog references and exact names/brands/SKUs for a reusable recipe.',{query:text},['query']),
+    tool('product_find','erewhon product find --query NAME','Find products and, for a unique exact name match, all named sizes/options in one call. Reuse included options; do not call product_options again. Discover each product, then call order_prepare for the entire basket. Search alone does not prepare an order.',{query:text},['query']),
     tool('product_options','erewhon product options --product-ref REF','Read fresh named sizes and modifier groups/options. Save their labels in a recipe; do not copy native IDs.',{productRef:identity},['productRef']),
     tool('recipe_save','erewhon recipe save --name NAME --json RECIPE_JSON','Save a reusable recipe by exact product name and named choices, without placing an order. Resolve labels once with product_find/product_options; never store native IDs. Pickup recipes need a store name. Always show each fresh review before confirmation.',{
       name:{type:'string',pattern:'^[a-z][a-z0-9-]{0,63}$'},
@@ -58,14 +58,43 @@ export const advancedToolManifest={
   ],
 };
 
+// Basket requests keep the same named item shape; fulfillment applies to all lines.
+const recipeSchema=advancedToolManifest.tools.find(tool=>tool.name==='recipe_save').inputSchema.properties.recipe;
+const itemKeys=['product','quantity','size','choices','instruction'];
+recipeSchema.properties.choices.items.required=['group','option'];
+recipeSchema.properties.choices.items.properties.count.default=1;
+recipeSchema.properties.choices.items.properties.count.description='Defaults to ONE per item; OMIT unless the user explicitly asks for multiple portions. Two extra shots means count:2 even with quantity:3 drinks. maxAllowedCount is a LIMIT, never a default.';
+const itemSchema={type:'object',additionalProperties:false,required:['product'],properties:Object.fromEntries(itemKeys.map(key=>[key,recipeSchema.properties[key]]))};
+recipeSchema.required=['fulfillment'];
+recipeSchema.properties.items={type:'array',minItems:1,maxItems:30,items:itemSchema};
+recipeSchema.properties.fulfillment={
+ type:'object',additionalProperties:false,required:['type'],
+ description:'Required location for the entire basket. For pickup supply store using the name the user gave (e.g. Venice). For delivery list addresses and copy addressId.',
+ properties:{type:{type:'string',enum:['pickup','delivery']},store:{...text,description:'Required for pickup. Exact store name, such as Venice or Grove.'},addressId:{...identity,description:'Required for delivery. Use addresses to retrieve it.'}},
+ oneOf:[{properties:{type:{const:'pickup'}},required:['store'],not:{required:['addressId']}},{properties:{type:{const:'delivery'}},required:['addressId'],not:{required:['store']}}]
+};
+recipeSchema.oneOf=[{required:['product'],not:{required:['items']}},{required:['items'],not:{anyOf:itemKeys.map(key=>({required:[key]}))}}];
+
 // Small models should not need native IDs, temporary files or manual cart setup.
-const orderingToolNames=new Set(['product_find','product_options','recipe_save','recipe_show','recipe_reset','order_prepare','order_confirm','order_status']);
+const orderingToolNames=new Set(['product_find','product_options','recipe_save','recipe_show','recipe_reset','order_prepare','order_confirm','order_status','addresses']);
 const accountToolNames=new Set(['auth_login','auth_complete','auth_poll','auth_cancel','auth_validate','auth_status','auth_logout','profile','membership','rewards','history','receipt','stores','addresses','order_detail']);
 const specificationSchema=advancedToolManifest.tools.find(tool=>tool.name==='recipe_save').inputSchema.properties.recipe;
-const simpleOrdering=advancedToolManifest.tools.filter(tool=>orderingToolNames.has(tool.name)).map(tool=>tool.name==='order_prepare'?{
- ...tool, command:'erewhon order prepare --recipe NAME | --json REQUEST_JSON',
- description:'Prepare an order for review in ONE call: when the user names a saved recipe (such as usual-coffee), use that recipe name directly or look it up with recipe_show; do not ask whether it exists. Supply either a saved recipe name, or request containing the exact product name, quantity, size, named choices and pickup store/delivery address. Resolves fresh IDs, verifies cart contents and customizations, and returns current total/payment/window. Does NOT purchase. You MUST receive status:prepared from this tool before claiming the order is ready or quoting its total. If it fails, correct the request using available labels and call again. Never invent prices. Copy exact size/group/option labels without shortening them. If choices are unknown, use product_find then product_options first. Repeated unchanged requests do not add duplicates.',
- inputSchema:{type:'object',additionalProperties:false,properties:{recipe:text,request:specificationSchema},oneOf:[{required:['recipe']},{required:['request']}]}
+const flatItemSchema={type:'object',additionalProperties:false,required:['name','brand','sku','quantity','choices','instruction'],properties:{
+ name:{...text,description:'Exact product name from product_find.'},brand:{type:'string',description:'Copy brand from the selected search result. Empty string only if no brand was returned.'},sku:{type:'string',description:'Copy SKU from the selected search result. Empty string only if none returned.'},
+ quantity:{type:'number',exclusiveMinimum:0,maximum:1000},size:{...text,description:'Exact size label, if this product has sizes.'},
+ choices:specificationSchema.properties.choices,instruction:{type:'string',maxLength:2000,description:'Kitchen instructions from the user, e.g. Cut in half. Copy only the user’s literal kitchen instruction. Do not restate modifiers or invent directions. Use empty text if none.'}
+}};
+const simpleOrdering=advancedToolManifest.tools.filter(tool=>orderingToolNames.has(tool.name)&&!['recipe_save','recipe_show','recipe_reset'].includes(tool.name)).map(tool=>tool.name==='order_prepare'?{
+ ...tool, command:'erewhon order prepare --json REQUEST_JSON',
+ description:'Prepare an exact basket for review without buying. For a saved recipe use order_prepare_saved instead. Supply items (one line per different customization) and pickupStore OR deliveryAddressId. Copy names and choices from product_find; it already includes options for unique exact matches. Modifier count is PER DRINK: two extra shots on three coffees means quantity:3 and count:2. All lines are validated before adding any; unavailable choices stop without substitutions. Repeating the unchanged draft does not duplicate it. Return the actual server checkout review. Only status:prepared means ready; never estimate a checkout total from menu prices. Stop on unavailable choices, wrong payment, occupied cart or unresolved draft; do not silently alter the request.',
+ inputSchema:{type:'object',additionalProperties:false,required:['items'],properties:{
+ items:{type:'array',minItems:1,maxItems:30,items:flatItemSchema,description:'Entire basket, including separately customized drinks.'},
+ pickupStore:{...text,description:'Pickup store name provided by the user, such as Venice or Grove.'},
+ deliveryAddressId:{...identity,description:'For delivery only, copy a saved address ID from addresses.'},
+ paymentLast4:{type:'string',pattern:'^[0-9]{4}$',description:'Only when user requires a particular card. Mismatch stops.'}
+ }}
 }:tool);
-export const orderingToolManifest={...advancedToolManifest,profile:'ordering',tools:simpleOrdering};
-export const toolManifest={...advancedToolManifest,profile:'recommended',advancedTools:'erewhon tools --advanced',tools:[...simpleOrdering,...advancedToolManifest.tools.filter(tool=>accountToolNames.has(tool.name))]};
+simpleOrdering.push(tool('order_prepare_saved','erewhon order prepare --recipe NAME','Prepare a SAVED recipe by its name in one call, including current availability, exact cart verification and the real checkout total. When the user names a saved recipe, pass that name here directly; do not ask them to repeat its stored details. Also use this to inspect an interrupted saved draft: an unresolved addition stops safely without replay. Does not buy.',{name:{...text,description:'The saved recipe name given by the user.'}},['name']));
+const simpleWorkflow=['Fresh basket: product_find for each product → order_prepare with items and pickupStore or deliveryAddressId → show review','Saved preferences: order_prepare_saved with name → show review','order_confirm only after explicit approval of the exact review','order_status after interruption; only orderPlaced:true plus orderId proves placement'];
+export const orderingToolManifest={...advancedToolManifest,profile:'ordering',recommendedWorkflow:simpleWorkflow,tools:simpleOrdering};
+export const toolManifest={...advancedToolManifest,profile:'recommended',recommendedWorkflow:simpleWorkflow,advancedTools:'erewhon tools --advanced',tools:[...simpleOrdering,...advancedToolManifest.tools.filter(tool=>accountToolNames.has(tool.name)&&!orderingToolNames.has(tool.name))]};

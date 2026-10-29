@@ -9,7 +9,7 @@ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'erewhon-cli-'));
 const run=(...args)=>spawnSync(process.execPath,[new URL('../bin/erewhon',import.meta.url).pathname,...args],{encoding:'utf8',env:{...process.env,EREWHON_CLI_STATE_DIR:directory}});
 test.after(()=>fs.rm(directory,{recursive:true,force:true}));
 test('CLI exposes authenticated account, catalog, both fulfillment modes and reviewed ordering tools',()=>{
- const result=run('tools');assert.equal(result.status,0);const tools=JSON.parse(run('tools','--advanced').stdout).tools;assert.ok(!JSON.parse(result.stdout).tools.some(t=>t.name==='cart_add'));assert.equal(JSON.parse(run('tools','--profile','ordering').stdout).tools.length,8);
+ const result=run('tools');assert.equal(result.status,0);const tools=JSON.parse(run('tools','--advanced').stdout).tools;assert.ok(!JSON.parse(result.stdout).tools.some(t=>t.name==='cart_add'));assert.equal(JSON.parse(run('tools','--profile','ordering').stdout).tools.length,7);
  for(const name of ['auth_login','auth_complete','membership','rewards','history','receipt','search','fulfillment_select','cart_add','order_prepare','order_confirm','order_operation','product_find','product_options','recipe_save','recipe_show','recipe_reset','order_status'])assert.ok(tools.some(t=>t.name===name));
  assert.match(run('help').stdout,/pickup and delivery/);assert.equal(JSON.parse(run('login').stdout).status,'phone_required');
 });

@@ -32,7 +32,7 @@ export default async function (pi) {
   record({ type: 'setup', scenario, prompt: prompts[scenario], seedPlanId: plan?.planId });
   pi.on('before_agent_start', () => ({ systemPrompt: 'You are a shopping assistant. Use the provided tools to fulfill the user request. Report actual outcomes accurately.' }));
   pi.on('input', event => event.text === '__EREWHON_SCENARIO__' ? { action: 'transform', text: prompts[scenario] } : { action: 'continue' });
-  const allowed = new Set(['product_find','product_options','recipe_save','recipe_show','recipe_reset','order_status','stores','fulfillment','fulfillment_select','search','product','cart','cart_add','cart_update','cart_remove','checkout','order_prepare','order_confirm','order_detail','order_operation']);
+  const allowed = new Set(['product_find','product_options','recipe_save','recipe_show','recipe_reset','order_status','stores','fulfillment','fulfillment_select','search','product','cart','cart_add','cart_update','cart_remove','checkout','order_prepare','order_prepare_saved','order_confirm','order_detail','order_operation']);
   let count = 0;
   for (const tool of (process.env.EREWHON_EVAL_PROFILE==='advanced'?advancedToolManifest:process.env.EREWHON_EVAL_PROFILE==='ordering'?orderingToolManifest:toolManifest).tools.filter(tool => allowed.has(tool.name))) pi.registerTool({
     name: tool.name, label: tool.name, description: tool.description,
@@ -60,7 +60,8 @@ export default async function (pi) {
           case 'cart_update': throw new Error('This tool requires a cart update file. Use a recipe or inspect the cart.');
           case 'cart_remove': result = await f.ordering.removeCartItem(args); break;
           case 'checkout': result = await f.ordering.checkout(args); break;
-          case 'order_prepare': result = args.request ? await f.api.prepareRequest({request:args.request}) : args.recipe ? await f.api.prepare({name:args.recipe,checkoutOptions:Object.fromEntries(Object.entries(args).filter(([key])=>key!=='recipe'))}) : await f.ordering.prepareOrder(args); break;
+          case 'order_prepare_saved': result=await f.api.prepare(args); break;
+          case 'order_prepare': result = args.items ? await f.api.prepareRequest({request:args}) : args.request ? await f.api.prepareRequest({request:args.request}) : args.recipe ? await f.api.prepare({name:args.recipe,checkoutOptions:Object.fromEntries(Object.entries(args).filter(([key])=>key!=='recipe'))}) : await f.ordering.prepareOrder(args); break;
           case 'order_confirm': result = await f.ordering.confirmOrder(args); break;
           case 'order_detail': throw new Error('Use order status or operation to inspect the recorded result.');
           case 'order_operation': result = await f.ordering.inspectOrderOperation(args); break;

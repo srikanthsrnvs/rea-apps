@@ -37,12 +37,12 @@ export function productOptions(product) {
   const project = groups => (groups?.modifier_sets ?? []).map(group => ({
     group: label(group), required: group.required === true || group.required === 'true',
     minimum: Number(group.minimum || 0), maximum: Number(group.maximum || 0),
-    options: (group.modifiers ?? []).map(option => ({ option: label(option), price: option.price, maximum: option.maximum })),
+    options: (group.modifiers ?? []).map(option => ({ option: label(option), defaultCount:1, maxAllowedCount:option.maximum })),
   }));
   return {
     productRef: String(product.internal_product_id ?? ''), name: product.name, sku: product.sku,
-    referenceKind: 'catalog_reference',
-    sizes: (product.modifier_size ?? []).map(size => ({ size: label(size), price: size.price, groups: project(size.modifier_groups) })),
+    referenceKind:'catalog_reference', modifierCountRule:'Each selected option defaults to ONE per item. Omit count unless the user explicitly requests multiple portions. maxAllowedCount is only a limit; never use it as the requested count.',
+    sizes: (product.modifier_size ?? []).map(size => ({ size: label(size), groups: project(size.modifier_groups) })),
     groups: project(product.modifier_groups),
     status:'options_only',orderPrepared:false,orderPlaced:false,nextTool:'order_prepare',
     next: 'These are choices, not a checkout or price quote. Call order_prepare with the exact size/group/option labels to get the real total. Do not report an order as ready before it succeeds.',
