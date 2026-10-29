@@ -20,7 +20,7 @@ export function backend({failQuery,failAddress=false}={}) {
  let queue=Promise.resolve();const enqueue=fn=>{const p=queue.then(fn);queue=p.catch(()=>{});return p;};store.withStateLock=enqueue;
  const storeData=()=>({_id:f.storeName.toLowerCase(),name:f.storeName,time_zone:'America/Los_Angeles',algolia:{search_index:`${f.storeName.toUpperCase()}_SEARCH_INDEX`}});
  const address={address_id:'saved-home',address1:'100 Test Avenue',city:'Los Angeles',state:'CA',zipcode:'90001'};
- const products=()=>catalogData.map(c=>{const base={name:c.name,sku:c.sku,price:c.price,brands:{name:c.brand},_id:`native-${c.sku}-${f.rotation}`,internal_product_id:`ref-${c.sku}-${f.rotation}`};
+ const products=()=>catalogData.map(c=>{const base={name:c.name,sku:c.sku,price:c.price,brands:{name:c.brand},_id:`native-${c.sku}-${f.rotation}`,internal_product_id:`ref-${c.sku}-${f.rotation}`,...f.factsBySku?.[c.sku]};
    const groups=(size='')=>({modifier_sets:c.groups.map((g,i)=>({...clone(g),_id:`group-${c.sku}-${size}-${i}-${f.rotation}`,modifiers:g.modifiers.filter(m=>!(f.retired&&m.name==='Oat Milk')).map((m,j)=>({...m,...(f.generousLimits&&m.name==='Vanilla Syrup'?{maximum:3}:{}),_id:`mod-${c.sku}-${size}-${i}-${j}-${f.rotation}`}))}))});
    return {...base,...(c.sizes?{modifier_size:c.sizes.map(([name,price],i)=>({_id:`size-${c.sku}-${i}-${f.rotation}`,name,price,modifier_groups:groups(i)}))}:{modifier_groups:groups()})};});
  async function send(path,opts={}) {
@@ -43,7 +43,11 @@ export function backend({failQuery,failAddress=false}={}) {
    if(f.changeUpdate&&f.rows[0])f.rows[0].product_instruction='Unexpected change';
    return {error:0};
   }
-  if(path==='/v1/getproduct')return {error:0,product:products().find(p=>p.internal_product_id===opts.form.internal_product_id)};
+  if(path==='/v1/getproduct'){
+   const product=products().find(p=>p.internal_product_id===opts.form.internal_product_id);
+   if(product?.sku===f.failDetailsFor)throw new Error('Injected product detail failure');
+   return {error:0,product:product?.sku===f.staleDetailsFor?{...product,sku:'changed'}:product};
+  }
   if(path.startsWith('/v1/addtocart/')) {
    const p=products().find(p=>`/v1/addtocart/${p._id}`===path);if(!p)throw new Error('Stale native identity');
    const form=opts.form,selected=form.modifier_sets?JSON.parse(form.modifier_sets):[];

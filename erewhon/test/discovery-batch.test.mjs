@@ -13,7 +13,7 @@ test('whole basket discovery includes each identity/options and initializes cart
 test('repeated product names are deduplicated without conflating multiple brands',async()=>{
  const f=backend();const result=await f.api.find({queries:['Cappuccino',' cappuccino ','Spring Water']});
  assert.equal(result.results.length,2);assert.equal(result.results[1].products.length,2);
- assert.equal(result.results[1].options,undefined);assert.equal(f.calls.filter(c=>c.path==='/v1/getproduct').length,1);
+ assert.equal(result.results[1].options,undefined);assert.equal(f.calls.filter(c=>c.path==='/v1/getproduct').length,3);
 });
 test('one failed lookup retains the other results and retries can target just that query',async()=>{
  // Inject an error only for one query using the same production module/backend.

@@ -2,6 +2,18 @@ import { fail } from './ordering-protocol.mjs';
 
 export const normalizeLabel = value => String(value ?? '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
 const label = value => value.label || value.name;
+const fact=(value,limit)=>typeof value==='string'&&value.trim()?value.trim().slice(0,limit):null;
+
+export function productFacts(product) {
+  const sizes=product.modifier_size??[];
+  const sets=product.modifier_groups?.modifier_sets??[];
+  return {description:fact(product.description,800),ingredients:fact(product.ingredients,2000),
+    allergens:fact(product.allergens,600),servingSize:fact(product.size,100),
+    selectableSizes:sizes.map(label),sizeSelectionRequired:sizes.length>0,
+    standardOrderable:sizes.length===0&&!sets.some(group=>group.required===true||group.required==='true'||Number(group.minimum)>0),
+    factsSource:'native_product_detail',
+    interpretation:'Null facts are unknown, not absent ingredients or allergens. servingSize describes the standard serving; supply a size argument ONLY from selectableSizes. Empty selectableSizes means there is no size choice. Ingredients and nutrition must not be inferred from a name. Kitchen instructions are requests, not guaranteed substitutions or removals.'};
+}
 
 function match(values, wanted, kind) {
   const matches = values.filter(value => [value.label, value.name].some(text => normalizeLabel(text) === normalizeLabel(wanted)));
@@ -41,6 +53,7 @@ export function productOptions(product) {
   }));
   return {
     productRef: String(product.internal_product_id ?? ''), name: product.name, sku: product.sku,
+    ...productFacts(product),
     referenceKind:'catalog_reference', modifierCountRule:'Each selected option defaults to ONE per item. Omit count unless the user explicitly requests multiple portions. maxAllowedCount is only a limit; never use it as the requested count.',
     sizes: (product.modifier_size ?? []).map(size => ({ size: label(size), groups: project(size.modifier_groups) })),
     groups: project(product.modifier_groups),

@@ -26,6 +26,21 @@ erewhon tools
 
 There are no npm runtime dependencies. Installation does not copy an Android session or credentials from another app.
 
+## Open-ended discovery
+
+`product_find` includes native descriptions, ingredients and serving facts for
+up to three candidates in broad searches. Reuse these for a short, grounded
+shortlist; use `product_options` for missing facts or customization choices.
+A fixed serving such as 20 oz is not a selectable size. Unknown ingredient,
+allergen and nutrition information must not be invented. Optional additions
+are not required to order the standard recipe.
+
+The [open-ended Pi/Qwen evaluation](eval/open-ended/README.md) records a real
+smoothie conversation before and after this change. Discovery improved, but
+Qwen still dropped a taste preference and overstated a blocked preparation.
+The report explicitly grades that scenario as failing; verified structured
+cart/order state remains authoritative.
+
 ## Cart-only favorites and follow-up edits
 
 Use one call per user turn; no search, native IDs, temporary files or checkout:

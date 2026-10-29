@@ -3,7 +3,7 @@ import { authenticatedOperation } from './http.mjs';
 import { createCatalog } from './catalog.mjs';
 import { createOrdering } from './ordering.mjs';
 import { cartRows, endpoints, cartBinding, fingerprint, ownerBinding, fail, publicData } from './ordering-protocol.mjs';
-import { normalizeLabel, productOptions } from './product-choices.mjs';
+import { normalizeLabel, productOptions, productFacts } from './product-choices.mjs';
 
 const blocked = new Set(['submitting', 'uncertain', 'additional_auth_required', 'pending']);
 function nameKey(name) {
@@ -148,17 +148,31 @@ export function createRecipes({ operation = authenticatedOperation, store = disk
         const exact=result.items.filter(item=>normalizeLabel(item.ProductName)===normalizeLabel(searchQuery));
         const selected=exact.length===1?exact[0]:result.items.length===1?result.items[0]:null;
         let options;
-        if(selected){
-          const detail=await context.send(endpoints.product,{form:{internal_product_id:String(selected.ECRSID??selected.objectID),cart_id:cart.cartId},readOnly:true});
-          if(detail.product)options=productOptions(detail.product);
-        }
+        // Bound native detail reads while giving broad searches a useful,
+        // grounded shortlist in the same model tool call.
+        const previews=selected?[selected]:result.items.slice(0,3);
+        const details=await Promise.allSettled(previews.map(async hit=>{
+          const detail=await context.send(endpoints.product,{form:{internal_product_id:String(hit.ECRSID??hit.objectID),cart_id:cart.cartId},readOnly:true});
+          if(!detail.product)fail('PRODUCT_NOT_FOUND','No current details exist for this product.');
+          if(normalizeLabel(detail.product.name)!==normalizeLabel(hit.ProductName)||(hit.SKU&&detail.product.sku!==hit.SKU))fail('PRODUCT_CHANGED','The current product differs from the search result. Search again before recommending it.');
+          return detail.product;
+        }));
+        const facts=new Map();
+        details.forEach((entry,index)=>{
+          const ref=String(previews[index].ECRSID??previews[index].objectID);
+          if(entry.status==='fulfilled'){
+            facts.set(ref,{details:productFacts(entry.value)});
+            if(selected)options=productOptions(entry.value);
+          }else facts.set(ref,{detailsError:{code:entry.reason.code??'DETAILS_FAILED',message:entry.reason.message}});
+        });
         const products=result.items.map(item=>({name:item.ProductName,brand:item.BrandName,sku:item.SKU,
           item:{name:item.ProductName,brand:item.BrandName??'',sku:item.SKU??'',quantity:1,choices:[],instruction:''},
-          productRef:String(item.ECRSID??item.objectID),referenceKind:'catalog_reference',hasOptions:item.has_modifier}));
+          productRef:String(item.ECRSID??item.objectID),referenceKind:'catalog_reference',hasOptions:item.has_modifier,
+          ...facts.get(String(item.ECRSID??item.objectID))}));
         return {query:searchQuery,...(options?{options}:{}),products,
           status:'search_results_only',orderPrepared:false,orderPlaced:false,
           nextTool:options||products.length&&products.every(item=>item.hasOptions===false)?'order_prepare':'product_options',
-          next:'Use included options; do not fetch them again. Copy the selected item identity, quantity and exact choices into order_prepare for the whole basket. Confirm ambiguous products with the user; never invent choices or totals. A count is per item and defaults to one.',hasMore:result.hasMore};
+          next:'For open-ended browsing, offer a small grounded shortlist or ask one useful preference question. Use native details for ingredient claims; fetch product_options only for a candidate missing needed facts or customization choices. Do not ask for sizes when details.sizeSelectionRequired is false. A standardOrderable item needs no optional add-ons; preserve literal preparation requests as kitchen instructions without promising they can be fulfilled. Use included options without fetching them again. Once the user has chosen, copy the item identity, quantity and exact choices into order_prepare. Never invent ingredients, sizes or totals.',hasMore:result.hasMore};
       }));
       const addressResult=await addressRequest;
       if(!batch){if(settled[0].status==='rejected')throw settled[0].reason;return {...settled[0].value,...addressResult};}
