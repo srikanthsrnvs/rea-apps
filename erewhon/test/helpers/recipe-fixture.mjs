@@ -44,4 +44,3 @@ export function fixture() {
   ] }) });
   return Object.assign(f, { api: createRecipes({ store, operation, fetchImpl }), ordering: createOrdering({ store, operation }), records, calls, session, dependencies:{store,operation,fetchImpl} });
 }
-

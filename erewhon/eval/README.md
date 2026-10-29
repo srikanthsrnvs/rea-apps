@@ -39,7 +39,8 @@ The revised surface therefore:
 | Repeated preparation | show → prepare | One cart row, quantity one |
 | Ambiguous product | show → prepare | Asks for clarification; no addition |
 
-All seven final scenarios passed. `results.json` records the calls and state
+All seven final scenarios passed. The implementation also passed all 146
+automated checks on both macOS and Linux ARM64. `results.json` records the calls and state
 assertions. Final responses were also inspected; grading checks for fabricated
 prices/alternatives and unsafe retry advice. This is a bounded regression
 suite, not a guarantee that a language model cannot make other mistakes.
