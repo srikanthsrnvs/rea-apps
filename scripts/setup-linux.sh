@@ -8,6 +8,7 @@ case "${1:-}" in
   --instagram-only) [ "$#" = 1 ] || exit 2; mode=instagram; spotify_option= ;;
   --resy-only) [ "$#" = 1 ] || exit 2; mode=resy; spotify_option= ;;
   --opentable-only) [ "$#" = 1 ] || exit 2; mode=opentable; spotify_option= ;;
+  --instacart-only) [ "$#" = 1 ] || exit 2; mode=instacart; spotify_option= ;;
   --erewhon-only) [ "$#" = 1 ] || exit 2; mode=erewhon; spotify_option= ;;
   --expedia-only) [ "$#" = 1 ] || exit 2; mode=expedia; spotify_option= ;;
   --claude-only) [ "$#" = 1 ] || exit 2; mode=claude; spotify_option= ;;
@@ -16,7 +17,7 @@ case "${1:-}" in
   --airbnb-only) [ "$#" = 1 ] || exit 2; mode=airbnb; spotify_option= ;;
   --bank-accounts-only|--quiltt-only) [ "$#" = 1 ] || exit 2; mode=bank-accounts; spotify_option= ;;
   --amex-only) [ "$#" = 1 ] || exit 2; mode=amex; spotify_option= ;;
-  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only|--instagram-only|--resy-only|--opentable-only|--erewhon-only|--expedia-only|--amazon-only|--claude-only|--chatgpt-only|--airbnb-only|--amex-only|--bank-accounts-only]' >&2; exit 2 ;;
+  *) printf '%s\n' 'Usage: ./scripts/setup-linux.sh [--no-build|--uber-only|--instagram-only|--resy-only|--opentable-only|--instacart-only|--erewhon-only|--expedia-only|--amazon-only|--claude-only|--chatgpt-only|--airbnb-only|--amex-only|--bank-accounts-only]' >&2; exit 2 ;;
 esac
 if [ "$mode" = both ]; then
   if [ -n "$spotify_option" ]; then
@@ -38,6 +39,7 @@ if [ "$mode" = both ]; then
   INSTAGRAM_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/instagram/scripts/setup-linux.sh"
   RESY_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/resy/scripts/setup-linux.sh"
   OPENTABLE_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/opentable/scripts/setup-linux.sh"
+  INSTACART_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/instacart/scripts/setup-linux.sh"
   EREWHON_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/erewhon/scripts/setup-linux.sh"
   EXPEDIA_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/expedia/scripts/setup-linux.sh"
   CLAUDE_CHAT_NODE="$workspace/spotify/.runtime/node/bin/node" "$workspace/claude/scripts/setup-linux.sh"
@@ -54,6 +56,8 @@ elif [ "$mode" = resy ]; then
   "$workspace/resy/scripts/setup-linux.sh"
 elif [ "$mode" = opentable ]; then
   "$workspace/opentable/scripts/setup-linux.sh"
+elif [ "$mode" = instacart ]; then
+  "$workspace/instacart/scripts/setup-linux.sh"
 elif [ "$mode" = erewhon ]; then
   "$workspace/erewhon/scripts/setup-linux.sh"
 elif [ "$mode" = expedia ]; then
