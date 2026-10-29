@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+script=$0
+while [ -L "$script" ]; do
+  link=$(readlink "$script")
+  case "$link" in
+    /*) script=$link ;;
+    *) script="$(dirname -- "$script")/$link" ;;
+  esac
+done
+workspace=$(CDPATH= cd -- "$(dirname -- "$script")/.." && pwd)
+bundled_node="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+if [ -n "${INSTACART_NODE:-}" ]; then
+  instacart_node=$INSTACART_NODE
+elif [ -x "$workspace/.runtime/node" ] && [ ! -d "$workspace/.runtime/node" ]; then
+  instacart_node="$workspace/.runtime/node"
+elif [ -x "$workspace/.runtime/node/bin/node" ]; then
+  instacart_node="$workspace/.runtime/node/bin/node"
+elif [ -x "$bundled_node" ]; then
+  instacart_node=$bundled_node
+else
+  instacart_node=$(command -v node)
+fi
+exec "$instacart_node" "$workspace/src/cli.mjs" "$@"
