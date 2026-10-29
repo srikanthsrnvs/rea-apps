@@ -98,3 +98,15 @@ test('unavailable choice errors expose exact valid labels and explicitly deny pr
  await assert.rejects(f.api.prepare({name:'usual-coffee'}),error=>error.details.orderPrepared===false&&error.details.available.includes('Large 16 oz'));
  assert.equal(f.calls.some(c=>c.path.startsWith('/v1/addtocart/')),false);
 });
+
+test('spoken labels retain a recipe whose actual saved name starts with my',async()=>{
+ const f=fixture();await f.api.save({name:'my-morning-drink',recipe});
+ const result=await f.api.addSaved({name:'my morning drink'});
+ assert.equal(result.recipe,'my-morning-drink');assert.equal(result.totalQuantity,1);
+});
+test('ambiguous possessive labels stop, while both exact saved names remain usable',async()=>{
+ const f=fixture();await f.api.save({name:'morning-drink',recipe});await f.api.save({name:'my-morning-drink',recipe:{...recipe,quantity:2}});
+ await assert.rejects(f.api.addSaved({name:'my morning drink'}),e=>e.code==='RECIPE_NAME_AMBIGUOUS'&&e.details.names.length===2);
+ assert.equal(f.calls.length,0);assert.equal(f.rows.length,0);
+ const explicit=await f.api.addSaved({name:'my-morning-drink'});assert.equal(explicit.totalQuantity,2);assert.equal(explicit.recipe,'my-morning-drink');
+});

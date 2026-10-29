@@ -10,10 +10,12 @@ const hashes={};for(const name of ['recipes','ordering','tools','product-choices
 const summaries=[];
 for(const observed of original.summaries){
  const events=(await fs.readFile(path.join(input,`${observed.scenario}-trace.jsonl`),'utf8')).split('\n').flatMap(line=>{try{return [JSON.parse(line)];}catch{return [];}});
- const run=await session(observed.scenario);
+ // Old traces may use retained full-CLI reads omitted from today's focused
+ // model profile (e.g. addresses). Replay them without changing the arguments.
+ const run=await session(observed.scenario,undefined,{includeLegacyTools:true});
  for(const event of events.filter(e=>e.type==='call'))await run.call(event.name,event.args);
  summaries.push(run.grade(observed.final));
 }
-await fs.writeFile(path.join(output,'summary.json'),JSON.stringify({type:'recorded_arguments_replay',modelInvocations:0,originalHashes:original.hashes,hashes,summaries},null,2),{mode:0o600});
+await fs.writeFile(path.join(output,'summary.json'),JSON.stringify({type:'recorded_arguments_replay',profile:'full_cli_compatibility',modelInvocations:0,originalHashes:original.hashes,hashes,summaries},null,2),{mode:0o600});
 console.log(JSON.stringify({replayed:summaries.length,passed:summaries.filter(s=>s.passed).length,modelInvocations:0}));
 if(summaries.some(s=>!s.passed))process.exitCode=1;

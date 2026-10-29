@@ -10,10 +10,13 @@ function nameKey(name) {
   if (typeof name !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(name)) fail('INVALID_ARGUMENT', 'Recipe names use lowercase letters, numbers and hyphens.');
   return `recipe-${name}`;
 }
-function savedName(value) {
+function savedNames(value) {
   if(typeof value!=='string'||value.length>100)fail('INVALID_ARGUMENT','Supply a saved recipe name.');
-  const name=value.trim().toLowerCase().replace(/^my\s+/, '').replace(/\s+/g,'-');
-  nameKey(name);return name;
+  const label=value.trim().toLowerCase();
+  const forms=[label,...(/^my\s+/.test(label)?[label.replace(/^my\s+/,'')]:[])];
+  const names=[...new Set(forms.map(form=>form.replace(/\s+/g,'-')).filter(name=>/^[a-z][a-z0-9-]{0,63}$/.test(name)))];
+  if(!names.length)fail('INVALID_ARGUMENT','Supply a saved recipe name using letters, numbers, spaces or hyphens.');
+  return names;
 }
 function only(object, keys, label) {
   if (!object || typeof object !== 'object' || Array.isArray(object) || Object.keys(object).some(key => !keys.includes(key))) fail('INVALID_RECIPE', `Invalid ${label}; use named product choices, not native IDs.`);
@@ -184,12 +187,16 @@ export function createRecipes({ operation = authenticatedOperation, store = disk
     });
   }
   async function prepare({ name, checkoutOptions = {}, cartOnly = false, quantity }) {
-    name=savedName(name);
+    const requestedNames=savedNames(name);
     if(quantity!==undefined&&(!Number.isFinite(quantity)||quantity<=0||quantity>1000))fail('INVALID_ARGUMENT','Supply a positive total quantity no greater than 1000.');
     return operation(async context => {
       let active = await store.readState('order-active');
       if(active&&blocked.has(active.status)){const recorded=await store.readState(`order-operation-${active.operationId}`);if(recorded&&['confirmed','rejected'].includes(recorded.status)){active=recorded;await store.saveState('order-active',recorded);}}
       if (active && blocked.has(active.status)) fail('ORDER_UNRESOLVED', 'Resolve the recorded order operation before preparing another recipe.');
+      const matches=[];
+      for(const candidate of requestedNames)if((await store.readState(nameKey(candidate)))?.specification)matches.push(candidate);
+      if(matches.length>1)fail('RECIPE_NAME_AMBIGUOUS','That spoken label matches more than one saved recipe. Choose the exact saved name; no cart change was sent.',{names:matches,orderPrepared:false,orderPlaced:false});
+      name=matches[0]??requestedNames[0];
       const { recipe } = await show({ name });
       if(quantity!==undefined){
         const items=recipeItems(recipe);

@@ -102,5 +102,10 @@ simpleOrdering.push(
  tool('order_prepare_cart','erewhon order prepare','Prepare the CURRENT cart for checkout review without adding or replacing anything. Use only when the user requests checkout after cart edits. Returns actual server totals, pickup/delivery terms and masked payment for approval. Cart edits invalidate older reviews; never confirm an old plan. Does not buy.')
 );
 const simpleWorkflow=['Cart-only saved favorite: cart_add_saved → cart_set_quantity for follow-up edits (one call per turn, use returned itemRef)','Review an edited cart only when requested: order_prepare_cart → show review','Fresh basket with unknown labels: product_find with all base product queries together → order_prepare with items and pickupStore or deliveryAddressId → show review','Saved preferences ready for checkout: order_prepare_saved with name → show review','order_confirm only after explicit approval of the exact review','order_status after interruption; only orderPlaced:true plus orderId proves placement'];
+// The focused profiles are smaller views, not replacements for capabilities.
+// Keep legacy definitions intact and include every new helper in the full view.
+const advancedNames=new Set(advancedToolManifest.tools.map(tool=>tool.name));
+advancedToolManifest.profile='advanced';
+advancedToolManifest.tools.push(...simpleOrdering.filter(tool=>!advancedNames.has(tool.name)));
 export const orderingToolManifest={...advancedToolManifest,profile:'ordering',recommendedWorkflow:simpleWorkflow,tools:simpleOrdering};
 export const toolManifest={...advancedToolManifest,profile:'recommended',recommendedWorkflow:simpleWorkflow,advancedTools:'erewhon tools --advanced',tools:[...simpleOrdering,...advancedToolManifest.tools.filter(tool=>accountToolNames.has(tool.name)&&!orderingToolNames.has(tool.name))]};

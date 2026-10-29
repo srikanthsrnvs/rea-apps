@@ -45,3 +45,10 @@ test('batch discovery rejects conflicting sources, malformed input and unsupport
  const schema=manifest.tools.find(t=>t.name==='product_find').inputSchema;
  assert.deepEqual(schema.required,['queries']);assert.equal(schema.properties.includeAddresses.type,'boolean');
 });
+
+test('advanced CLI inventory exposes every helper as well as all legacy operations',()=>{
+ const full=JSON.parse(run('tools','--advanced').stdout),focused=JSON.parse(run('tools','--profile','ordering').stdout);
+ assert.equal(full.profile,'advanced');const names=new Set(full.tools.map(tool=>tool.name));
+ for(const tool of focused.tools)assert.ok(names.has(tool.name));
+ for(const name of ['search','address_add','fulfillment_select','cart_add','cart_update','cart_remove','checkout','order_operation'])assert.ok(names.has(name));
+});

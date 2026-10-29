@@ -26,6 +26,17 @@ erewhon tools
 
 There are no npm runtime dependencies. Installation does not copy an Android session or credentials from another app.
 
+## Tool profiles and compatibility
+
+`erewhon tools` is the recommended agent view. `erewhon tools --profile ordering`
+is a focused ten-tool view. `erewhon tools --advanced` is the complete inventory:
+all 30 original tools and their parameters plus every new helper (41 tools in
+all). Focused profiles do not remove CLI commands. Paginated/faceted search,
+full product details, address management, direct cart edits, scheduled checkout,
+card/tip/coupon/reward controls and order reconciliation remain available.
+See [compatibility and verification](docs/compatibility.md) for coverage and
+known model limitations.
+
 ## Open-ended discovery
 
 `product_find` includes native descriptions, ingredients and serving facts for
@@ -57,6 +68,7 @@ including choices, quantities and references for subsequent edits. Saved names
 accept spaces and a leading "my"; missing names stop without guessing another
 recipe. Adding resolves the current product and modifier identities. An optional
 quantity on `cart_add_saved` overrides a single-item recipe for this cart only.
+Ambiguous spoken names stop and return the exact saved names to choose from.
 Saved preferences remain unchanged. Occupied carts outside the unchanged saved
 draft stop without replacing anything. Different customizations have different
 references. An interrupted edit can be inspected with `cart_view`; setting the

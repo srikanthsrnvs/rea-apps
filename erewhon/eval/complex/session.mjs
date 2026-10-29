@@ -1,17 +1,19 @@
 import fs from 'node:fs';
 import {backend} from './backend.mjs';
 import {scenarios,setup} from './scenarios.mjs';
-import {orderingToolManifest} from '../../src/tools.mjs';
+import {orderingToolManifest,advancedToolManifest} from '../../src/tools.mjs';
 import {recipeItems,validateRecipe} from '../../src/recipes.mjs';
 const norm=v=>String(v??'').trim().toLowerCase();
 export const tools=orderingToolManifest.tools.filter(t=>t.name!=='order_confirm');
-export async function session(key,trace){
+export async function session(key,trace,{includeLegacyTools=false}={}){
+ const legacyNames=new Set(['addresses','recipe_save','recipe_show','recipe_reset']);
+ const availableTools=includeLegacyTools?[...tools,...advancedToolManifest.tools.filter(tool=>legacyNames.has(tool.name))]:tools;
  const f=backend(),s=await setup(f,key),start=f.calls.length,initial=structuredClone(f.rows),events=[];
  const record=e=>{events.push(e);if(trace)fs.appendFileSync(trace,JSON.stringify(e)+'\n',{mode:0o600});};
  record({type:'setup',scenario:key,prompt:s.prompt,initialRows:initial.length,confirmationExposed:false});
  let count=0;
  async function call(name,args){
-  if(!tools.some(t=>t.name===name))throw new Error(`Tool unavailable: ${name}`);
+  if(!availableTools.some(t=>t.name===name))throw new Error(`Tool unavailable: ${name}`);
   record({type:'call',name,args});let result;
   try {
    if(++count>16)throw new Error('Tool-call limit reached. Explain the blocker.');
@@ -51,5 +53,5 @@ export async function session(key,trace){
   if(s.budget)passed&&=/exceed|over|above|does not fit|doesn.t fit/i.test(final);
   return {scenario:key,passed,calls:calls.map(e=>e.name),errors:results.filter(e=>e.result.error).map(e=>e.result.error.code),rows:f.rows.length,quantity:f.rows.reduce((n,r)=>n+r.quantity,0),adds:endpointCalls.filter(c=>c.path.startsWith('/v1/addtocart/')).length,placements,correctBasket:sameBasket,total:prepared?.review.amounts.order_total,final};
  }
- return {f,s,call,grade,tools};
+ return {f,s,call,grade,tools:availableTools};
 }
