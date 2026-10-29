@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { ApiError } from './http.mjs';
 export const endpoints = Object.freeze({ method:'/v1/ordermethod',stores:'/v1/stores',defaultStore:'/v1/default_stores',selectMethod:'/v1/select_ordermethod',addresses:'/v1/alladdress',setAddress:'/v1/set_address',departments:'/v2/getdepartments',home:'/v2/home',product:'/v1/getproduct',cart:'/v1/usercart',add:'/v1/addtocart',edit:'/v1/editcart',update:'/v1/cart_update',remove:'/v1/removeitem',validate:'/v1/validate_cart',checkout:'/v1/checkout_details',place:'/v1/place_order',reconcile:'/v1/get_order_place',orders:'/v1/myorders',order:'/v1/getorder' });
-export function fail(code,message){throw new ApiError(code,message);}
+export function fail(code,message,details){const error=new ApiError(code,message);if(details)error.details=details;throw error;}
 export function id(value,label='ID'){if(typeof value!=='string'||!value||value.length>200||! /^[A-Za-z0-9_-]+$/.test(value))fail('INVALID_ARGUMENT',`Supply a valid ${label}.`);return value;}
 export function scalar(value,label,{min=0,max=10000}={}){if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)fail('INVALID_ARGUMENT',`Supply a valid ${label}.`);return value;}
 export function canonical(value){if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().filter(k=>value[k]!==undefined).map(k=>[k,canonical(value[k])]));return value;}

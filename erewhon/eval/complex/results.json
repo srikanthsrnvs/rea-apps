@@ -1,0 +1,1341 @@
+{
+  "date": "2026-10-29",
+  "model": {
+    "base": "qwen3.6:35b",
+    "parameterCount": 35505251456,
+    "architecture": "qwen35moe",
+    "quantization": "Q4_K_M",
+    "expertCount": 256,
+    "expertsSelected": 8,
+    "alias": "rea-erewhon-qwen35b-eval",
+    "temperature": 0,
+    "seed": 20261029,
+    "thinking": "low",
+    "trainingPerformed": false
+  },
+  "harness": {
+    "name": "Pi",
+    "version": "0.99.2",
+    "localInference": true,
+    "referenceTracesGivenToModel": false,
+    "confirmationToolExposed": false,
+    "paymentEndpointDisabled": true,
+    "caseSpecificUserPromptHints": false
+  },
+  "reference": {
+    "type": "Primary coding agent authored and executed these tool trajectories; not an independently sampled strong-model benchmark.",
+    "cases": 27,
+    "calls": 65
+  },
+  "initialFrozenComparison": {
+    "passed": 27,
+    "cases": 27,
+    "heldOutGeneratedCases": 12,
+    "exactExecutedSequenceMatches": 19,
+    "executedCalls": 69,
+    "attemptedCalls": 71,
+    "validationErrors": 2,
+    "medianExtraAttempts": 0,
+    "sourceHashes": {
+      "recipes": "951f3750d5fd0f5ec1ced959f757f371b6103931819390a27a8ea7f19c621ac3",
+      "ordering": "3ea22fb8ca7098bd7a556271943f162968645ae128dbd4b6a38e20714e8bb1ef",
+      "tools": "75b65575aad528a4b0870a40dce7dfeef9e4db1f5fef543dfa15b9914aa6a78a",
+      "product-choices": "5a6085805d3f81531db7f371ab3ccc68e550988738a194b8a2be2b7fe4e209fe"
+    },
+    "casesDetail": [
+      {
+        "scenario": "shots",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 1,
+        "quantity": 3,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "41.88",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "mixed",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 6,
+        "adds": 3,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "43.80",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare",
+          "order_prepare"
+        ],
+        "validationErrors": 1,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "split",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 2,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "18.62",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "repeat",
+        "passed": true,
+        "calls": [
+          "order_prepare_saved"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 6,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "43.80",
+        "attemptedCalls": [
+          "order_prepare_saved"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "order_prepare_saved"
+        ]
+      },
+      {
+        "scenario": "rotation",
+        "passed": true,
+        "calls": [
+          "order_prepare_saved"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 6,
+        "adds": 3,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "43.80",
+        "attemptedCalls": [
+          "order_prepare_saved"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "order_prepare_saved"
+        ]
+      },
+      {
+        "scenario": "unavailable",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_options"
+        ],
+        "errors": [],
+        "rows": 0,
+        "quantity": 0,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": false,
+        "attemptedCalls": [
+          "product_find",
+          "product_options"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "missing",
+        "passed": true,
+        "calls": [
+          "product_find"
+        ],
+        "errors": [],
+        "rows": 0,
+        "quantity": 0,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": false,
+        "attemptedCalls": [
+          "product_find"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "ambiguous",
+        "passed": true,
+        "calls": [
+          "product_find"
+        ],
+        "errors": [],
+        "rows": 0,
+        "quantity": 0,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": false,
+        "attemptedCalls": [
+          "product_find"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "occupied",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [
+          "CART_NOT_EMPTY"
+        ],
+        "rows": 1,
+        "quantity": 1,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": false,
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "partial",
+        "passed": true,
+        "calls": [
+          "order_prepare_saved"
+        ],
+        "errors": [
+          "RECIPE_DRAFT_UNRESOLVED"
+        ],
+        "rows": 2,
+        "quantity": 3,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": false,
+        "attemptedCalls": [
+          "order_prepare_saved"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "order_prepare_saved"
+        ]
+      },
+      {
+        "scenario": "badcard",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [
+          "PAYMENT_CHANGED"
+        ],
+        "rows": 1,
+        "quantity": 1,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "delivery",
+        "passed": true,
+        "calls": [
+          "addresses",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 1,
+        "quantity": 3,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "14.86",
+        "attemptedCalls": [
+          "addresses",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "addresses",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "grove",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 1,
+        "quantity": 1,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "8.76",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "budget",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 1,
+        "quantity": 3,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "41.88",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "invalidtail",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [
+          "CHOICE_UNAVAILABLE"
+        ],
+        "rows": 0,
+        "quantity": 0,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": false,
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-01",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 5,
+        "adds": 3,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "39.42",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-02",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 7,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "49.28",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-03",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 3,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "30.66",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare",
+          "order_prepare"
+        ],
+        "validationErrors": 1,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-04",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 5,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "31.76",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-05",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 6,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "59.13",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-06",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 5,
+        "adds": 3,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "58.04",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-07",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 8,
+        "adds": 3,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "101.84",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-08",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 6,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "55.85",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-09",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 3,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "39.97",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-10",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 5,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "76.65",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-11",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 2,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "17.25",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      },
+      {
+        "scenario": "heldout-12",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 6,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "32.85",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0,
+        "referenceCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ]
+      }
+    ]
+  },
+  "finalTargetedRerun": {
+    "passed": 8,
+    "cases": 8,
+    "reason": "After live evidence: null no-size normalization, default one portion separated from capacity, and explicit interrupted-draft instructions. Includes new modifier-default regression.",
+    "validationErrors": 0,
+    "sourceHashes": {
+      "recipes": "34168bd88c285ee9ae0a88148d60426a6996fa17b9a2e662269458d58e847d86",
+      "ordering": "3ea22fb8ca7098bd7a556271943f162968645ae128dbd4b6a38e20714e8bb1ef",
+      "tools": "909bb5800ba2a59f0d3a62930b7e13479bd0c8b6c357968c26c5d78598375226",
+      "product-choices": "9f037a5135f4b1077934555165909c3bf8f898123e241f2e49de05e625a3fcaa"
+    },
+    "casesDetail": [
+      {
+        "scenario": "modifier-defaults",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 1,
+        "quantity": 2,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "19.16",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "shots",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 1,
+        "quantity": 3,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "41.88",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "mixed",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 6,
+        "adds": 3,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "43.80",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "partial",
+        "passed": true,
+        "calls": [
+          "order_prepare_saved"
+        ],
+        "errors": [
+          "RECIPE_DRAFT_UNRESOLVED"
+        ],
+        "rows": 2,
+        "quantity": 3,
+        "adds": 0,
+        "placements": 0,
+        "correctBasket": false,
+        "attemptedCalls": [
+          "order_prepare_saved"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "heldout-06",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 3,
+        "quantity": 5,
+        "adds": 3,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "58.04",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "heldout-11",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 2,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "17.25",
+        "attemptedCalls": [
+          "product_find",
+          "product_find",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "delivery",
+        "passed": true,
+        "calls": [
+          "addresses",
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 1,
+        "quantity": 3,
+        "adds": 1,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "14.86",
+        "attemptedCalls": [
+          "addresses",
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "split",
+        "passed": true,
+        "calls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "errors": [],
+        "rows": 2,
+        "quantity": 2,
+        "adds": 2,
+        "placements": 0,
+        "correctBasket": true,
+        "total": "18.62",
+        "attemptedCalls": [
+          "product_find",
+          "order_prepare"
+        ],
+        "validationErrors": 0
+      }
+    ]
+  },
+  "recordedArgumentsReplayedOnFinalCode": {
+    "passed": 27,
+    "cases": 27,
+    "modelInvocations": 0,
+    "sourceHashes": {
+      "recipes": "34168bd88c285ee9ae0a88148d60426a6996fa17b9a2e662269458d58e847d86",
+      "ordering": "3ea22fb8ca7098bd7a556271943f162968645ae128dbd4b6a38e20714e8bb1ef",
+      "tools": "909bb5800ba2a59f0d3a62930b7e13479bd0c8b6c357968c26c5d78598375226",
+      "product-choices": "9f037a5135f4b1077934555165909c3bf8f898123e241f2e49de05e625a3fcaa"
+    }
+  },
+  "automatedChecks": {
+    "macOS": 164,
+    "linuxARM64": 164
+  },
+  "liveComparisons": [
+    {
+      "case": "Two large oat cappuccinos with two extra shots, vanilla, extra hot; separate small whole-milk decaf",
+      "referenceCalls": [
+        "product_find",
+        "order_prepare"
+      ],
+      "qwenCalls": [
+        "product_find",
+        "order_prepare"
+      ],
+      "matchingReview": true,
+      "totalUSD": "35.96",
+      "orderPlaced": false
+    },
+    {
+      "case": "Four Just Ice Tea orange mango teas and two medium customized cappuccinos",
+      "referenceCalls": [
+        "product_find",
+        "product_find",
+        "order_prepare"
+      ],
+      "qwenCalls": [
+        "product_find",
+        "product_find",
+        "product_find",
+        "order_prepare"
+      ],
+      "matchingReview": true,
+      "totalUSD": "28.51",
+      "initialFailure": "Qwen selected maximum syrup count 3 instead of default 1. Initial backend validation also rejected null for no size. Both were corrected and the live task rerun.",
+      "orderPlaced": false
+    }
+  ],
+  "limitations": [
+    "Finite menu/scenario coverage; this is not a guarantee of model correctness.",
+    "Exploratory reasoning-off/default-sampling runs had omissions, fabricated estimates and premature stops. They were not pooled into the scored run.",
+    "Backend verification establishes the submitted intent; user review still matters if a model misinterprets a request before calling a tool.",
+    "Some generated final prose inaccurately described a cart as reserved; the verified state remained prepared/not placed. No inventory reservation was verified.",
+    "Raw live traces and account information are private and are not committed."
+  ],
+  "realPurchases": 0,
+  "finalCartEmpty": true,
+  "renamedSavedRecipeCheck": {
+    "passed": 3,
+    "cases": 3,
+    "recipeName": "office-snacks",
+    "reason": "Generic production descriptions contain no fixture recipe examples; test a different saved name.",
+    "sourceHashes": {
+      "recipes": "34168bd88c285ee9ae0a88148d60426a6996fa17b9a2e662269458d58e847d86",
+      "ordering": "3ea22fb8ca7098bd7a556271943f162968645ae128dbd4b6a38e20714e8bb1ef",
+      "tools": "2871234412990b9d278036975cd937ac89a3545231b121a579634383dba454ec",
+      "product-choices": "9f037a5135f4b1077934555165909c3bf8f898123e241f2e49de05e625a3fcaa"
+    },
+    "calls": [
+      {
+        "scenario": "repeat",
+        "calls": [
+          "order_prepare_saved"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "rotation",
+        "calls": [
+          "order_prepare_saved"
+        ],
+        "validationErrors": 0
+      },
+      {
+        "scenario": "partial",
+        "calls": [
+          "order_prepare_saved"
+        ],
+        "validationErrors": 0
+      }
+    ]
+  },
+  "batchDiscovery031": {
+    "version": "0.3.1",
+    "capabilities": [
+      "Batch product discovery with all available options",
+      "Optional saved addresses in the same call",
+      "Address-only discovery with queries:[]",
+      "Deduplicate equivalent queries and initialize cart once per batch",
+      "Partial lookup errors preserve successes; retry only failures",
+      "Legacy single-query and standalone address CLI commands retained"
+    ],
+    "frozenComparison": {
+      "cases": 8,
+      "passed": 8,
+      "beforeAttempts": 23,
+      "afterAttempts": 20,
+      "casesDetail": [
+        {
+          "scenario": "mixed",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 3,
+          "quantity": 6,
+          "adds": 3,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "43.80",
+          "attemptedCalls": [
+            "product_find",
+            "product_find",
+            "order_prepare",
+            "order_prepare"
+          ],
+          "validationErrors": 1,
+          "beforeAttempts": 4
+        },
+        {
+          "scenario": "delivery",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 1,
+          "quantity": 3,
+          "adds": 1,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "14.86",
+          "attemptedCalls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "validationErrors": 0,
+          "beforeAttempts": 3
+        },
+        {
+          "scenario": "heldout-01",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 3,
+          "quantity": 5,
+          "adds": 3,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "39.42",
+          "attemptedCalls": [
+            "product_find",
+            "product_find",
+            "order_prepare"
+          ],
+          "validationErrors": 0,
+          "beforeAttempts": 5
+        },
+        {
+          "scenario": "heldout-06",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 3,
+          "quantity": 5,
+          "adds": 3,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "58.04",
+          "attemptedCalls": [
+            "product_find",
+            "order_prepare",
+            "order_prepare"
+          ],
+          "validationErrors": 1,
+          "beforeAttempts": 3
+        },
+        {
+          "scenario": "heldout-07",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 3,
+          "quantity": 8,
+          "adds": 3,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "101.84",
+          "attemptedCalls": [
+            "product_find",
+            "product_find",
+            "order_prepare"
+          ],
+          "validationErrors": 0,
+          "beforeAttempts": 3
+        },
+        {
+          "scenario": "repeat",
+          "passed": true,
+          "calls": [
+            "order_prepare_saved"
+          ],
+          "errors": [],
+          "rows": 3,
+          "quantity": 6,
+          "adds": 0,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "43.80",
+          "attemptedCalls": [
+            "order_prepare_saved"
+          ],
+          "validationErrors": 0,
+          "beforeAttempts": 1
+        },
+        {
+          "scenario": "ambiguous",
+          "passed": true,
+          "calls": [
+            "product_find"
+          ],
+          "errors": [],
+          "rows": 0,
+          "quantity": 0,
+          "adds": 0,
+          "placements": 0,
+          "correctBasket": false,
+          "attemptedCalls": [
+            "product_find"
+          ],
+          "validationErrors": 0,
+          "beforeAttempts": 1
+        },
+        {
+          "scenario": "invalidtail",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "product_options",
+            "order_prepare"
+          ],
+          "errors": [
+            "CHOICE_UNAVAILABLE"
+          ],
+          "rows": 0,
+          "quantity": 0,
+          "adds": 0,
+          "placements": 0,
+          "correctBasket": false,
+          "attemptedCalls": [
+            "product_find",
+            "product_options",
+            "order_prepare"
+          ],
+          "validationErrors": 0,
+          "beforeAttempts": 3
+        }
+      ],
+      "sourceHashes": {
+        "recipes": "650fafcf3fb1b236990753a72fb8ca2d9e31cc9acfa7de3eb513787b7eb1e3fe",
+        "ordering": "3ea22fb8ca7098bd7a556271943f162968645ae128dbd4b6a38e20714e8bb1ef",
+        "tools": "24c7292afa025e5582f9ab958e86bdd8e60f7260d1773fc67a860eda9385bbf7",
+        "product-choices": "9f037a5135f4b1077934555165909c3bf8f898123e241f2e49de05e625a3fcaa"
+      }
+    },
+    "finalDescriptionRerun": {
+      "cases": 5,
+      "passed": 5,
+      "reason": "Clarify base-product search queries and use options already included. A known-label test also checks direct preparation.",
+      "sourceHashes": {
+        "recipes": "650fafcf3fb1b236990753a72fb8ca2d9e31cc9acfa7de3eb513787b7eb1e3fe",
+        "ordering": "3ea22fb8ca7098bd7a556271943f162968645ae128dbd4b6a38e20714e8bb1ef",
+        "tools": "56180d663a381d5dc7788cb40216afc4fd31567a9719a3e192be8e6302dc069e",
+        "product-choices": "9f037a5135f4b1077934555165909c3bf8f898123e241f2e49de05e625a3fcaa"
+      },
+      "casesDetail": [
+        {
+          "scenario": "known-labels",
+          "passed": true,
+          "calls": [
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 1,
+          "quantity": 1,
+          "adds": 1,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "7.67",
+          "attemptedCalls": [
+            "order_prepare",
+            "order_prepare"
+          ],
+          "validationErrors": 1
+        },
+        {
+          "scenario": "mixed",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 3,
+          "quantity": 6,
+          "adds": 3,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "43.80",
+          "attemptedCalls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "validationErrors": 0
+        },
+        {
+          "scenario": "heldout-01",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 3,
+          "quantity": 5,
+          "adds": 3,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "39.42",
+          "attemptedCalls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "validationErrors": 0
+        },
+        {
+          "scenario": "invalidtail",
+          "passed": true,
+          "calls": [
+            "product_find"
+          ],
+          "errors": [],
+          "rows": 0,
+          "quantity": 0,
+          "adds": 0,
+          "placements": 0,
+          "correctBasket": false,
+          "attemptedCalls": [
+            "product_find"
+          ],
+          "validationErrors": 0
+        },
+        {
+          "scenario": "delivery",
+          "passed": true,
+          "calls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "errors": [],
+          "rows": 1,
+          "quantity": 3,
+          "adds": 1,
+          "placements": 0,
+          "correctBasket": true,
+          "total": "14.86",
+          "attemptedCalls": [
+            "product_find",
+            "order_prepare"
+          ],
+          "validationErrors": 0
+        }
+      ]
+    },
+    "automatedChecks": {
+      "macOS": 173,
+      "linuxARM64": 173
+    },
+    "liveLinuxVerification": {
+      "productsAndOptionsReturnedInOneCall": 2,
+      "savedAddressesReturnedInSameCall": true,
+      "addressOnlyReadVerified": true,
+      "cartItemsChanged": false,
+      "orderPlaced": false
+    },
+    "limitations": [
+      "Extra model attempts are counted, including schema failures. The direct-known-label test used one successful preparation plus one rejected argument attempt.",
+      "Batching makes a two-call fresh workflow possible; models can still make redundant lookups or misinterpret names. These are finite tests, not guaranteed minimal trajectories."
+    ]
+  }
+}
