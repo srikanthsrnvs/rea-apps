@@ -1,0 +1,123 @@
+{
+  "model": "qwen3.6:35b",
+  "harness": "Pi",
+  "profile": "ordering",
+  "summaries": [
+    {
+      "scenario": "fresh",
+      "passed": true,
+      "calls": [
+        "product_find",
+        "product_options",
+        "order_prepare"
+      ],
+      "errors": 0,
+      "state": {
+        "type": "state",
+        "rows": 1,
+        "quantity": 1,
+        "placements": 0
+      },
+      "seconds": 6
+    },
+    {
+      "scenario": "saved",
+      "passed": true,
+      "calls": [
+        "recipe_show",
+        "order_prepare"
+      ],
+      "errors": 0,
+      "state": {
+        "type": "state",
+        "rows": 1,
+        "quantity": 1,
+        "placements": 0
+      },
+      "seconds": 4
+    },
+    {
+      "scenario": "interrupted",
+      "passed": true,
+      "calls": [
+        "order_status"
+      ],
+      "errors": 0,
+      "state": {
+        "type": "state",
+        "rows": 1,
+        "quantity": 1,
+        "placements": 0
+      },
+      "seconds": 3
+    },
+    {
+      "scenario": "pending",
+      "passed": true,
+      "calls": [
+        "order_status"
+      ],
+      "errors": 0,
+      "state": {
+        "type": "state",
+        "rows": 1,
+        "quantity": 1,
+        "placements": 0
+      },
+      "seconds": 6
+    },
+    {
+      "scenario": "approved",
+      "passed": true,
+      "calls": [
+        "order_confirm"
+      ],
+      "errors": 0,
+      "state": {
+        "type": "state",
+        "rows": 1,
+        "quantity": 1,
+        "placements": 1
+      },
+      "seconds": 4
+    },
+    {
+      "scenario": "repeat",
+      "passed": true,
+      "calls": [
+        "recipe_show",
+        "order_prepare"
+      ],
+      "errors": 0,
+      "state": {
+        "type": "state",
+        "rows": 1,
+        "quantity": 1,
+        "placements": 0
+      },
+      "seconds": 4
+    },
+    {
+      "scenario": "ambiguous",
+      "passed": true,
+      "calls": [
+        "recipe_show",
+        "order_prepare"
+      ],
+      "errors": 1,
+      "state": {
+        "type": "state",
+        "rows": 0,
+        "quantity": 0,
+        "placements": 0
+      },
+      "seconds": 5
+    }
+  ],
+  "date": "2026-10-29",
+  "piVersion": "0.99.2",
+  "parameterCount": 35505251456,
+  "quantization": "Q4_K_M",
+  "backend": "production modules with deterministic fixtures",
+  "livePurchaseEnabled": false
+}

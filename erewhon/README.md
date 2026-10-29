@@ -1,6 +1,6 @@
 # Erewhon CLI
 
-Headless HTTP tools for Erewhon SMS login, account information, membership, rewards, purchase history, product search, pickup and delivery carts, and reviewed order submission. Commands return JSON; `erewhon tools` describes the callable interface for models.
+Headless HTTP tools for Erewhon SMS login, account information, membership, rewards, purchase history, product search, pickup and delivery carts, and reviewed order submission. Commands return JSON; `erewhon tools` exposes the recommended interface for models. `tools --profile ordering` gives a small model just eight ordering tools; `tools --advanced` includes the native ID/file interface.
 
 The runtime needs Node.js 22.19 or newer. Login accepts the verification code in the CLI. No Android device, Java, browser, display server, tunnel, or developer API key input is required. Search uses the public search key shipped by Erewhon’s website.
 
@@ -25,6 +25,62 @@ erewhon tools
 ```
 
 There are no npm runtime dependencies. Installation does not copy an Android session or credentials from another app.
+
+## Recommended agent workflow: named recipes
+
+Save what the user wants, not the backend's IDs. The CLI resolves the current
+catalog reference, native product, serving size and modifiers for each new
+recipe draft. A recurring order needs two agent calls:
+
+```sh
+# One-time setup; edit the example for the user's exact choices.
+erewhon recipe save --name usual-coffee --request erewhon/examples/cappuccino.json
+
+# Each order: resolve fresh identities, build/verify the cart and return a review.
+erewhon order prepare --recipe usual-coffee
+
+# Only after the user approves that review:
+erewhon order confirm --plan-id PLAN_ID --confirm
+
+# After an interrupted tap/call, inspect this instead of submitting again:
+erewhon order status --plan-id PLAN_ID
+```
+
+The example saves a Large 16 oz cappuccino, named milk/syrup/sweetener choices,
+quantity one, Venice pickup and no reward redemption. Recipes use ASAP; the
+current window, total and selected payment appear in each review. Optional
+`paymentLast4` stops preparation if the selected card differs. Delivery recipes
+use `fulfillment: {"type":"delivery","addressId":"SAVED_ADDRESS_ID"}` instead.
+Delivery minimums and other existing checkout checks still apply.
+
+For a one-off order, use `order prepare --json REQUEST_JSON` with the same recipe
+shape. No saved recipe or temporary file is needed. `recipe save` also accepts
+inline `--json RECIPE_JSON`, while `--request FILE` remains available for scripts.
+The machine tool schema accepts the structured `request` or `recipe` object.
+
+Discover choices once with `product find --query cappuccino`, then
+`product options --product-ref CATALOG_REFERENCE`. These return concise named
+sizes and groups. `recipe show --name usual-coffee` reads the saved intent.
+Names match exactly, ignoring case and whitespace. Ambiguous products, missing
+options or occupied carts stop explicitly; the CLI does not guess or clear the
+cart. Repeating preparation of an unchanged recipe draft reuses its existing
+item rather than adding another. If an addition was interrupted, inspect the
+cart first; after removing that draft's item, `recipe reset --name usual-coffee`
+clears its journal only if the cart is empty.
+
+Search's `ECRSID`/`objectID` is a **catalog reference**. The returned
+`product._id` is a different **native product ID**, used only internally for
+adding an item. Neither native IDs nor modifier/size IDs belong in a recurring
+recipe. Catalog references can also be retired; recipes re-search the selected
+store using exact name, brand and optional SKU. The lookup and fresh ID mapping
+happen inside one agent-facing preparation call.
+
+`status: "prepared"` always has `orderPlaced: false`. Confirmation returns
+`orderPlaced: true` only with a server-confirmed `orderId`. An unresolved
+submission has `orderPlaced: null`; use `order status` to reconcile it.
+Client cards/tasks must mark an order completed **only** when both
+`orderPlaced === true` and `orderId` are present. Finishing a UI handler,
+preparing a plan or observing an empty cart is not proof of an order.
 
 ## Login
 
@@ -129,6 +185,19 @@ State defaults to `~/.config/erewhon-cli`, or `$XDG_CONFIG_HOME/erewhon-cli`. Ov
 Tokens and raw responses remain private; commands and tools do not export credentials. Logout removes authentication state and the last response, while preserving the device ID, cart plans and order journals needed to resolve an existing outcome. APKs, analysis artifacts and captured account data are excluded from Git and packages.
 
 ## Validation and limits
+
+The ordering interface was also exercised by a local 35.5B Qwen model through
+the Pi harness. Its initial failures led to the reduced tool profile, inline
+requests, explicit discovery-versus-checkout results and unknown-outcome
+instructions. See [the reproducible model evaluation](eval/README.md).
+
+On 2026-10-29, the named recipe prepared the customized Venice cappuccino through
+CLI HTTP on Linux ARM64 for $9.97. A second preparation retained one cart row
+with quantity one, and durable status correctly reported `orderPlaced:false`.
+The test item was removed and the original empty cart restored. No payment or
+order-placement request was sent. Automated regressions cover changes to every
+native ID and the search reference, ambiguous/missing choices, dropped server
+customizations, interrupted additions and payment-response reconciliation.
 
 On 2026-10-14, a live HTTP pilot on native ARM64 Linux completed SMS login, code verification, authenticated profile and native membership reads, rewards and purchase history. The production CLI separately validated the exchanged candidate and successfully read profile, membership, rewards, online and in-store history, fulfillment, stores, addresses, cart and categories. Product details, paginated search and address serviceability also passed live checks. These steps used no Android runtime, browser, display server or tunnel.
 
