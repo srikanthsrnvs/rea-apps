@@ -19,8 +19,8 @@ test('help and the compact tool manifest require no session or service call and 
   await runEatsCli(['tools'], dependencies);
   assert.equal(calls, 0);
   assert.equal(output[0].usage, 'uber eats <command> [options]');
-  assert.equal(output[1].tools.length, 7);
-  assert.equal(new Set(eatsTools.map((tool) => tool.name)).size, 7);
+  assert.equal(output[1].tools.length, 8);
+  assert.equal(new Set(eatsTools.map((tool) => tool.name)).size, 8);
   assert.ok(
     eatsTools.every((tool) => tool.inputSchema.additionalProperties === false),
   );
@@ -388,4 +388,136 @@ test('confirmation rejects ignored order/location selectors instead of approving
       runEatsCli(args, { execute, print() {} }),
       /omit|only supported|does not accept/,
     );
+});
+
+test('inline cart JSON preserves zero quantities and rejects ambiguous or invalid bodies before execution', async () => {
+  let received,
+    calls = 0;
+  const deps = {
+    execute: async (_, values) => {
+      calls++;
+      received = values;
+      return {};
+    },
+    print() {},
+  };
+  const body = {
+    quantity: 0,
+    customizations: [
+      {
+        uuid: 'milk',
+        childOptions: { options: [{ uuid: 'whole', quantity: 0 }] },
+      },
+    ],
+  };
+  await runEatsCli(
+    [
+      'cart',
+      '--action',
+      'update',
+      '--draft-id',
+      'draft',
+      '--line-id',
+      'line',
+      '--json',
+      JSON.stringify(body),
+    ],
+    deps,
+  );
+  assert.deepEqual(received.request, body);
+  assert.equal(received.json, undefined);
+  for (const extra of [
+    ['--json', 'null'],
+    ['--json', '[]'],
+    ['--json', '"text"'],
+    ['--json', '{bad'],
+    ['--json', JSON.stringify({ secret: 'x'.repeat(1024 * 1024) })],
+    ['--json', '{}', '--request', 'unused.json'],
+    ['--request', '{"items":[]}'],
+  ]) {
+    await assert.rejects(
+      runEatsCli(['cart', '--action', 'create', ...extra], deps),
+      /JSON|file path|not both/,
+    );
+  }
+  assert.equal(calls, 1);
+});
+
+test('compact is explicit and mutually exclusive with raw; advanced keeps the original file interface', async () => {
+  const output = {
+    restaurants: [
+      {
+        storeId: 'store',
+        items: [{ itemId: 'item', fareInfo: { keep: 'full' } }],
+      },
+    ],
+    nextOffset: 5,
+  };
+  const deps = { execute: async () => structuredClone(output), print() {} };
+  const full = await runEatsCli(
+    ['search', '--query', 'coffee', '--near', '34,-118'],
+    deps,
+  );
+  assert.deepEqual(full, output);
+  const compact = await runEatsCli(
+    ['search', '--query', 'coffee', '--near', '34,-118', '--compact'],
+    deps,
+  );
+  assert.equal(compact.restaurants[0].items[0].fareInfo, undefined);
+  assert.equal(compact.nextOffset, 5);
+  await assert.rejects(
+    runEatsCli(
+      [
+        'search',
+        '--query',
+        'coffee',
+        '--near',
+        '34,-118',
+        '--raw',
+        '--compact',
+      ],
+      deps,
+    ),
+    /not both/,
+  );
+  const manifest = await runEatsCli(['tools', '--advanced'], { print() {} });
+  const cart = manifest.tools.find((t) => t.name === 'eats_cart');
+  assert.ok(cart.inputSchema.properties.requestFile);
+  assert.equal(cart.inputSchema.properties.request, undefined);
+  assert.equal(manifest.tools.length, 8);
+});
+
+test('agent search defaults to five entries but keeps explicit pagination and full CLI defaults', async () => {
+  const calls = [];
+  const deps = {
+    execute: async (_, values) => {
+      calls.push(values);
+      return { restaurants: [] };
+    },
+    print() {},
+  };
+  await runEatsCli(
+    ['search', '--query', 'food', '--near', '34,-118', '--compact'],
+    deps,
+  );
+  await runEatsCli(
+    [
+      'search',
+      '--query',
+      'food',
+      '--near',
+      '34,-118',
+      '--compact',
+      '--limit',
+      '20',
+      '--offset',
+      '5',
+    ],
+    deps,
+  );
+  await runEatsCli(['search', '--query', 'food', '--near', '34,-118'], deps);
+  assert.equal(calls[0].limit, 5);
+  assert.equal(calls[1].limit, 20);
+  assert.equal(calls[1].offset, 5);
+  assert.equal(calls[2].limit, undefined);
 });

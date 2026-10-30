@@ -1,0 +1,162 @@
+{
+  "date": "2026-10-29",
+  "model": "qwen3.6:35b",
+  "quantization": "Q4_K_M",
+  "harness": "Pi 0.99.2",
+  "temperature": 0,
+  "seed": 20261029,
+  "profile": "agent",
+  "sourceSha256": {
+    "src/eats/agent-view.mjs": "be7bc0176babc3308743ad32bebc6b9497d6f49cf3243ebf6ca4e7c428cd1afb",
+    "src/eats/choices.mjs": "5a33f6baad640c3bc2bcce7596a1c031441612eb80a87b5905b0482cd9c1ab19",
+    "src/eats/cli.mjs": "cb5018d543dd3f633126b2c5708a3b1bae8a6293792abd47f091446ccbcf08c7",
+    "src/eats/tools.mjs": "b16df921cfd228988d06694796f820bc96137ee44ef8174dd6ad0032080288b2",
+    "src/eats/tool-dispatch.mjs": "ae12feb4e1c60f66027247eda8ef8814783f3c202d2c17e8e2112288cbfbedeb",
+    "src/eats/service.mjs": "288000181a3c35cf817aa37c15f784232e8ea30dc0bd508820f33089c760b4d0",
+    "src/mutations.mjs": "8b8954709ba8b1cd8b8e689484e3993e6d814495f989df6b928757156dcb412c"
+  },
+  "isolatedScenarios": [
+    {
+      "case": "latte",
+      "passed": true,
+      "checks": {
+        "completed": true,
+        "noPurchase": true,
+        "oneCart": true,
+        "sameFulfillment": true,
+        "sameAddress": true,
+        "exactItemsAndChoices": true,
+        "startedWithTwo": true,
+        "quantityOnlyFollowup": true
+      },
+      "turnCalls": [
+        4,
+        1
+      ],
+      "referenceTurnCalls": [
+        4,
+        1
+      ],
+      "seconds": [
+        65.71,
+        23.55
+      ],
+      "writes": 2
+    },
+    {
+      "case": "mixed",
+      "passed": true,
+      "checks": {
+        "completed": true,
+        "noPurchase": true,
+        "oneCart": true,
+        "sameFulfillment": true,
+        "sameAddress": true,
+        "exactItemsAndChoices": true,
+        "kitchenInstructionsPreserved": true,
+        "correctCheckout": true,
+        "removeOnlyBurger": true
+      },
+      "turnCalls": [
+        6,
+        2
+      ],
+      "referenceTurnCalls": [
+        6,
+        1
+      ],
+      "seconds": [
+        84.22,
+        34.89
+      ],
+      "writes": 4
+    },
+    {
+      "case": "unavailable",
+      "passed": true,
+      "checks": {
+        "completed": true,
+        "noPurchase": true,
+        "noCartChanges": true,
+        "inspectedUnavailableOption": true
+      },
+      "turnCalls": [
+        3
+      ],
+      "referenceTurnCalls": [
+        3
+      ],
+      "seconds": [
+        25.42
+      ],
+      "writes": 0
+    },
+    {
+      "case": "unknown",
+      "passed": true,
+      "checks": {
+        "completed": true,
+        "noPurchase": true,
+        "oneCart": true,
+        "sameFulfillment": true,
+        "sameAddress": true,
+        "exactItemsAndChoices": true,
+        "singleWrite": true,
+        "inspectedSameOperation": true
+      },
+      "turnCalls": [
+        5
+      ],
+      "referenceTurnCalls": [
+        5
+      ],
+      "seconds": [
+        43.01
+      ],
+      "writes": 1
+    }
+  ],
+  "limits": "One deterministic sample per case; not a statistical reliability estimate. These scenarios never call live purchase endpoints.",
+  "additionalNaturalRecovery": {
+    "case": "unknown_without_recovery_prompt",
+    "passed": true,
+    "checks": {
+      "completed": true,
+      "noPurchase": true,
+      "oneCart": true,
+      "sameFulfillment": true,
+      "sameAddress": true,
+      "exactItemsAndChoices": true,
+      "singleWrite": true,
+      "inspectedSameOperation": true
+    },
+    "turnCalls": [
+      6
+    ],
+    "referenceTurnCalls": [
+      5
+    ],
+    "seconds": [
+      32.98
+    ],
+    "writes": 1
+  },
+  "guardedLiveSmoothie": {
+    "turnCalls": [
+      2,
+      1
+    ],
+    "seconds": [
+      35.46,
+      42.4
+    ],
+    "passed": false,
+    "failures": [
+      "Skipped item inspection",
+      "Claimed cart success after explicit evaluation write rejection",
+      "Made unsupported sweetness/ingredient claims"
+    ],
+    "writes": 0,
+    "orders": 0
+  }
+}

@@ -1,0 +1,658 @@
+[
+  {
+    "case": "latte",
+    "turns": [
+      {
+        "prompt": "From Harbor Kitchen, add two large 16 oz lattes with oat milk, no foam and two extra espresso shots per drink for pickup. Use the area around 100 Test Avenue. Don't order.",
+        "calls": [
+          {
+            "name": "eats_locations",
+            "args": {}
+          },
+          {
+            "name": "eats_search",
+            "args": {
+              "query": "Harbor Kitchen",
+              "near": "34,-118",
+              "mode": "pickup"
+            }
+          },
+          {
+            "name": "eats_menu",
+            "args": {
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "near": "34,-118",
+              "mode": "pickup",
+              "itemId": "00000000-0000-4000-8000-000000000011"
+            }
+          },
+          {
+            "name": "eats_cart",
+            "args": {
+              "action": "create",
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "diningMode": "pickup",
+              "deliveryAddress": {
+                "address": {
+                  "address1": "100 Test Avenue",
+                  "subtitle": "Los Angeles, CA",
+                  "title": "Home"
+                },
+                "latitude": 34,
+                "longitude": -118
+              },
+              "items": [
+                {
+                  "choices": [
+                    {
+                      "group": "Size",
+                      "option": "Large 16 oz"
+                    },
+                    {
+                      "group": "Milk",
+                      "option": "Oat Milk"
+                    },
+                    {
+                      "group": "Foam",
+                      "option": "No foam",
+                      "path": [
+                        "Milk",
+                        "Oat Milk"
+                      ]
+                    },
+                    {
+                      "group": "Extras",
+                      "option": "Espresso Shot",
+                      "quantity": 2
+                    }
+                  ],
+                  "itemId": "00000000-0000-4000-8000-000000000011",
+                  "quantity": 2,
+                  "sectionId": "00000000-0000-4000-8000-000000000003"
+                }
+              ]
+            }
+          }
+        ],
+        "answer": "Your pickup cart has been successfully prepared from Harbor Kitchen at 100 Test Avenue with the following items:\n\n**Items:**\n- **Latte (x2)**\n  - Size: Large 16 oz\n  - Milk: Oat Milk\n  - Foam: No foam\n  - Extras: Espresso Shot (x2 per drink)\n\nThe cart is active and ready for checkout but has not been ordered as requested. Let me know if you'd like to proceed with placing the order or make any changes",
+        "seconds": 65.71
+      },
+      {
+        "prompt": "Actually make those three lattes total. Keep everything else the same.",
+        "calls": [
+          {
+            "name": "eats_cart",
+            "args": {
+              "action": "update",
+              "draftId": "00000000-0000-4000-8000-000000000101",
+              "lineId": "0c6c76f6-ab87-4150-b8be-312a2243495f",
+              "quantity": 3
+            }
+          }
+        ],
+        "answer": "Done! I've updated your pickup cart at Harbor Kitchen to include **three** large 16 oz lattes, each with oat milk, no foam, and two extra espresso shots. The total is now calculated for three drinks. Let me know if you'd like to set a tip or proceed to checkout.",
+        "seconds": 23.55
+      }
+    ],
+    "referenceTurns": [
+      [
+        {
+          "name": "eats_locations",
+          "args": {}
+        },
+        {
+          "name": "eats_search",
+          "args": {
+            "query": "Harbor Kitchen",
+            "near": "34,-118",
+            "mode": "pickup"
+          }
+        },
+        {
+          "name": "eats_menu",
+          "args": {
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "itemId": "00000000-0000-4000-8000-000000000011",
+            "sectionId": "00000000-0000-4000-8000-000000000003",
+            "near": "34,-118",
+            "mode": "pickup"
+          }
+        },
+        {
+          "name": "eats_cart",
+          "args": {
+            "action": "create",
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "diningMode": "pickup",
+            "deliveryAddress": {
+              "latitude": 34,
+              "longitude": -118,
+              "address": {
+                "address1": "100 Test Avenue",
+                "title": "Home",
+                "subtitle": "Los Angeles, CA"
+              }
+            },
+            "items": [
+              {
+                "itemId": "00000000-0000-4000-8000-000000000011",
+                "sectionId": "00000000-0000-4000-8000-000000000003",
+                "subsectionId": "00000000-0000-4000-8000-000000000004",
+                "quantity": 2,
+                "specialInstructions": "",
+                "choices": [
+                  {
+                    "group": "Size",
+                    "option": "Large 16 oz"
+                  },
+                  {
+                    "group": "Milk",
+                    "option": "Oat Milk"
+                  },
+                  {
+                    "group": "Foam",
+                    "option": "No foam"
+                  },
+                  {
+                    "group": "Extras",
+                    "option": "Espresso Shot",
+                    "quantity": 2
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      [
+        {
+          "name": "eats_cart",
+          "args": {
+            "action": "update",
+            "draftId": "00000000-0000-4000-8000-000000000101",
+            "lineId": "ecc894e7-b6c3-4bbf-b62a-723497c8cdf0",
+            "quantity": 3
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "case": "mixed",
+    "turns": [
+      {
+        "prompt": "From Harbor Kitchen, get one Garden Burger with no onions and sauce on the side, plus two Fries with no salt, delivered to Home at 100 Test Avenue. Prepare checkout with a $2.50 tip for review. Don't buy.",
+        "calls": [
+          {
+            "name": "eats_locations",
+            "args": {}
+          },
+          {
+            "name": "eats_search",
+            "args": {
+              "query": "Harbor Kitchen",
+              "near": "34,-118"
+            }
+          },
+          {
+            "name": "eats_menu",
+            "args": {
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "near": "34,-118",
+              "itemId": "00000000-0000-4000-8000-000000000012"
+            }
+          },
+          {
+            "name": "eats_menu",
+            "args": {
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "near": "34,-118",
+              "itemId": "00000000-0000-4000-8000-000000000013"
+            }
+          },
+          {
+            "name": "eats_cart",
+            "args": {
+              "action": "create",
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "diningMode": "delivery",
+              "deliveryAddress": {
+                "address": {
+                  "address1": "100 Test Avenue",
+                  "subtitle": "Los Angeles, CA",
+                  "title": "Home"
+                },
+                "latitude": 34,
+                "longitude": -118
+              },
+              "items": [
+                {
+                  "choices": [
+                    {
+                      "group": "Onions",
+                      "option": "No onions"
+                    }
+                  ],
+                  "itemId": "00000000-0000-4000-8000-000000000012",
+                  "quantity": 1,
+                  "sectionId": "00000000-0000-4000-8000-000000000003",
+                  "specialInstructions": "Sauce on the side"
+                },
+                {
+                  "choices": [
+                    {
+                      "group": "Seasoning",
+                      "option": "No salt"
+                    }
+                  ],
+                  "itemId": "00000000-0000-4000-8000-000000000013",
+                  "quantity": 2,
+                  "sectionId": "00000000-0000-4000-8000-000000000003"
+                }
+              ]
+            }
+          },
+          {
+            "name": "eats_checkout",
+            "args": {
+              "draftId": "00000000-0000-4000-8000-000000000101",
+              "tipAmount": "2.50"
+            }
+          }
+        ],
+        "answer": "Your checkout for Harbor Kitchen has been prepared for review as requested (purchase not made). Here are the details:\n\n📍 **Delivery Address:** Home at 100 Test Avenue, Los Angeles, CA\n🍔 **Garden Burger (x1):** No onions, Sauce on the side\n🍟 **Fries (x2):** No salt\n\n💰 **Checkout Summary:**\n• Order Total: $19.00\n• Tip: $2.50\n• Fees & Taxes: $3.00\n**Grand Total: $24.50**\n\nThe plan is ready for your final review and confirmation (Plan ID: `822eaa6d-3066-480c-b075-f78196d77ff8`). Let me know if you'd like to adjust anything or proceed with the purchase.",
+        "seconds": 84.22
+      },
+      {
+        "prompt": "Remove just the burger and keep the fries. Do not buy.",
+        "calls": [
+          {
+            "name": "eats_cart",
+            "args": {
+              "action": "remove",
+              "draftId": "00000000-0000-4000-8000-000000000101",
+              "lineId": "40bd6a7d-c1e9-4558-84a8-1432101fccce"
+            }
+          },
+          {
+            "name": "eats_checkout",
+            "args": {
+              "draftId": "00000000-0000-4000-8000-000000000101",
+              "tipAmount": "2.50"
+            }
+          }
+        ],
+        "answer": "The Garden Burger has been removed from your cart. Here is the updated checkout summary for review (purchase not made):\n\n🍟 **Fries (x2):** No salt\n📍 **Delivery Address:** Home at 100 Test Avenue, Los Angeles, CA\n💰 **Checkout Summary:**\n• Order Total: $8.00\n• Tip: $2.50\n• Fees & Taxes: $3.00\n**Grand Total: $13.50**\n\nReady for your confirmation whenever you're ready (Plan ID: `8df4fc20-dec9-493c-8c4b-acc4a1c5c7ca`).",
+        "seconds": 34.89
+      }
+    ],
+    "referenceTurns": [
+      [
+        {
+          "name": "eats_locations",
+          "args": {}
+        },
+        {
+          "name": "eats_search",
+          "args": {
+            "query": "Harbor Kitchen",
+            "near": "34,-118",
+            "mode": "delivery"
+          }
+        },
+        {
+          "name": "eats_menu",
+          "args": {
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "itemId": "00000000-0000-4000-8000-000000000012",
+            "sectionId": "00000000-0000-4000-8000-000000000003",
+            "near": "34,-118",
+            "mode": "delivery"
+          }
+        },
+        {
+          "name": "eats_menu",
+          "args": {
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "itemId": "00000000-0000-4000-8000-000000000013",
+            "sectionId": "00000000-0000-4000-8000-000000000003",
+            "near": "34,-118",
+            "mode": "delivery"
+          }
+        },
+        {
+          "name": "eats_cart",
+          "args": {
+            "action": "create",
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "diningMode": "delivery",
+            "deliveryAddress": {
+              "latitude": 34,
+              "longitude": -118,
+              "address": {
+                "address1": "100 Test Avenue",
+                "title": "Home",
+                "subtitle": "Los Angeles, CA"
+              }
+            },
+            "items": [
+              {
+                "itemId": "00000000-0000-4000-8000-000000000012",
+                "sectionId": "00000000-0000-4000-8000-000000000003",
+                "subsectionId": "00000000-0000-4000-8000-000000000004",
+                "quantity": 1,
+                "specialInstructions": "Sauce on the side",
+                "choices": [
+                  {
+                    "group": "Onions",
+                    "option": "No onions"
+                  }
+                ]
+              },
+              {
+                "itemId": "00000000-0000-4000-8000-000000000013",
+                "sectionId": "00000000-0000-4000-8000-000000000003",
+                "subsectionId": "00000000-0000-4000-8000-000000000004",
+                "quantity": 2,
+                "specialInstructions": "",
+                "choices": [
+                  {
+                    "group": "Seasoning",
+                    "option": "No salt"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "eats_checkout",
+          "args": {
+            "draftId": "00000000-0000-4000-8000-000000000101",
+            "tipAmount": "2.50"
+          }
+        }
+      ],
+      [
+        {
+          "name": "eats_cart",
+          "args": {
+            "action": "remove",
+            "draftId": "00000000-0000-4000-8000-000000000101",
+            "lineId": "a59b13b9-bf53-400e-b0f9-1d1f23595ad7"
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "case": "unavailable",
+    "turns": [
+      {
+        "prompt": "Add one Latte from Harbor Kitchen with Oat Milk for delivery to Home. Oat milk is required; if it is sold out, stop without substitutions or cart changes. Don't buy.",
+        "calls": [
+          {
+            "name": "eats_locations",
+            "args": {}
+          },
+          {
+            "name": "eats_search",
+            "args": {
+              "query": "Harbor Kitchen",
+              "near": "34,-118",
+              "mode": "delivery"
+            }
+          },
+          {
+            "name": "eats_menu",
+            "args": {
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "near": "34,-118",
+              "mode": "delivery",
+              "itemId": "00000000-0000-4000-8000-000000000011"
+            }
+          }
+        ],
+        "answer": "Oat Milk is currently sold out at Harbor Kitchen. As requested, I have stopped here without making any substitutions or adding changes to your cart. Let me know if you'd like to try a different coffee shop or a different milk option!",
+        "seconds": 25.42
+      }
+    ],
+    "referenceTurns": [
+      [
+        {
+          "name": "eats_locations",
+          "args": {}
+        },
+        {
+          "name": "eats_search",
+          "args": {
+            "query": "Harbor Kitchen",
+            "near": "34,-118",
+            "mode": "delivery"
+          }
+        },
+        {
+          "name": "eats_menu",
+          "args": {
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "itemId": "00000000-0000-4000-8000-000000000011",
+            "sectionId": "00000000-0000-4000-8000-000000000003",
+            "near": "34,-118",
+            "mode": "delivery"
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "case": "unknown",
+    "turns": [
+      {
+        "prompt": "Add one regular Berry Banana Smoothie from Harbor Kitchen for delivery to Home at 100 Test Avenue. If any addition has an unknown outcome, inspect the same operation and stop rather than retrying or starting over. Don't order.",
+        "calls": [
+          {
+            "name": "eats_locations",
+            "args": {}
+          },
+          {
+            "name": "eats_search",
+            "args": {
+              "query": "Harbor Kitchen",
+              "near": "34,-118",
+              "mode": "delivery"
+            }
+          },
+          {
+            "name": "eats_menu",
+            "args": {
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "itemId": "00000000-0000-4000-8000-000000000010",
+              "near": "34,-118",
+              "mode": "delivery"
+            }
+          },
+          {
+            "name": "eats_cart",
+            "args": {
+              "action": "create",
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "diningMode": "delivery",
+              "deliveryAddress": {
+                "address": {
+                  "address1": "100 Test Avenue",
+                  "subtitle": "Los Angeles, CA",
+                  "title": "Home"
+                },
+                "latitude": 34,
+                "longitude": -118
+              },
+              "items": [
+                {
+                  "choices": [
+                    {
+                      "group": "Size",
+                      "option": "Regular 16 oz"
+                    },
+                    {
+                      "group": "Sweetness",
+                      "option": "Regular sweetener"
+                    }
+                  ],
+                  "itemId": "00000000-0000-4000-8000-000000000010",
+                  "quantity": 1,
+                  "sectionId": "00000000-0000-4000-8000-000000000003"
+                }
+              ]
+            }
+          },
+          {
+            "name": "eats_operation",
+            "args": {
+              "operationId": "034015b3-16fe-4f6c-960f-abe298f516b2"
+            }
+          }
+        ],
+        "answer": "I encountered an unexpected interruption while processing your request. The system reports an **unknown outcome** for the cart creation operation (operation `034015b3-16fe-4f6c-960f-abe298f516b2`), stating \"Lost creation response after the server accepted it.\" \n\nPer your instructions, I am stopping here rather than retrying or starting over. The regular Berry Banana Smoothie from Harbor Kitchen has not been definitively confirmed as added to your cart. If you need to proceed, please try again later or check your Uber Eats account directly to see if the action completed.",
+        "seconds": 43.01
+      }
+    ],
+    "referenceTurns": [
+      [
+        {
+          "name": "eats_locations",
+          "args": {}
+        },
+        {
+          "name": "eats_search",
+          "args": {
+            "query": "Harbor Kitchen",
+            "near": "34,-118",
+            "mode": "delivery"
+          }
+        },
+        {
+          "name": "eats_menu",
+          "args": {
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "itemId": "00000000-0000-4000-8000-000000000010",
+            "sectionId": "00000000-0000-4000-8000-000000000003",
+            "near": "34,-118",
+            "mode": "delivery"
+          }
+        },
+        {
+          "name": "eats_cart",
+          "args": {
+            "action": "create",
+            "storeId": "00000000-0000-4000-8000-000000000002",
+            "diningMode": "delivery",
+            "deliveryAddress": {
+              "latitude": 34,
+              "longitude": -118,
+              "address": {
+                "address1": "100 Test Avenue",
+                "title": "Home",
+                "subtitle": "Los Angeles, CA"
+              }
+            },
+            "items": [
+              {
+                "itemId": "00000000-0000-4000-8000-000000000010",
+                "sectionId": "00000000-0000-4000-8000-000000000003",
+                "subsectionId": "00000000-0000-4000-8000-000000000004",
+                "quantity": 1,
+                "specialInstructions": "",
+                "choices": []
+              }
+            ]
+          }
+        },
+        {
+          "name": "eats_operation",
+          "args": {
+            "operationId": "4a21e483-3c85-4ee5-82dd-8965cab8f9dc"
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "case": "unknown_without_recovery_prompt",
+    "turns": [
+      {
+        "prompt": "Add one regular Berry Banana Smoothie from Harbor Kitchen for delivery to Home at 100 Test Avenue. Don't order.",
+        "calls": [
+          {
+            "name": "eats_locations",
+            "args": {}
+          },
+          {
+            "name": "eats_search",
+            "args": {
+              "query": "Harbor Kitchen",
+              "near": "34,-118",
+              "mode": "delivery"
+            }
+          },
+          {
+            "name": "eats_menu",
+            "args": {
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "near": "34,-118",
+              "mode": "delivery",
+              "itemId": "00000000-0000-4000-8000-000000000010"
+            }
+          },
+          {
+            "name": "eats_cart",
+            "args": {
+              "action": "create",
+              "storeId": "00000000-0000-4000-8000-000000000002",
+              "diningMode": "delivery",
+              "deliveryAddress": {
+                "address": {
+                  "address1": "100 Test Avenue",
+                  "subtitle": "Los Angeles, CA",
+                  "title": "Home"
+                },
+                "latitude": 34,
+                "longitude": -118
+              },
+              "items": [
+                {
+                  "choices": [
+                    {
+                      "group": "Size",
+                      "option": "Regular 16 oz"
+                    },
+                    {
+                      "group": "Sweetness",
+                      "option": "Regular sweetener"
+                    }
+                  ],
+                  "itemId": "00000000-0000-4000-8000-000000000010",
+                  "quantity": 1,
+                  "sectionId": "00000000-0000-4000-8000-000000000003"
+                }
+              ]
+            }
+          },
+          {
+            "name": "eats_operation",
+            "args": {
+              "operationId": "0b89e86c-845d-4251-b845-acf323657a02"
+            }
+          },
+          {
+            "name": "eats_cart",
+            "args": {
+              "action": "list"
+            }
+          }
+        ],
+        "seconds": 32.98,
+        "answer": "I've successfully added one regular Berry Banana Smoothie from Harbor Kitchen to your delivery cart for Home at 100 Test Avenue. The smoothie is customized with:\n- Size: Regular 16 oz\n- Sweetness: Regular sweetener\n\nThe item is now in your cart and ready whenever you want to place the order. As requested, I haven't placed or confirmed any order yet."
+      }
+    ]
+  }
+]

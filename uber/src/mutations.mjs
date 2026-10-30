@@ -106,9 +106,9 @@ export async function executeMutation(
   return response;
 }
 
-export async function inspectOperation(id) {
+export async function inspectOperation(id, { read = readState } = {}) {
   if (!uuid.test(id ?? '')) throw new Error('Operation ID must be a UUID');
-  const record = await readState(`operation-${id}`);
+  const record = await read(`operation-${id}`);
   if (!record) throw new Error('Operation was not found');
   return record;
 }
