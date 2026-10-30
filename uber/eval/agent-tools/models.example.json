@@ -1,0 +1,34 @@
+{
+  "providers": {
+    "local-qwen": {
+      "baseUrl": "http://127.0.0.1:11434/v1",
+      "api": "openai-completions",
+      "apiKey": "ollama",
+      "models": [
+        {
+          "id": "rea-uber-eats-qwen35b-eval",
+          "name": "Local Qwen 35.5B",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768,
+          "maxTokens": 4096,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "supportsReasoningEffort": true
+          },
+          "thinkingLevelMap": {
+            "off": "none"
+          }
+        }
+      ]
+    }
+  }
+}
