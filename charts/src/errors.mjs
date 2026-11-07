@@ -29,6 +29,9 @@ export function publicError(error, signal) {
     return { code: timeout ? 'TIMEOUT' : 'ABORTED', message: messages[timeout ? 'TIMEOUT' : 'ABORTED'], retryable: timeout };
   }
   if (error?.name === 'TimeoutError' || error?.cause?.name === 'TimeoutError') return { code: 'TIMEOUT', message: messages.TIMEOUT, retryable: true };
+  if (error?.code === 'STUDY_ERROR' && /can(?:not|'t) parse pine/iu.test(String(error.message))) {
+    return { code: 'PINE_PROTOCOL_ERROR', message: 'TradingView rejected the compiled Pine payload. This is a study-protocol failure, not evidence that login expired. Built-in studies and market-data tools remain available.', retryable: false };
+  }
   if (error instanceof ChartsError) return { code: error.code, message: error.message, retryable: ['PROVIDER_BUSY', 'RATE_LIMITED'].includes(error.code) };
   const code = Object.hasOwn(messages, error?.code) ? error.code : 'INTERNAL_ERROR';
   return { code, message: messages[code] ?? 'The operation could not complete.',

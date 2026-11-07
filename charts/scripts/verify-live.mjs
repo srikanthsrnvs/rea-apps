@@ -26,6 +26,6 @@ for (const [command, args, check] of checks) {
   catch (error) { report.results.push({ command, status: 'failed', code: error.code ?? 'CHECK_FAILED' }); }
 }
 report.peakRssMiB = Math.round(process.resourceUsage().maxRSS / 1024 * 10) / 10;
-report.limitations = ['Development-host run; not an Orin memory measurement.', 'No account login, paid entitlements, UI parity or sustained streaming verified.'];
+report.limitations = ['Execution-host measurement; identify the hardware independently from platform/architecture.', 'No account login, paid entitlements, UI parity or sustained streaming verified.'];
 console.log(JSON.stringify(report, null, 2));
 process.exitCode = report.results.some(row => row.status !== 'passed') ? 1 : 0;

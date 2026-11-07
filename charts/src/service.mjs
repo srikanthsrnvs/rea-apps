@@ -13,7 +13,7 @@ export const provider = {
   accountCapabilities: ['pine_studies', 'saved_indicators', 'watchlists', 'private_layouts'],
   login: 'native_callback_handoff', hostBrowser: false, orderExecution: false,
   authenticationVerification: 'orin_callback_and_account_reads_verified', additionalNative2faSupported: false,
-  automaticCallbackClient: 'macos_receiver_over_ssh', clientReceiverVerification: 'local_tests_only',
+  automaticCallbackClient: 'macos_receiver_over_ssh', clientReceiverVerification: 'mac_to_orin_live_verified',
 };
 const accountCommands = new Set(['auth validate', 'indicators saved', 'watchlists']);
 const page = (rows, o) => ({ data: rows.slice(o.offset, o.offset + o.limit), pagination: {

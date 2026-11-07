@@ -115,6 +115,12 @@ test('provider errors after deadline expiry retain timeout semantics', async () 
   await assert.rejects(service.execute('quotes', { symbols: ['X:Y'] }, { signal: controller.signal }), { name: 'TimeoutError' });
 });
 
+test('Pine protocol rejection does not misdiagnose a validated account or expose raw details', () => {
+  const result = publicError({ code: 'STUDY_ERROR', message: "Study error: Can't parse pine; private-provider-data" });
+  assert.equal(result.code, 'PINE_PROTOCOL_ERROR'); assert.equal(result.retryable, false);
+  assert.doesNotMatch(JSON.stringify(result), /private-provider-data/);
+});
+
 test('scanner pages stay bounded even if the provider ignores the requested limit', async () => {
   const result = await sdkWith({ getScreener: async () => ({ totalCount: 10, rows: Array.from({ length: 5 }, (_, i) => ({ symbol: `X:${i}` })) }) })
     .execute('screener', { columns: ['close'], limit: 2, offset: 3 });

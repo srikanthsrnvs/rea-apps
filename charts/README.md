@@ -96,7 +96,7 @@ charts auth complete --login-id LOGIN_ID --callback-file /private/path/callback.
 
 The receiver uses `--callback-stdin` instead, so the credential never appears in SSH arguments. Both mechanisms exchange the same TradingView grant; the full existing toolset is retained. If an exchange outcome is uncertain, it is never blindly retried. An acquired candidate can be validated again with `auth complete --login-id LOGIN_ID` without resending its callback. `auth cancel` preserves the previous account; `logout` removes local authorization.
 
-The new automatic Mac receiver is locally tested and compiled. Its live end-to-end approval still needs verification; the original manual callback flow was verified on the Orin. Extra native-app 2FA is not yet supported. The receiver currently targets macOS, and a browser-only iPhone/Windows client cannot complete this flow without an equivalent native receiver. See the [client setup and recovery guide](docs/mac-login-client.md) and [protocol evidence](docs/auth-protocol.md).
+The automatic Mac receiver was verified end to end with user approval on the Orin on November 7, including independent validation, persistence, watchlists and authenticated quotes. Extra native-app 2FA remains unsupported. Authenticated Pine execution returned a separate provider payload parse error and is not claimed as working. The receiver currently targets macOS, and a browser-only iPhone/Windows client cannot complete this flow without an equivalent native receiver. See the [client setup and recovery guide](docs/mac-login-client.md) and [protocol evidence](docs/auth-protocol.md).
 
 ## MCP
 

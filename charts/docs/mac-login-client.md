@@ -87,11 +87,17 @@ not been added to PATH. The receiver's settings use `~/.config/charts-client`
 
 ## Current verification limits
 
-The Node client handoff, duplicate prevention, bounded stdin, host binding,
-expiry, error recovery and existing account behavior are covered by local
-tests. The Swift receiver compiles and its URL registration was exercised on
-macOS. The new automatic path still needs a real user-approved account test over
-SSH; the earlier manual native exchange was verified on the Orin.
+On November 7, the full Mac-to-Orin handoff was verified with user approval:
+the Mac app received the provider callback, the restricted SSH key returned it,
+and the Orin independently validated and saved the new session. A fresh CLI
+process validated the saved account and read its watchlist and quotes. The
+previous account remained available until the replacement validated. No
+callback credential was copied by the user.
+
+The local suite also covers duplicate prevention, bounded stdin, host binding,
+expiry and error recovery. The suite passed on macOS and Linux ARM64; thirteen
+anonymous provider checks passed on the actual Orin. See
+[verification results](../research/native-auth-hardening-results.json).
 
 TradingView's additional native-app 2FA flow remains unsupported. The current
 desktop 3.5.0 source still opens a session-bound verification view after a
@@ -99,6 +105,11 @@ desktop 3.5.0 source still opens a session-bound verification view after a
 not transfer the host's challenge session, so the CLI does not pretend it does.
 Ordinary verification completed during the initial TradingView browser sign-in
 is separate from that extra challenge.
+
+The authenticated RSI definition could be read, but Pine execution returned
+`Can't parse pine` in the provider response. This is recorded as a separate
+`PINE_PROTOCOL_ERROR`, not an expired-login diagnosis. Pine execution and
+strategy parity are not claimed as verified.
 
 The receiver is currently macOS-only. This is not an iOS, Windows or generic
 browser-only solution. No account feature was removed or replaced with the paid

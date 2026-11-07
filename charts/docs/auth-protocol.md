@@ -20,9 +20,12 @@ November 7: version **3.5.0**, package SHA-256
 The bounded REA graph extraction is partial; manual inspection of the relevant
 authentication methods confirms the same native callback exchange and
 session-bound extra 2FA view. No desktop application code was executed.
-The new automatic receiver needs a live account test; the October record below
-describes the previously verified manual transfer. The additional native 2FA
-contract has not been implemented or verified.
+The new automatic receiver was verified with user approval from macOS to the
+Orin on November 7. Independent validation, session persistence, watchlists and
+authenticated quotes passed. The October record below describes the earlier
+manual transfer. The additional native 2FA contract has not been implemented or
+verified. Authenticated Pine execution failed separately with a provider payload
+parse error; it is not evidence of a failed account login.
 
 This implementation uses a genuine provider protocol, without running TradingView Desktop or a browser on the host. Its lifecycle is fixture-tested. User-approved callback exchange, independently validated account identity, saved-session reuse, watchlist reading and authenticated quotes were verified on the NVIDIA Jetson AGX Orin on October 26, 2026. See the [sanitized test record](../research/orin-auth-results.json).
 
