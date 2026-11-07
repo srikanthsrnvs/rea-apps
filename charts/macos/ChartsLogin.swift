@@ -56,6 +56,12 @@ class LoginDelegate: NSObject, NSApplicationDelegate {
     var busy = false
     var timeout: Timer?
 
+    @objc func receiveURL(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
+        guard let value = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+              let url = URL(string: value) else { return }
+        application(NSApp, open: [url])
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         let deadline = defaults.double(forKey: "nativeHandlerDeadline")
@@ -151,4 +157,6 @@ class LoginDelegate: NSObject, NSApplicationDelegate {
 let app = NSApplication.shared
 let delegate = LoginDelegate()
 app.delegate = delegate
+NSAppleEventManager.shared().setEventHandler(delegate, andSelector: #selector(LoginDelegate.receiveURL(_:withReplyEvent:)),
+    forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
 app.run()
