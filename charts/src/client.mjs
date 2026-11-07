@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
+import fs from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { createSessionStore } from './session.mjs';
 import { parseCallback, CALLBACK } from './auth-protocol.mjs';
@@ -18,6 +19,7 @@ const binding = config => createHash('sha256').update(JSON.stringify(config)).di
 export function validateClientConfig(config) {
   if (!config || config.version !== 1 || !/^[A-Za-z0-9_][A-Za-z0-9_.:@-]{0,255}$/u.test(config.sshTarget ?? '')
     || !/^\/[A-Za-z0-9_./ -]{1,1023}$/u.test(config.remoteCli ?? '') || config.remoteCli.includes('/../')
+    || (config.identityFile !== undefined && (!path.isAbsolute(config.identityFile) || /[\x00-\x1f\x7f]/u.test(config.identityFile)))
     || !/^[A-Za-z0-9_-]{1,64}$/u.test(config.profile ?? '')) {
     throw new ChartsError('INVALID_ARGUMENT', 'Configure a trusted SSH host/alias, an absolute remote Charts executable path, and a simple profile name.');
   }
@@ -54,10 +56,17 @@ export function validateApproval(value) {
 // from an owner-only local configuration, never from a browser URL.
 export async function remoteCommand(config, args, input = '', { spawnImpl = spawn, timeoutMs = 60000 } = {}) {
   validateClientConfig(config);
+  if (config.identityFile) {
+    const info = await fs.lstat(config.identityFile);
+    if (!info.isFile() || info.isSymbolicLink() || info.uid !== process.getuid() || (info.mode & 0o077) !== 0) {
+      throw new ChartsError('CLIENT_KEY_PERMISSIONS', 'The dedicated SSH key must be a private, owner-only regular file.');
+    }
+  }
   const command = [config.remoteCli, ...args].map(quote).join(' ');
   return new Promise((resolve, reject) => {
     const child = spawnImpl('/usr/bin/ssh', ['-T', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8',
-      '-o', 'ForwardAgent=no', '-o', 'ClearAllForwardings=yes', '--', config.sshTarget, command],
+      '-o', 'ForwardAgent=no', '-o', 'ClearAllForwardings=yes',
+      ...(config.identityFile ? ['-o', 'IdentitiesOnly=yes', '-i', config.identityFile] : []), '--', config.sshTarget, command],
     { stdio: ['pipe', 'pipe', 'pipe'] });
     let output = '', bytes = 0, settled = false;
     const timer = setTimeout(() => finish(new ChartsError('CLIENT_CONNECTION', 'The SSH handoff timed out. Check client status before retrying.')), timeoutMs);
@@ -172,10 +181,11 @@ export function createLoginClient({ store = createSessionStore(clientDirectory()
 export async function runClient(argv = process.argv.slice(2)) {
   try {
     const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, strict: true,
-      options: { 'ssh-target': { type: 'string' }, 'remote-cli': { type: 'string' }, profile: { type: 'string' }, online: { type: 'boolean' } } });
+      options: { 'ssh-target': { type: 'string' }, 'remote-cli': { type: 'string' }, 'identity-file': { type: 'string' }, profile: { type: 'string' }, online: { type: 'boolean' } } });
     const client = createLoginClient(); let result;
     const command = positionals.join(' ');
-    if (command === 'configure') result = await client.configure({ version: 1, sshTarget: values['ssh-target'], remoteCli: values['remote-cli'], profile: values.profile ?? 'orin' });
+    if (command === 'configure') result = await client.configure({ version: 1, sshTarget: values['ssh-target'], remoteCli: values['remote-cli'], profile: values.profile ?? 'orin',
+      ...(values['identity-file'] ? { identityFile: values['identity-file'] } : {}) });
     else if (command === 'status') result = await client.status({ online: values.online });
     else if (command === 'cancel') {
       result = await client.cancel();

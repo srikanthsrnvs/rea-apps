@@ -11,6 +11,7 @@ import { createAttempt, approvalResult } from '../src/auth-protocol.mjs';
 import { createLoginClient, parseClientLink, validateClientConfig, validateApproval, remoteCommand } from '../src/client.mjs';
 import { readCallbackStdin, dispatch } from '../src/cli.mjs';
 import { createCharts } from '../src/service.mjs';
+import { allowedAuthCommand } from '../scripts/charts-auth-ssh.mjs';
 
 const now = Date.now();
 const config = { version: 1, profile: 'orin', sshTarget: 'truffle@orin.local', remoteCli: '/home/truffle/.local/bin/charts' };
@@ -45,6 +46,17 @@ test('SSH destinations and executables reject option and shell injection', () =>
   for (const remoteCli of ['charts', '/bin/a;id', '/bin/$(id)', '/tmp/../bin/charts']) {
     assert.throws(() => validateClientConfig({ ...config, remoteCli }));
   }
+});
+
+test('a restricted receiver key permits only exact login callbacks and polling', () => {
+  const command = args => ['/home/truffle/.local/bin/charts', ...args].map(value => `'${value}'`).join(' ');
+  const poll = ['auth', 'poll', '--login-id', pending.id];
+  const complete = ['auth', 'complete', '--login-id', pending.id, '--callback-stdin', '--timeout-ms', '60000'];
+  assert.deepEqual(allowedAuthCommand(command(poll), '/home/truffle'), poll);
+  assert.deepEqual(allowedAuthCommand(command(complete), '/home/truffle'), complete);
+  for (const value of ['id', command(['logout']), command(['auth','status']), command(poll)+'; id',
+    command(complete)+' ', command(['auth','complete','--login-id',pending.id,'--callback-url','secret']),
+    command(poll).replace('/home/truffle', '/home/other')]) assert.equal(allowedAuthCommand(value, '/home/truffle'), null);
 });
 
 test('host and login are checked before opening the official browser URL', async t => {

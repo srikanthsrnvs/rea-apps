@@ -29,6 +29,13 @@ The profile is a local name, not a network destination. A login link cannot add 
 SSH host, alter the executable or send a callback anywhere else. Changing the
 trusted destination while an active login is pending is refused.
 
+For a dedicated key, add `--identity-file /absolute/path/to/key` to the installer.
+The client verifies that this is an owner-only regular file and uses SSH with
+`IdentitiesOnly=yes`. On the host, `scripts/charts-auth-ssh.mjs` can be installed
+as that key's forced command with `restrict` in authorized_keys. It permits only
+the exact polling and stdin callback commands; shell access, account operations,
+PTYs and forwarding are not needed by the receiver.
+
 ## Normal login
 
 The agent runs `charts login --client-profile orin` on the host and sends the
