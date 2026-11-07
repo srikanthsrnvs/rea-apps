@@ -5,12 +5,14 @@ root=pathlib.Path(__file__).resolve().parent
 node=os.environ.get('CHARTS_EVAL_NODE','node')
 out=pathlib.Path(os.environ['CHARTS_EVAL_OUTPUT'])
 out.mkdir(parents=True,exist_ok=False,mode=0o700)
-source=subprocess.run([node,'--input-type=module','-e','import{scenarios}from'+json.dumps((root/'scenarios.mjs').as_uri())+';console.log(JSON.stringify(scenarios))'],capture_output=True,text=True,check=True)
+scenario_module=pathlib.Path(os.environ.get('CHARTS_EVAL_SCENARIOS',root/'scenarios.mjs')).resolve()
+source=subprocess.run([node,'--input-type=module','-e','import{scenarios}from'+json.dumps(scenario_module.as_uri())+';console.log(JSON.stringify(scenarios))'],capture_output=True,text=True,check=True)
 scenarios=json.loads(source.stdout)
 all_turns=[]
 for name in sys.argv[1:] or scenarios:
     case_dir=out/name;case_dir.mkdir(mode=0o700)
     env=os.environ.copy();env.update(CHARTS_EVAL_CASE=name,CHARTS_EVAL_CASE_DIR=str(case_dir))
+    env['PATH']=str(pathlib.Path(node).resolve().parent)+os.pathsep+env.get('PATH','')
     args=[env.get('CHARTS_EVAL_PI','/opt/homebrew/bin/pi'),'--offline','--no-extensions','--no-skills','--no-prompt-templates','--no-context-files','--no-approve','--no-builtin-tools','--no-session','-e',str(root/'pi-extension.mjs'),'--provider','local-qwen','--model',env.get('CHARTS_EVAL_MODEL','rea-charts-qwen35b-eval'),'--thinking','off','--mode','rpc']
     err=open(case_dir/'stderr.log','wb')
     process=subprocess.Popen(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=err,env=env)

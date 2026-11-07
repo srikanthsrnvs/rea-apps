@@ -10,7 +10,9 @@ import { compareResult } from './compare.mjs';
 
 export const provider = {
   id: 'tradingview', implementation: '@mathieuc/tradingview', version: '4.1.0', official: false,
-  capabilities: ['symbols', 'quotes', 'candles', 'technicals', 'screening', 'indicators', 'strategy_reports', 'drawings', 'bounded_streams'],
+  capabilities: ['symbols', 'quotes', 'candles', 'technicals', 'screening', 'indicators', 'strategy_reports', 'drawings', 'bounded_streams','batched_indicator_snapshots','interactive_views'],
+  interactiveViews:{renderer:'lightweight-charts@5.2.0',location:'client_browser',edits:['series','colors','panes','date_range','price_scale','SMA','EMA','RSI','horizontal_lines','trendlines'],savedTradingViewLayout:false},
+  deferred:['alerts','bar_replay','order_execution','pine_compilation'],
   accountCapabilities: ['pine_studies', 'saved_indicators', 'watchlists', 'private_layouts'],
   login: 'native_callback_handoff', hostBrowser: false, orderExecution: false,
   authenticationVerification: 'orin_callback_and_account_reads_verified', additionalNative2faSupported: false,
@@ -41,6 +43,7 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
     // Cross-field and market validation precede local state and network access.
     if (o.symbol) marketSymbol(o.symbol);
     if (o.symbols) o.symbols.forEach(marketSymbol);
+    if(definition.command==='screen'&&o['rsi-min']!==undefined&&o['rsi-max']!==undefined&&o['rsi-min']>o['rsi-max'])throw new ChartsError('INVALID_ARGUMENT','rsi-min must not exceed rsi-max.');
     const chart = o.timeframe !== undefined&&o.symbol ? chartQuery(o,Date.parse(now())) : null;
     const comparisons=definition.command==='compare'?o.symbols.map(symbol=>chartQuery({...o,symbol,
       period:o.period??(o.from===undefined&&o.to===undefined?'year_to_date':undefined)},Date.parse(now()))):null;
@@ -51,6 +54,7 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
       signal.throwIfAborted();
       const result = payload => boundedResult({ status: payload?.coverage?.complete === false ? 'partial' : 'ok', message: 'Operation completed.', provider: 'tradingview', fetchedAt: now(), warnings: [], ...payload });
       const command = definition.command;
+      if(command.startsWith('view '))return result(await (await import('./views.mjs')).executeView(command,o,signal));
       if (command === 'providers') return result({ data: [provider] });
       if (command === 'screener fields') return result({ curated: true, exhaustive: false, data: commonScannerFields,
         timeframeSuffix: 'Append |60, |240, |1W, etc. where supported; availability differs by universe.' });
@@ -109,6 +113,22 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
           const series=[];
           for(const query of comparisons)series.push(await sdk.getCandles({...query,...socket}));
           return result(compareResult(series,comparisons,{includeData:o['include-data']??false}));
+        }
+        case 'snapshot': {
+          const mapping={RSI:['RSI'],MACD:['MACD.macd','MACD.signal'],EMA20:['EMA20'],EMA50:['EMA50'],EMA200:['EMA200'],SMA20:['SMA20'],SMA50:['SMA50'],SMA200:['SMA200'],close:['close'],volume:['volume']};
+          const suffix={D:'',W:'|1W',M:'|1M','1m':'|1','5m':'|5','15m':'|15','1h':'|60','4h':'|240'};
+          const columns=o.timeframes.flatMap(t=>o.metrics.flatMap(m=>mapping[m].map(k=>k+suffix[t])));
+          const response=await sdk.getScreener({market:o.market,symbols:o.symbols,columns,range:[0,o.symbols.length]},http);
+          return result({data:o.symbols.map(symbol=>{const values=response.rows.find(r=>r.symbol===symbol)?.values??{};return{symbol,timeframes:o.timeframes.map(t=>({timeframe:t,values:Object.fromEntries(o.metrics.flatMap(m=>mapping[m].map(k=>[k,numberOrNull(values[k+suffix[t]])])))}))};}),warnings:['SCANNER_SNAPSHOT_NOT_A_SUBSCRIPTION']});
+        }
+        case 'screen': {
+          const fields={'market-cap':'market_cap_basic','average-volume':'average_volume_10d_calc',volume:'volume',rsi:'RSI',price:'close'};
+          const filters=[{left:'type',operation:'equal',right:'stock'}];
+          for(const [arg,field]of [['min-market-cap','market_cap_basic'],['min-average-volume','average_volume_10d_calc'],['min-volume','volume']])if(o[arg]!==undefined)filters.push({left:field,operation:'greater',right:o[arg]});
+          if(o['rsi-min']!==undefined||o['rsi-max']!==undefined)filters.push({left:'RSI',operation:'in_range',right:[o['rsi-min']??0,o['rsi-max']??100]});
+          const response=await sdk.getScreener({market:o.market,columns:['name','close','market_cap_basic','RSI','volume','average_volume_10d_calc'],filter:filters,sort:{sortBy:fields[o['sort-by']],sortOrder:o['sort-order']},range:[o.offset,o.offset+o.limit]},http);
+          const output=scannerPage(response,o);
+          return result({...output,filterDescription:'Market cap in provider currency; volume and 10-day average volume in shares; RSI on daily bars. Cap/volume lower bounds are strict; RSI range is inclusive.',nextRequest:output.pagination.nextOffset===null?null:{tool:'charts_screen',arguments:{...o,offset:output.pagination.nextOffset}}});
         }
         case 'technicals': {
           const periods = ['1', '5', '15', '60', '240', '1D', '1W', '1M'];

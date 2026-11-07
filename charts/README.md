@@ -1,6 +1,6 @@
 # Charts
 
-A native Node CLI and optional stdio MCP server for market research. Its 29 tools wrap `@mathieuc/tradingview@4.1.0`: symbol discovery, quotes, candles, technical ratings, screening, studies, strategy reports, saved account data, chart datasets and finite streams. The public interface leaves room for additional market and crypto providers.
+A native Node CLI and optional stdio MCP server for market research. Its 35 tools wrap `@mathieuc/tradingview@4.1.0`: symbol discovery, quotes, candles, technical ratings, screening, studies, strategy reports, saved account data, chart datasets, finite streams and an interactive browser editor. The public interface leaves room for additional market and crypto providers.
 
 The Orin uses HTTP and WebSocket only. No Chrome, CDP, Playwright, desktop app, emulator or display server is used, including during login. Public tools work anonymously. Account authorization happens on the user's separate device through TradingView's native callback protocol.
 
@@ -48,7 +48,59 @@ Network tools accept `--auth auto|anonymous|required` and `--timeout-ms 15000`. 
 
 Candles are ordered and include requested/returned coverage, venue, settings and a warning that the final bar may be open. Counts do not prove gap-free history; completeness stays unknown when the provider cannot establish it. Missing prices and ratings remain null. Technical ratings retain the scanner's original [-1,1] scale. Study rows align to candle timestamps, excluding earlier warm-up rows; compiled scripts and Pine source are omitted.
 
-`chart` returns a portable candlestick/volume dataset, without launching a viewer. Strategy reports are provider-generated reports, can contain open positions, and place no orders. `compare` performs local calculations on aligned source bars and can return a normalized line-overlay dataset with `--include-data`. Watchlist writes, a visual viewer and deeper crypto providers remain future work.
+`chart` returns a portable candlestick/volume dataset. `view create` displays an interactive editable view of that data. Strategy reports are provider-generated reports, can contain open positions, and place no orders. `compare` performs local calculations on aligned source bars and can return a normalized line-overlay dataset with `--include-data`. Watchlist writes and deeper crypto providers remain future work.
+
+## Interactive charts the model can edit
+
+```sh
+# Local browser on this computer:
+charts view create --symbols '["BITFINEX:BTCUSD","BITFINEX:BTCUSDLONGS"]' --period year_to_date
+
+# Browser on a different computer, e.g. CLI on Orin and browser on Mac/iOS:
+# Requires cloudflared installed on the host; starts a temporary HTTPS tunnel.
+charts view create --symbols '["BITFINEX:BTCUSD"]' --public
+
+charts view update --view-id VIEW_ID --changes '{"title":"Bitcoin","chartType":"candlestick","timeframe":"1h","period":"last_calendar_month","normalization":"price","scale":"log","studies":[{"kind":"RSI","length":14}]}'
+charts view state --view-id VIEW_ID
+charts view close --view-id VIEW_ID
+```
+
+Send the returned `viewerUrl` to the user. Pan/zoom, edit colors and panes, change
+timeframes, add/remove SMA/EMA/RSI, and draw horizontal levels or two-point
+trendlines in that browser. Model edits update the same URL automatically.
+Browser edits are reflected in `view state`. The model gets configuration and
+coverage, not thousands of plot points in its context.
+
+`changes.series`, `studies` and `drawings` replace array membership while merging
+omitted properties of existing IDs. New study/drawing IDs are optional. A study
+defaults to the primary series; specify `symbol` to choose another. Use
+`removeSeries`, `removeStudies` and `removeDrawings` for explicit ID removals.
+`chartType` changes the primary series. Named date windows are sized automatically up to 5,000 bars; larger windows require a wider timeframe or shorter range. The `actualView` result describes what
+was applied; compare it with the user request rather than assuming success.
+
+The UI uses locally served **Lightweight Charts 5.2.0**. No browser or rendering
+engine runs on the Orin. A native HTTP worker runs for each open view (at most
+three), with a 96 MiB V8 heap target and a default one-hour lifetime. This is
+not an RSS limit. Data are snapshots; changing the data configuration refreshes
+them. Local SMA/EMA/RSI calculations are seeded from the fetched history and are
+labelled as local calculations, not Pine results.
+
+The access key is in the URL fragment; data and edits require its bearer header.
+Set `CHARTS_CLOUDFLARED` to reuse an installed tunnel executable outside `PATH`.
+Closing a browser tab does not stop the server. `view close` or expiration stops
+the worker and its optional tunnel. `--public-url https://charts.example.com`
+can instead use an existing proxy; use `--host 0.0.0.0` and a fixed `--port` if
+that proxy runs elsewhere. The supplied origin must actually route to this
+view's server. A localhost link works only on the machine running the CLI.
+
+This is an editable REA view, not TradingView's entire website or a saved
+TradingView account layout. [Alerts, Bar Replay, order execution and Pine
+compilation are explicitly deferred](docs/todos.md).
+
+For one-call current indicator tables, use `snapshot` with symbols, metrics and
+timeframes. For common stock filters, use `screen` with `min-market-cap`,
+`min-average-volume`, `rsi-min`/`rsi-max` and pagination. The raw `screener`
+operation remains available for arbitrary provider fields.
 
 ## Finite stream samples
 

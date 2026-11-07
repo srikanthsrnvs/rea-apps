@@ -1,3 +1,4 @@
+import { viewChangeSchema, viewProperties } from './view-model.mjs';
 const text = (description, extra = {}) => ({ type: 'string', minLength: 1, maxLength: 256, description, ...extra });
 const integer = (description, minimum, maximum, defaultValue) => ({ type: 'integer', description, minimum, maximum,
   ...(defaultValue === undefined ? {} : { default: defaultValue }) });
@@ -76,7 +77,20 @@ export const toolDefinitions = [
     to:text('Optional UTC ISO end or Unix seconds; omit period when supplying dates.',{maxLength:40}),
     'include-data':flag('Include portable overlay rows for plotting. Omit for a compact comparison summary.'),
   },['symbols'],'read',true),
-  define('technicals', 'Get current RSI (0–100) and technical ratings for eight timeframes in one call. Use this for current RSI; it does not require running a Pine study. Ratings retain [-1,1]; missing values stay null.', { symbol }, ['symbol'], 'read', true),
+  define('technicals', 'Get current RSI (0–100) and technical ratings for eight timeframes in one call. For multiple symbols or RSI/MACD/EMA together use snapshot. Neither requires running a Pine study. Ratings retain [-1,1]; missing values stay null.', { symbol }, ['symbol'], 'read', true),
+  define('snapshot', 'Get current indicator values for many symbols and timeframes in ONE call. Use for RSI, MACD line/signal and moving averages instead of repeated symbol lookups or Pine requests. Snapshot only; not historical indicator plots. Missing values stay null.',{
+    symbols:list('Exact exchange-qualified symbols.',20),
+    metrics:{type:'array',minItems:1,maxItems:8,uniqueItems:true,items:{type:'string',enum:['RSI','MACD','EMA20','EMA50','EMA200','SMA20','SMA50','SMA200','close','volume']}},
+    timeframes:{type:'array',minItems:1,maxItems:6,uniqueItems:true,items:{type:'string',enum:['1m','5m','15m','1h','4h','D','W','M']},default:['D']},
+    market:text('Scanner universe.',{default:'global'}),
+  },['symbols','metrics'],'read',true),
+  define('screen','Screen stocks using common numeric filters without guessing provider field names. Includes price, market cap, RSI and volume. Use nextRequest for the next page with identical filters and sort. For arbitrary provider fields retain the raw screener tool.',{
+    market:text('Stock universe.',{default:'america'}),
+    'min-market-cap':{type:'number',minimum:0},'min-average-volume':{type:'number',minimum:0},'min-volume':{type:'number',minimum:0},
+    'rsi-min':{type:'number',minimum:0,maximum:100},'rsi-max':{type:'number',minimum:0,maximum:100},
+    'sort-by':{type:'string',enum:['volume','market-cap','rsi','price','average-volume'],default:'volume'},
+    'sort-order':{type:'string',enum:['asc','desc'],default:'desc'},...page,
+  },[],'read',true),
   define('indicators search', 'Search built-in and community studies/strategies. Returns metadata, not Pine source or compiled scripts.', {
     query: text('Search text.'), ...page,
   }, ['query'], 'read', true),
@@ -110,6 +124,23 @@ export const toolDefinitions = [
     symbol, 'chart-id': text('Chart ID within the layout.', { default: '_shared', maxLength: 64 }), ...page,
   }, ['layout-id'], 'read', true),
   define('chart', 'Build a portable candlestick/volume chart dataset from the same normalized bars. No browser is started and no TradingView layout is modified.', chart, ['symbol'], 'read', true),
+  define('view create', 'Display an interactive editable chart in the user\'s browser. Returns viewerUrl and viewId; send the link to the user. The host starts a temporary native HTTP server, never a browser. For a remote client supply a reachable public-url and host=0.0.0.0. Use view update to edit the same chart.', {
+    symbols:list('Exchange-qualified symbols to display.',6),title:viewProperties.title,timeframe:chart.timeframe,
+    count:integer('Bars when no date window is set. A date window is automatically sized up to 5000 bars.',2,5000,1000),period,from:text('Optional ISO start or Unix seconds.'),to:text('Optional ISO end or Unix seconds.'),
+    normalization:viewProperties.normalization,theme:viewProperties.theme,
+    host:{type:'string',enum:['127.0.0.1','0.0.0.0','::1'],default:'127.0.0.1'},port:integer('Listening port; zero chooses a free port.',0,65535,0),
+    'public-url':text('Client-reachable HTTP(S) origin mapped to this server port. Never invent a reachable URL.'),
+    public:flag('Create a temporary HTTPS link using an installed cloudflared tunnel. Required for clients on another machine unless public-url is supplied.'),
+    'duration-seconds':integer('View lifetime; server stops automatically.',60,86400,3600),
+    'timeout-ms':integer('Initial chart load deadline.',1000,60000,60000),
+  },['symbols'],'local',true),
+  define('view state', 'Read an existing view\'s current configuration, stable series IDs, revision and browser connection status. Does not expose raw chart rows or account credentials.', {
+    'view-id':text('viewId from view create.',{pattern:'^[a-f0-9]{12,24}$'}),
+  },['view-id']),
+  define('view update', 'Edit the existing browser chart in one call. For candles set changes.chartType=candlestick; for lines use line. Use removeSeries/removeStudies/removeDrawings with IDs for removals. Other edits: title, timeframe, period, normalization, scale, series colors/panes, studies and drawings. Study symbol defaults to the primary series. Arrays replace membership but preserve omitted fields of existing IDs. The browser updates automatically. This edits our local view, not a TradingView account layout.', {
+    'view-id':text('viewId from view create.',{pattern:'^[a-f0-9]{12,24}$'}),changes:viewChangeSchema,revision:integer('Optional expected revision; stale edits are rejected.',1,1000000),
+  },['view-id','changes'],'local'),
+  define('view close', 'Close a temporary chart server and revoke its link.',{'view-id':text('viewId from view create.',{pattern:'^[a-f0-9]{12,24}$'})},['view-id'],'local'),
   define('stream quotes', 'Collect a finite sample of quote updates, then close the subscription. Reports disconnects and never claims to keep monitoring after completion.', {
     symbols: list('Exchange-qualified symbols.', 10), ...stream,
   }, ['symbols'], 'read', true),

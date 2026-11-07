@@ -1,0 +1,129 @@
+{
+  "date": "2026-11-07",
+  "model": "qwen3.6:35b",
+  "harness": "Pi RPC; native Charts tools only",
+  "editorRuntime": {
+    "node": "v24.22.1",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "initialComplexAttempts": [
+    {
+      "case": "three_series",
+      "prompts": [
+        "Compare and prepare an overlay of BITFINEX:BTCUSD, BITFINEX:ETHUSD and BITFINEX:BTCUSDLONGS for the last complete calendar month, daily. Normalize each to its own starting value. Give all three pairwise return correlations, exact coverage, units, and percentage changes. Do not mix position quantity with price.",
+        "Now change that comparison to the last 90 days on 1-hour bars. Keep all three series, include the full plot data, and tell me if we actually got the full requested window or hit a history limit."
+      ],
+      "calls": 2,
+      "aborted": false
+    },
+    {
+      "case": "multi_timeframe",
+      "prompts": [
+        "For BITFINEX:BTCUSD and BITFINEX:ETHUSD, get the current RSI, MACD line, MACD signal and EMA200 on both the daily and 1-hour timeframes. Show a compact table, keep unavailable values null, and do not infer a trading signal. Minimize tool calls."
+      ],
+      "calls": 14,
+      "aborted": true
+    },
+    {
+      "case": "screener_pages",
+      "prompts": [
+        "Screen US stocks for market cap above $10 billion, RSI between 30 and 45, and 10-day average volume above one million shares. Sort by current volume descending. Return the first five with symbol, market cap, RSI, current volume and 10-day average volume.",
+        "Get the next five from the same screen with the same filters and sort. Do not repeat any from the first page."
+      ],
+      "calls": 24,
+      "aborted": true
+    },
+    {
+      "case": "formula_statistics",
+      "prompts": [
+        "For the last complete calendar month, construct the daily ETH/BTC ratio from BITFINEX:ETHUSD divided by BITFINEX:BTCUSD. Rebase it to 100 at the first shared date, calculate its maximum drawdown and a 20-day rolling correlation between the two assets. Return exact calculated results and a plot dataset. If a required calculation is unsupported, say exactly what is missing rather than estimate."
+      ],
+      "calls": 0,
+      "aborted": false
+    },
+    {
+      "case": "synthetic_bars",
+      "prompts": [
+        "Fetch the latest 40 one-hour candles for BITFINEX:BTCUSD twice: ordinary OHLC candles and Heikin Ashi. Compare their last closing values and actual date coverage. Label which series is synthetic; never present its price as an executable market quote."
+      ],
+      "calls": 3,
+      "aborted": false
+    },
+    {
+      "case": "finite_stream",
+      "prompts": [
+        "Observe BITFINEX:BTCUSD and BITFINEX:ETHUSD quotes for at most 8 seconds and at most 6 updates total, then stop. Summarize the observed price range for each symbol, the observation timestamps, and why this does not establish future monitoring or guaranteed zero latency."
+      ],
+      "calls": 1,
+      "aborted": false
+    }
+  ],
+  "revisedCalls": {
+    "multi_timeframe": 1,
+    "screener_pages": 2
+  },
+  "editor": {
+    "prompts": [
+      "Create and display an interactive chart of BITFINEX:BTCUSD and BITFINEX:BTCUSDLONGS for this year, daily, both as percentage changes. Return the local browser link. This is a temporary view, not a TradingView account layout.",
+      "Edit that same chart: title it Bitcoin versus margin longs, make the BTC line blue and the longs line orange, add a 20-period SMA for BTCUSD on the price pane and a 14-period RSI for BTCUSD in a separate pane. Keep the existing series. Do it through the chart tools, not instructions for me.",
+      "Now keep that same chart but use just BTCUSD as ordinary candles for the last calendar month on one-hour bars, raw prices with a logarithmic scale. Keep RSI in its separate pane, remove SMA and the longs series. Return the same viewer link."
+    ],
+    "calls": [
+      1,
+      1,
+      1
+    ],
+    "checks": {
+      "all_operations_succeeded": true,
+      "one_call_per_turn": true,
+      "same_view_id": true,
+      "timeframe_1h": true,
+      "candlesticks": true,
+      "single_btc_series": true,
+      "raw_log_scale": true,
+      "rsi_only": true,
+      "full_october": true
+    },
+    "finalConfig": {
+      "title": "Bitcoin versus margin longs",
+      "timeframe": "60",
+      "count": 1000,
+      "period": "last_calendar_month",
+      "normalization": "price",
+      "theme": "dark",
+      "scale": "log",
+      "series": [
+        {
+          "id": "s1",
+          "symbol": "BITFINEX:BTCUSD",
+          "kind": "candlestick",
+          "color": "#0000FF",
+          "pane": 0,
+          "visible": true
+        }
+      ],
+      "studies": [
+        {
+          "kind": "RSI",
+          "length": 14,
+          "pane": 1,
+          "symbol": "BITFINEX:BTCUSD",
+          "id": "studies-2",
+          "color": "#c695ff"
+        }
+      ],
+      "drawings": []
+    },
+    "firstObservation": "2026-10-01T00:00:00.000Z",
+    "lastObservation": "2026-10-31T23:00:00.000Z",
+    "bars": 744
+  },
+  "limitations": [
+    "The initial indicator and screener attempts hit tool-call limits; their totals are capped attempts, not successful workflows.",
+    "Qwen still invents unsupported narrative details and occasionally formats large values incorrectly.",
+    "The initial editor harness mistakenly attached auth to local-only view commands; those invalid attempts are excluded.",
+    "Early Pi processes used Node 23 via their shebang. The harness now pins PATH and records Node version; the final editor run used Node 24.22.1.",
+    "This is an iterated development suite, not a held-out accuracy estimate."
+  ]
+}

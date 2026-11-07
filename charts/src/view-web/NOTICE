@@ -1,0 +1,5 @@
+TradingView Lightweight Charts™
+Copyright (с) 2025 TradingView, Inc. https://www.tradingview.com/
+
+Uses unmodified lightweight-charts 5.2.0, distributed under Apache License 2.0.
+The dependency package contains its LICENSE. The chart editor code is part of REA apps.

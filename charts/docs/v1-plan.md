@@ -1,6 +1,6 @@
 # Charts: proposed first release
 
-This is the original wider roadmap, not the current command reference. The Mathieu-backed CLI/MCP now implements provider reads, studies/reports, native callback authorization and bounded stream samples. The [current README](../README.md) and `charts tools` define the actual 27 operations. Local calculations, comparisons, local watchlist writes, a visual viewer and additional providers remain future work. The [provider assessment](provider-assessment.md) also corrects the initially missed official TradingView MCP service.
+This is the original wider roadmap, not the current command reference. The [current README](../README.md) and `charts tools` define the actual operations. Comparisons, batched snapshots and an interactive editable viewer have since been implemented. Local watchlist writes and additional providers remain future work. [Explicitly deferred capabilities](todos.md) include alerts, replay, order execution and Pine compilation. The [provider assessment](provider-assessment.md) also corrects the initially missed official TradingView MCP service.
 
 ## Product boundary
 

@@ -48,6 +48,17 @@ After lost SSH output, run charts-client status --online on the Mac or auth poll
 
 ## Choosing tools and reporting data
 
+- To display or edit a real interactive chart, use `view create` and send its
+  `viewerUrl`, then `view update` with the same `viewId`. `chart` and `compare`
+  alone only prepare data. Use `--public` on a remote host if a temporary HTTPS
+  link is needed. This requires installed cloudflared.
+- Read `actualView` after editing. Set `chartType: "candlestick"` for candles;
+  changing the timeframe does not change the style. Study IDs are optional for
+  additions; existing IDs support partial edits. Prefer explicit removal lists.
+- Use `snapshot` for multiple symbols/timeframes and current RSI/MACD/EMA/SMA.
+  Use `screen` for ordinary stock cap/volume/RSI filters; it avoids guessing raw
+  scanner field names. Neither tool executes arbitrary Pine.
+
 - For two or more series, use `compare` instead of separate parallel candle
   requests. The host permits one active operation per process. It fetches each
   series in sequence and performs normalization and return correlation locally.

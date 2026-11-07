@@ -12,7 +12,7 @@ const validCookie = value => typeof value === 'string' && /^[\x21\x23-\x2b\x2d-\
 
 export function createSessionStore(directory = defaultStateDirectory()) {
   const recordPath = name => {
-    if (!/^[a-z-]{1,40}$/u.test(name)) throw new ChartsError('STATE_ERROR', 'Invalid state record name.');
+    if (!/^[a-z0-9-]{1,40}$/u.test(name)) throw new ChartsError('STATE_ERROR', 'Invalid state record name.');
     return path.join(directory, `${name}.json`);
   };
   const filename = recordPath('session');
