@@ -97,6 +97,11 @@ This is an editable REA view, not TradingView's entire website or a saved
 TradingView account layout. [Alerts, Bar Replay, order execution and Pine
 compilation are explicitly deferred](docs/todos.md).
 
+The editor passed the 64-test suite on the actual Linux ARM64 Orin. Its public
+link was rendered in a separate Mac browser; CLI-to-browser and browser-to-CLI
+edits were verified. See [Orin evidence](research/orin-editor-results.json) and
+the [complex Qwen evaluation](eval/agent-tools/complex-results.md).
+
 For one-call current indicator tables, use `snapshot` with symbols, metrics and
 timeframes. For common stock filters, use `screen` with `min-market-cap`,
 `min-average-volume`, `rsi-min`/`rsi-max` and pagination. The raw `screener`

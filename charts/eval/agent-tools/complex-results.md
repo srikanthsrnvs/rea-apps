@@ -50,6 +50,11 @@ also passed against the public HTTPS link. The automated suite has 64 passing
 tests, including argument validation, retained state after invalid/stale edits,
 and local indicator warm-up semantics.
 
+The same 64 tests passed after deployment on the actual Linux ARM64 Orin, using
+Node 24.21.0. A Mac browser loaded the Orin's HTTPS link and its theme change
+was read back through the Orin CLI. [Deployment evidence](../../research/orin-editor-results.json)
+records the separate client/host test and a bounded worker RSS snapshot.
+
 See [machine-readable results](complex-results.json),
 [the complex prompts](complex-scenarios.mjs), [editor prompts](editor-scenarios.mjs)
 and [the optional browser test](browser-check.mjs).
