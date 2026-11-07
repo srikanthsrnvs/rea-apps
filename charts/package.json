@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Unified market-data tools with a TradingView provider, JSON CLI and MCP stdio",
-  "bin": { "charts": "bin/charts" },
+  "bin": { "charts": "bin/charts", "charts-client": "bin/charts-client" },
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "test:live": "node scripts/verify-live.mjs",
@@ -18,5 +18,5 @@
   },
   "devDependencies": { "@modelcontextprotocol/client": "2.3.1" },
   "engines": { "node": ">=24.21.0" },
-  "files": ["bin/", "src/", "scripts/", "docs/", "README.md", "ai.md"]
+  "files": ["bin/", "src/", "scripts/", "macos/", "docs/", "README.md", "ai.md"]
 }

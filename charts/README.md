@@ -1,6 +1,6 @@
 # Charts
 
-A native Node CLI and optional stdio MCP server for market research. Its 27 tools wrap `@mathieuc/tradingview@4.1.0`: symbol discovery, quotes, candles, technical ratings, screening, studies, strategy reports, saved account data, chart datasets and finite streams. The public interface leaves room for additional market and crypto providers.
+A native Node CLI and optional stdio MCP server for market research. Its 28 tools wrap `@mathieuc/tradingview@4.1.0`: symbol discovery, quotes, candles, technical ratings, screening, studies, strategy reports, saved account data, chart datasets and finite streams. The public interface leaves room for additional market and crypto providers.
 
 The Orin uses HTTP and WebSocket only. No Chrome, CDP, Playwright, desktop app, emulator or display server is used, including during login. Public tools work anonymously. Account authorization happens on the user's separate device through TradingView's native callback protocol.
 
@@ -59,27 +59,44 @@ charts stream candles --symbol COINBASE:BTCUSD --timeframe 1m --seconds 5 --max-
 
 ## Account authorization
 
+This CLI keeps the native TradingView provider and works with free accounts. It does not require TradingView's paid official MCP API. Public market-data commands still work anonymously.
+
+On the **user's Mac**, configure the login receiver once with a trusted, passwordless SSH connection to the host:
+
 ```sh
-charts login --username YOUR_TRADINGVIEW_USERNAME
+CHARTS_NODE=/absolute/path/to/node sh charts/scripts/setup-macos-client.sh \
+  --ssh-target truffle@ORIN_ADDRESS \
+  --remote-cli /home/truffle/.local/bin/charts \
+  --profile orin
 ```
 
-The device opening `approvalUrl` needs a client receiver registered for **`tradingview://browser-auth/`**. The client must forward that native callback to the Orin. A browser alone cannot perform the handoff: Safari reports an invalid address if no receiver is registered. A generic HTTPS redirect is not supported by this provider grant.
+The installer builds `~/Applications/Charts Login.app`. Node 24.21+ and Apple's command-line developer tools are required on the Mac. The SSH target and remote executable are saved privately on that Mac; links cannot override them. The receiver is a client dependency only: nothing graphical is installed on the Orin.
 
-With the receiver ready, open the returned `approvalUrl` on that device, sign in and approve access. The client captures `tradingview://browser-auth/?token=...`; for CLI testing, transfer it privately into an owner-only file on the Orin, then complete the exchange:
+On the **Orin**, an agent runs:
 
 ```sh
-chmod 600 /private/path/tradingview-callback.txt
-charts auth complete --login-id LOGIN_ID --callback-file /private/path/tradingview-callback.txt
+charts login --client-profile orin
+```
+
+Send the returned **`clientUrl`** to the user. Their client must open `rea-charts://` links through macOS. The receiver checks the current login against the trusted host, opens the official TradingView approval page in the user's browser, and forwards the resulting native callback over SSH using stdin. The host validates the account before saving it. No callback copying or credential export is required. Verify completion with:
+
+```sh
+charts auth poll --login-id LOGIN_ID
 charts auth validate
 charts watchlists --limit 10 --symbol-limit 50
-charts indicators saved --limit 10
 ```
 
-The callback is a credential: keep its contents out of logs and delete the file after use. `--callback-url` is supported, but a file keeps it out of shell history/process arguments. No password, manual cookie export, invented polling endpoint or host browser is involved. The private proof remains on the host. TradingView does not accept an arbitrary HTTPS redirect for this native grant.
+`login` independently checks an existing saved account. An expired or rejected session starts a replacement grant while preserving the old account until the replacement validates. `login --username NAME` pins the expected account; `login --replace` explicitly allows switching accounts. Repeated pending logins reuse their current grant. There is no reliable automatic cookie refresh endpoint: use a fresh approval when TradingView expires or revokes the session.
 
-`auth status` inspects local metadata. If a candidate was acquired but independent account validation failed, repeat `auth complete --login-id LOGIN_ID` without a callback to retry validation. Completion also recovers an interrupted candidate save or post-save cleanup without repeating the exchange. An exchange with an uncertain outcome and no acquired candidate is never replayed: use `auth cancel` and start again. `login --replace` preserves the previous account until the new one validates. `logout` removes local authorization.
+The original manual flow is retained: open `approvalUrl` with an existing native callback receiver, put the callback in an owner-only file, and run:
 
-The successful Orin test used a temporary callback receiver on the user's Mac. That receiver was removed after the test; no TradingView Desktop app, browser or tunnel ran on the Orin. The receiver is a responsibility of the client opening the approval link, rather than an Orin runtime dependency. Extra native-app 2FA still requires a separate protocol implementation and returns `additional_verification_required`. See [protocol evidence and lifecycle](docs/auth-protocol.md).
+```sh
+charts auth complete --login-id LOGIN_ID --callback-file /private/path/callback.txt
+```
+
+The receiver uses `--callback-stdin` instead, so the credential never appears in SSH arguments. Both mechanisms exchange the same TradingView grant; the full existing toolset is retained. If an exchange outcome is uncertain, it is never blindly retried. An acquired candidate can be validated again with `auth complete --login-id LOGIN_ID` without resending its callback. `auth cancel` preserves the previous account; `logout` removes local authorization.
+
+The new automatic Mac receiver is locally tested and compiled. Its live end-to-end approval still needs verification; the original manual callback flow was verified on the Orin. Extra native-app 2FA is not yet supported. The receiver currently targets macOS, and a browser-only iPhone/Windows client cannot complete this flow without an equivalent native receiver. See the [client setup and recovery guide](docs/mac-login-client.md) and [protocol evidence](docs/auth-protocol.md).
 
 ## MCP
 
@@ -113,7 +130,7 @@ npm --prefix charts test
 npm --prefix charts run test:live
 ```
 
-The 34 deterministic tests cover argument validation, normalization, crash recovery, cancellation, private-file bounds, POST/2xx callback exchange, secret redaction, real stdio MCP transport, bounded HTTP/WebSocket transports and stream cleanup. The opt-in live harness makes thirteen sequential anonymous reads/samples; [recorded results](research/live-tools-results.json) identify platform, runtime flags and RSS. The separate Orin record covers real callback authorization and account reads. No broader human UI parity, private Pine or additional-2FA verification is claimed.
+The deterministic tests cover argument validation, normalization, crash recovery, cancellation, private-file bounds, POST/2xx callback exchange, secret redaction, real stdio MCP transport, bounded HTTP/WebSocket transports and stream cleanup. The opt-in live harness makes thirteen sequential anonymous reads/samples; [recorded results](research/live-tools-results.json) identify platform, runtime flags and RSS. The separate Orin record covers real callback authorization and account reads. No broader human UI parity, private Pine or additional-2FA verification is claimed.
 
 - [Agent guide](ai.md)
 - [Provider assessment and official MCP correction](docs/provider-assessment.md)

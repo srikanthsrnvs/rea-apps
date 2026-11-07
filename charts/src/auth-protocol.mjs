@@ -4,13 +4,13 @@ import { ChartsError } from './errors.mjs';
 export const AUTH_ORIGIN = 'https://auth.tradingview.com';
 export const CALLBACK = 'tradingview://browser-auth/';
 export const fingerprint = session => session ? createHash('sha256').update(JSON.stringify(session.credentials)).digest('hex') : null;
-export function createAttempt({ session, replace = false, username, now = Date.now() } = {}) {
+export function createAttempt({ session, replace = false, username, clientProfile = 'orin', now = Date.now() } = {}) {
   const keySource = randomBytes(16).toString('hex');
   const keyHash = createHash('sha256').update(keySource).digest('hex');
   const approval = new URL('/accounts/tvd/connect/', AUTH_ORIGIN);
   approval.search = new URLSearchParams({ locale: 'en', key: keyHash, redirect_url: CALLBACK }).toString();
   return { version: 1, id: randomUUID(), phase: 'awaiting_callback', keySource, approvalUrl: approval.href,
-    previousBinding: fingerprint(session), replace, username, createdAt: now, expiresAt: now + 10 * 60000 };
+    previousBinding: fingerprint(session), replace, username, clientProfile, createdAt: now, expiresAt: now + 10 * 60000 };
 }
 export function parseCallback(value) {
   let url;
@@ -29,7 +29,10 @@ export function completionUrl(pending, token) {
   return url;
 }
 export function approvalResult(pending) {
-  return { status: 'authorization_required', message: 'Open approvalUrl on your own device and authorize TradingView. A receiver on that device must capture the tradingview://browser-auth/ callback and pass it to auth complete. A browser without a receiver cannot finish the handoff.',
+  const client = new URL('rea-charts://authorize/');
+  client.search = new URLSearchParams({ profile: pending.clientProfile ?? 'orin', login_id: pending.id }).toString();
+  return { status: 'authorization_required', message: 'On a Mac with the Charts login receiver configured, open clientUrl. It opens the official TradingView sign-in and returns approval to this host automatically. approvalUrl is the manual/native-client alternative; a browser alone cannot receive its callback.',
     loginId: pending.id, approvalUrl: pending.approvalUrl, expiresAt: new Date(pending.expiresAt).toISOString(),
+    clientUrl: client.href, clientProfile: pending.clientProfile ?? 'orin',
     callbackType: CALLBACK, callbackReceiverRequired: true, hostRuntime: 'Node HTTP only', automaticPolling: false };
 }

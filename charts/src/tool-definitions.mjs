@@ -34,17 +34,22 @@ const define = (command, description, properties = {}, required = [], effect = '
 export const toolDefinitions = [
   define('state', 'Inspect local provider capabilities and session state. This does not validate the saved session with TradingView.'),
   define('providers', 'List the data providers and their supported operations.'),
-  define('login', 'Create a native TradingView approval link for the user to open on another device. That device needs a client receiver for tradingview://browser-auth/; forward the captured callback to auth complete. No host browser, cookie export or background worker.', {
+  define('login', 'Validate an existing session or begin free-account TradingView login. Send clientUrl to a user with the Mac receiver configured; it opens official sign-in and returns the callback over SSH automatically. approvalUrl is the manual alternative. No browser or worker runs on the host.', {
     replace: flag('Replace the saved account only after independent validation.'),
     username: text('Optional expected TradingView username; a different validated account is rejected.'),
+    'client-profile': text('Trusted profile configured in the Mac receiver; clientUrl opens sign-in and returns the callback automatically.', { default: 'orin', pattern: '^[a-zA-Z0-9_-]{1,64}$', maxLength: 64 }),
     'timeout-ms': integer('Bootstrap deadline.', 1000, 60000, 15000),
   }, [], 'auth'),
   define('auth complete', 'Exchange the official native-app callback once, then independently validate the session. Omit the callback to retry validation of an already acquired candidate. Native-app extra 2FA is reported as unsupported rather than launching a browser.', {
     'login-id': text('Login ID returned by login.', { format: 'uuid' }),
     'callback-url': text('Official tradingview://browser-auth/ app link; prefer callback-file to keep it out of process arguments.', { maxLength: 16384 }),
     'callback-file': text('Owner-only local file containing the official callback link.', { maxLength: 4096 }),
+    'callback-stdin': flag('CLI only: read the callback privately from standard input; do not combine with callback-url or callback-file.'),
     'timeout-ms': integer('Exchange and validation deadline.', 1000, 60000, 15000),
   }, ['login-id'], 'auth'),
+  define('auth poll', 'Inspect one specific login after the user approves it. Never returns callback credentials; no background polling process.', {
+    'login-id': text('Login ID returned by login.', { format: 'uuid' }),
+  }, ['login-id']),
   define('auth cancel', 'Discard the pending authorization and candidate credentials while preserving the saved account.', {}, [], 'local'),
   define('auth status', 'Inspect saved account metadata locally without exposing or validating cookies.'),
   define('auth validate', 'Validate the saved session with TradingView and return account identity only.', {}, [], 'read', true),

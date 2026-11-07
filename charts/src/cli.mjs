@@ -38,7 +38,34 @@ export function parse(argv) {
 export async function dispatch(argv, dependencies = {}) {
   const parsed = parse(argv);
   if (parsed.command === 'tools') return { status: 'ok', message: 'Charts command catalog.', tools: toolDefinitions };
+  if (parsed.args['callback-stdin']) {
+    if (parsed.args['callback-url'] !== undefined || parsed.args['callback-file'] !== undefined || !dependencies.readCallback) {
+      throw new ChartsError('INVALID_ARGUMENT', 'Use callback-stdin alone in the CLI, without callback-url or callback-file.');
+    }
+    parsed.args['callback-url'] = await dependencies.readCallback();
+    delete parsed.args['callback-stdin'];
+  }
   return (dependencies.service ?? createCharts()).execute(parsed.command, parsed.args, { signal: dependencies.signal });
+}
+
+export async function readCallbackStdin(input = process.stdin, signal) {
+  if (input.isTTY) throw new ChartsError('INVALID_ARGUMENT', 'Pipe the callback to stdin; do not enter callback credentials in a terminal.');
+  const timeout = AbortSignal.timeout(10000);
+  const stop = signal ? AbortSignal.any([timeout, signal]) : timeout;
+  stop.throwIfAborted();
+  const chunks = []; let bytes = 0;
+  const abort = () => input.destroy(new ChartsError('INVALID_ARGUMENT', 'Callback input timed out or was cancelled.'));
+  stop.addEventListener('abort', abort, { once: true });
+  try {
+    for await (const chunk of input) {
+      bytes += Buffer.byteLength(chunk);
+      if (bytes > 16384) throw new ChartsError('INVALID_ARGUMENT', 'Callback input exceeds 16 KiB.');
+      chunks.push(Buffer.from(chunk));
+    }
+    const value = Buffer.concat(chunks).toString('utf8').trim();
+    if (!value) throw new ChartsError('INVALID_ARGUMENT', 'Callback input is empty.');
+    return value;
+  } finally { stop.removeEventListener('abort', abort); }
 }
 
 export async function run(argv = process.argv.slice(2)) {
@@ -53,7 +80,7 @@ export async function run(argv = process.argv.slice(2)) {
       await serveMcp();
       return;
     }
-    console.log(JSON.stringify(await dispatch(argv, { signal: controller.signal }), null, parsed.pretty ? 2 : undefined));
+    console.log(JSON.stringify(await dispatch(argv, { signal: controller.signal, readCallback: () => readCallbackStdin(process.stdin, controller.signal) }), null, parsed.pretty ? 2 : undefined));
   } catch (error) {
     const detail = publicError(error, controller.signal);
     console.error(JSON.stringify({ status: 'error', message: detail.message, error: detail }));

@@ -13,7 +13,12 @@ async function callbackInput(options) {
 }
 
 export function credentialsFromHeaders(headers, responseUrl) {
+  return sessionFromHeaders(headers, responseUrl).credentials;
+}
+
+export function sessionFromHeaders(headers, responseUrl, now = Date.now()) {
   const result = {};
+  const expiries = {};
   for (const line of headers.getSetCookie()) {
     const [pair, ...attributes] = line.split(';'), index = pair.indexOf('=');
     const name = pair.slice(0, index).trim(), value = pair.slice(index + 1).trim();
@@ -21,10 +26,19 @@ export function credentialsFromHeaders(headers, responseUrl) {
     const domain = attributes.find(item => /^\s*domain=/iu.test(item))?.split('=')[1]?.trim().replace(/^\./u, '').toLowerCase() ?? new URL(responseUrl).hostname;
     if (!['tradingview.com', 'www.tradingview.com'].includes(domain)) continue;
     const cookiePath = attributes.find(item => /^\s*path=/iu.test(item))?.split('=')[1]?.trim() ?? '/';
-    if (cookiePath !== '/' || !validCookie(value)) continue;
-    result[name === 'sessionid' ? 'session' : 'signature'] = value;
+    if (cookiePath !== '/') continue;
+    const key = name === 'sessionid' ? 'session' : 'signature';
+    const maxAge = attributes.find(item => /^\s*max-age=/iu.test(item))?.split('=')[1]?.trim();
+    const expiresAttribute = attributes.find(item => /^\s*expires=/iu.test(item));
+    const expires = expiresAttribute?.slice(expiresAttribute.indexOf('=') + 1).trim();
+    const age = maxAge !== undefined && /^-?\d+$/u.test(maxAge) ? Number(maxAge) : null;
+    const expiry = age !== null && Number.isSafeInteger(age) ? now + age * 1000 : expires ? Date.parse(expires) : NaN;
+    if (!validCookie(value) || (Number.isFinite(expiry) && expiry <= now)) { delete result[key]; delete expiries[key]; continue; }
+    result[key] = value;
+    expiries[key] = Number.isFinite(expiry) && Math.abs(expiry) <= 8640000000000000 ? expiry : null;
   }
-  return result;
+  const known = Object.values(expiries).filter(Number.isFinite);
+  return { credentials: result, cookieExpiresAt: known.length ? new Date(Math.min(...known)).toISOString() : null };
 }
 
 export function createAuth({ store, sdk, request = boundedFetch, now = Date.now }) {
@@ -33,8 +47,11 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
   }
   async function validate(pending, candidate, signal) {
     signal?.throwIfAborted();
+    if (candidate.cookieExpiresAt && Date.parse(candidate.cookieExpiresAt) <= now()) throw new ChartsError('AUTH_ERROR', 'The acquired session expired before it could be validated. Cancel this attempt and sign in again.');
     const api = await sdk();
     const user = await api.getUser(candidate.credentials, { signal, fetch: request });
+    signal?.throwIfAborted();
+    if (candidate.cookieExpiresAt && Date.parse(candidate.cookieExpiresAt) <= now()) throw new ChartsError('AUTH_ERROR', 'The acquired session expired during validation. Cancel this attempt and sign in again.');
     if (!Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.username !== 'string' || !user.username
       || (pending.username && user.username.toLowerCase() !== pending.username.toLowerCase())) {
       throw new ChartsError('ACCOUNT_MISMATCH', 'The callback did not validate as the requested TradingView account.');
@@ -42,7 +59,7 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
     if (fingerprint(await store.load()) !== pending.previousBinding) throw new ChartsError('SESSION_CHANGED', 'The saved account changed during this login. Start a new authorization.');
     const session = { version: 1, credentials: candidate.credentials, loginId: pending.id,
       account: { id: user.id, username: user.username }, savedAt: new Date(now()).toISOString(),
-      acquiredBy: 'native-desktop-callback', cookieExpiresAt: null };
+      acquiredBy: 'native-desktop-callback', cookieExpiresAt: candidate.cookieExpiresAt ?? null };
     await store.save(session, { replace: pending.replace });
     await clearPending();
     return { status: 'authenticated', message: 'TradingView independently validated the callback session.',
@@ -55,9 +72,25 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
         let pending = await store.read('pending-login');
         if (pending && session?.loginId === pending.id) { await clearPending(); pending = null; }
         if (pending && !['awaiting_callback', 'cancelled'].includes(pending.phase)) throw new ChartsError('LOGIN_IN_PROGRESS', 'Inspect auth status; finish validation or cancel the pending authorization before starting another.');
-        if (session && !options.replace) return { status: 'authenticated', message: 'A local session is saved; use auth validate for a fresh check or login --replace to change account.', data: sessionStatus(session) };
+        let replace = options.replace;
+        if (session && !replace) {
+          const expired = session.cookieExpiresAt && Date.parse(session.cookieExpiresAt) <= now();
+          if (!expired) {
+            const api = await sdk();
+            try {
+              const user = await api.getUser(session.credentials, { signal, fetch: request });
+              if (user.id !== session.account.id || (options.username && user.username?.toLowerCase() !== options.username.toLowerCase())) {
+                throw new ChartsError('ACCOUNT_MISMATCH', 'The saved account differs from the requested account. Use login --replace to change accounts.');
+              }
+              return { status: 'authenticated', message: 'TradingView independently validated the saved account.', data: { ...sessionStatus(session), validated: true } };
+            } catch (error) { if (error?.code !== 'AUTH_ERROR') throw error; }
+          }
+          // Do not erase stale credentials; a new login must still validate
+          // before atomically replacing the previously saved account.
+          replace = true;
+        }
         if (pending?.phase === 'awaiting_callback' && pending.expiresAt > now() && !options.replace) return approvalResult(pending);
-        const attempt = createAttempt({ session, replace: options.replace, username: options.username, now: now() });
+        const attempt = createAttempt({ session, replace, username: options.username ?? (!options.replace ? session?.account.username : undefined), clientProfile: options['client-profile'], now: now() });
         await store.write('pending-login', attempt);
         return approvalResult(attempt);
       }, { signal });
@@ -70,6 +103,18 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
           expiresAt: new Date(pending.expiresAt).toISOString(),
           ...(pending.httpStatus === undefined ? {} : { httpStatus: pending.httpStatus,
             sessionCookieIssued: pending.sessionCookieIssued, responseHasError: pending.responseHasError }) } : null };
+      }, { signal });
+    },
+    async poll(options, signal) {
+      return store.lock(async () => {
+        const pending = await store.read('pending-login'), session = await store.load();
+        if (session?.loginId === options['login-id']) return { status: 'authenticated', loginId: session.loginId, data: sessionStatus(session) };
+        if (pending?.id !== options['login-id']) throw new ChartsError('LOGIN_NOT_FOUND', 'No matching pending or completed login. Run charts login for a new authorization.');
+        const phase = pending.phase === 'awaiting_callback' && pending.expiresAt <= now() ? 'expired' : pending.phase;
+        const next = phase === 'validating' ? 'auth complete' : ['expired', 'exchange_uncertain', 'rejected', 'additional_verification_required'].includes(phase) ? 'auth cancel, then login' : null;
+        return { ...(phase === 'awaiting_callback' ? approvalResult(pending) : {}),
+          status: phase, loginId: pending.id, expiresAt: new Date(pending.expiresAt).toISOString(), next,
+          ...(phase === 'awaiting_callback' ? { retryAfterSeconds: 2 } : {}) };
       }, { signal });
     },
     async cancel(signal) {
@@ -123,13 +168,13 @@ export function createAuth({ store, sdk, request = boundedFetch, now = Date.now 
           await store.write('pending-login', { ...pending, phase: 'additional_verification_required', keySource: undefined });
           return { status: 'additional_verification_required', message: 'TradingView requires an additional native-app 2FA step. This step is not yet implemented; no session was saved. The existing account is unchanged.' };
         }
-        const credentials = credentialsFromHeaders(response.headers, response.url || 'https://auth.tradingview.com/');
+        const { credentials, cookieExpiresAt } = sessionFromHeaders(response.headers, response.url || 'https://auth.tradingview.com/', now());
         if (!(response.ok || response.status === 409) || body.error || !credentials.session) {
           await store.write('pending-login', { ...pending, phase: 'rejected', keySource: undefined, httpStatus: response.status,
             sessionCookieIssued: Boolean(credentials.session), responseHasError: Boolean(body.error) });
           throw new ChartsError('AUTH_REJECTED', 'TradingView did not issue an authenticated session for this callback. The exchange was not repeated.');
         }
-        const acquired = { version: 1, loginId: pending.id, credentials };
+        const acquired = { version: 1, loginId: pending.id, credentials, cookieExpiresAt };
         await store.write('candidate-session', acquired);
         await store.write('pending-login', { ...pending, phase: 'validating', keySource: undefined });
         return validate(pending, acquired, signal);

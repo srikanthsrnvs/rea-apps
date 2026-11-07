@@ -1,0 +1,108 @@
+{
+  "testedAt": "2026-11-07T22:27:39.843Z",
+  "provider": "@mathieuc/tradingview@4.1.0",
+  "planRequirement": "No paid plan required; native provider retained",
+  "deterministicTests": {
+    "passed": 48,
+    "failed": 0
+  },
+  "liveAnonymousChecks": {
+    "testedAt": "2026-11-07T22:27:39.843Z",
+    "platform": "darwin",
+    "arch": "arm64",
+    "node": "v24.22.1",
+    "nodeArgs": [],
+    "provider": "@mathieuc/tradingview@4.1.0",
+    "authentication": "anonymous",
+    "results": [
+      {
+        "command": "symbols search",
+        "status": "passed",
+        "elapsedMs": 196
+      },
+      {
+        "command": "symbol",
+        "status": "passed",
+        "elapsedMs": 186
+      },
+      {
+        "command": "quotes",
+        "status": "passed",
+        "elapsedMs": 508
+      },
+      {
+        "command": "candles",
+        "status": "passed",
+        "elapsedMs": 500
+      },
+      {
+        "command": "technicals",
+        "status": "passed",
+        "elapsedMs": 106
+      },
+      {
+        "command": "screener",
+        "status": "passed",
+        "elapsedMs": 39
+      },
+      {
+        "command": "hotlist",
+        "status": "passed",
+        "elapsedMs": 234
+      },
+      {
+        "command": "indicators search",
+        "status": "passed",
+        "elapsedMs": 169
+      },
+      {
+        "command": "indicator values",
+        "status": "passed",
+        "elapsedMs": 380
+      },
+      {
+        "command": "stream quotes",
+        "status": "passed",
+        "elapsedMs": 1349
+      },
+      {
+        "command": "stream candles",
+        "status": "passed",
+        "elapsedMs": 303
+      },
+      {
+        "command": "stream indicator",
+        "status": "passed",
+        "elapsedMs": 679
+      },
+      {
+        "command": "chart",
+        "status": "passed",
+        "elapsedMs": 510
+      }
+    ],
+    "peakRssMiB": 121.2,
+    "limitations": [
+      "Development-host run; not an Orin memory measurement.",
+      "No account login, paid entitlements, UI parity or sustained streaming verified."
+    ]
+  },
+  "macClient": {
+    "compiled": true,
+    "urlSchemeRegistrationVerified": true,
+    "nativeHandlerSelectionVerified": true,
+    "realApprovalOverSshVerified": false
+  },
+  "staticDesktopInspection": {
+    "version": "3.5.0",
+    "packageSha256": "0e4fca319c63c77cf92d1ca1fad96380707bf6a464b88956e880f7554693607d",
+    "reaEvidenceId": "ev_920dabfd0ec29384f54a80818491ed76dd359337cd758aadf0c13031f560031d",
+    "coverage": "Partial bounded graph; relevant authentication methods manually inspected",
+    "appExecuted": false
+  },
+  "remaining": [
+    "Live user-approved Mac-to-Orin callback requires a reachable Orin address.",
+    "Additional native-app 2FA is not implemented.",
+    "Mac receiver only; iOS and Windows clients remain unsupported."
+  ]
+}

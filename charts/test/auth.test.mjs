@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { createSessionStore } from '../src/session.mjs';
-import { createAuth, credentialsFromHeaders } from '../src/auth.mjs';
+import { createAuth, credentialsFromHeaders, sessionFromHeaders } from '../src/auth.mjs';
 import { createAttempt, parseCallback, completionUrl } from '../src/auth-protocol.mjs';
 
 const callback = 'tradingview://browser-auth/?token=synthetic-grant';
@@ -17,6 +17,37 @@ async function fixture(t) {
 }
 const issued = () => new Response('{}', { status: 200, headers: { 'set-cookie': 'sessionid=synthetic-session; Domain=.tradingview.com; Path=/; Secure; HttpOnly' } });
 const previous = { version: 1, credentials: { session: 'previous-session' }, account: { id: 1, username: 'old' }, savedAt: '2026-10-26T00:00:00Z' };
+
+test('cookie expiry follows the accepted cookie scope, max-age and deletion semantics', () => {
+  const now = 1700000000000, headers = new Headers();
+  headers.append('set-cookie', 'sessionid=session; Domain=.tradingview.com; Path=/; Max-Age=120; Expires=Wed, 01 Jan 2020 00:00:00 GMT');
+  headers.append('set-cookie', 'sessionid_sign=signature; Domain=.tradingview.com; Path=/; Max-Age=60');
+  headers.append('set-cookie', 'sessionid=bad; Domain=evil.test; Path=/; Max-Age=1');
+  assert.deepEqual(sessionFromHeaders(headers, 'https://auth.tradingview.com/', now), {
+    credentials: { session: 'session', signature: 'signature' }, cookieExpiresAt: new Date(now + 60000).toISOString(),
+  });
+  headers.append('set-cookie', 'sessionid=; Domain=.tradingview.com; Path=/; Max-Age=0');
+  assert.equal(sessionFromHeaders(headers, 'https://auth.tradingview.com/', now).credentials.session, undefined);
+});
+
+test('login independently validates saved accounts and renews stale sessions without deleting them', async t => {
+  const { store } = await fixture(t); await store.save(previous);
+  let reads = 0;
+  const auth = createAuth({ store, sdk: async () => ({ getUser: async () => { reads++; return { id: 1, username: 'old' }; } }) });
+  assert.equal((await auth.login({})).data.validated, true); assert.equal(reads, 1);
+  await assert.rejects(auth.login({ username: 'different' }), { code: 'ACCOUNT_MISMATCH' });
+  const stale = createAuth({ store, sdk: async () => ({ getUser: async () => { throw Object.assign(new Error('rejected'), { code: 'AUTH_ERROR' }); } }) });
+  const login = await stale.login({}); assert.equal(login.status, 'authorization_required');
+  assert.equal((await store.load()).credentials.session, 'previous-session');
+  const pending = await store.read('pending-login'); assert.equal(pending.replace, true); assert.equal(pending.username, 'old');
+});
+
+test('known expired cookies start renewal without an unnecessary account request', async t => {
+  const { store } = await fixture(t); await store.save({ ...previous, cookieExpiresAt: '2020-01-01T00:00:00Z' });
+  const auth = createAuth({ store, sdk: async () => { throw new Error('must not load'); } });
+  assert.equal((await auth.login({})).status, 'authorization_required');
+  assert.equal((await store.load()).account.id, 1);
+});
 
 test('the recovered native grant binds the approval hash to a private host proof', () => {
   const pending = createAttempt();

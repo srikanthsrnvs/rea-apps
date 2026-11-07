@@ -13,6 +13,7 @@ export const provider = {
   accountCapabilities: ['pine_studies', 'saved_indicators', 'watchlists', 'private_layouts'],
   login: 'native_callback_handoff', hostBrowser: false, orderExecution: false,
   authenticationVerification: 'orin_callback_and_account_reads_verified', additionalNative2faSupported: false,
+  automaticCallbackClient: 'macos_receiver_over_ssh', clientReceiverVerification: 'local_tests_only',
 };
 const accountCommands = new Set(['auth validate', 'indicators saved', 'watchlists']);
 const page = (rows, o) => ({ data: rows.slice(o.offset, o.offset + o.limit), pagination: {
@@ -52,13 +53,17 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
         timeframeSuffix: 'Append |60, |240, |1W, etc. where supported; availability differs by universe.' });
       if (command === 'logout') return result(await authClient.logout(signal));
       if (command === 'auth cancel') return result(await authClient.cancel(signal));
+      if (command === 'auth poll') return result(await authClient.poll(o, signal));
       if (command === 'state' || command === 'auth status') {
         return result({ data: { ...await authClient.status(signal), ...(command === 'state' ? { providers: [provider] } : {}) } });
       }
       if (command === 'login') {
         return result(await authClient.login(o, signal));
       }
-      if (command === 'auth complete') return result(await authClient.complete(o, signal));
+      if (command === 'auth complete') {
+        if (o['callback-stdin']) throw new ChartsError('INVALID_ARGUMENT', 'callback-stdin is only available in the CLI; MCP clients must pass callback-url or callback-file.');
+        return result(await authClient.complete(o, signal));
+      }
 
       const session = o.auth === 'anonymous' ? null : await store.load();
       if ((o.auth === 'required' || accountCommands.has(command)) && !session) throw new ChartsError('AUTH_REQUIRED', 'This operation requires a validated TradingView account grant. Public tools work anonymously.');

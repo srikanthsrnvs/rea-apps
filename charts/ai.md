@@ -20,7 +20,7 @@ Recover a persisted candidate if interruption occurred before its phase update. 
 
 Native extra 2FA currently returns an explicit unsupported result. Callback exchange, independent identity validation, saved-session reuse, watchlist reads and authenticated quotes were verified on the actual Orin. See research/orin-auth-results.json. Do not extend that evidence to private Pine, saved scripts, populated-watchlist UI parity, strategies or private layouts.
 
-The client on the user's device must receive the native `tradingview://browser-auth/` callback. A plain browser approval link cannot complete that handoff without a registered receiver; Safari's invalid-address message demonstrates this. The test used a temporary Mac receiver, then removed it. Never turn that client requirement into a browser or desktop-app dependency on the Orin. The completion request is POST, not GET. Accept 2xx responses with independently validated session cookies: the real service returned 201 Created despite the inspected desktop client's narrower status checks.
+The client on the user's device must receive the native `tradingview://browser-auth/` callback. Prefer `clientUrl` with the configured Mac receiver; it checks the host login and returns the callback over SSH automatically. Never treat a bare `approvalUrl` as sufficient in a normal browser. A plain browser approval link cannot complete that handoff without a registered receiver; Safari's invalid-address message demonstrates this. The test used a temporary Mac receiver, then removed it. Never turn that client requirement into a browser or desktop-app dependency on the Orin. The completion request is POST, not GET. Accept 2xx responses with independently validated session cookies: the real service returned 201 Created despite the inspected desktop client's narrower status checks.
 
 ## Data pitfalls
 
@@ -37,3 +37,11 @@ The client on the user's device must receive the native `tradingview://browser-a
 Keep one online operation active per process, load provider/MCP dependencies lazily, and retain compact finite stream events. Bound response bytes, WebSocket payloads, symbols, history, pages and graphics before introducing richer datasets. No automatic resident monitors or reconnect loops currently exist. Always stop watchers on limits, aborts and errors.
 
 Use `npm test` for deterministic checks and `npm run test:live` only when anonymous integration reads are appropriate. Record platform, Node version and peak RSS with measurements; development Mac results are not Orin results. Live anonymous checks do not establish account access, independent price accuracy, UI parity or sustained stream reliability.
+
+## Mac receiver and session recovery
+
+The runtime/provider is unchanged and supports free accounts. `login` validates an existing saved account before reporting it authenticated; expired or rejected cookies trigger a replacement grant that preserves the existing session until validation succeeds. `auth status` is local metadata only. Use `auth poll --login-id ID` to correlate completion with the particular grant.
+
+The user's Mac requires one-time receiver setup with a trusted SSH target and an absolute remote CLI path. Send `clientUrl` (rea-charts scheme) to that configured client; it will open official TradingView sign-in. Links contain no SSH commands and cannot choose a host. The receiver uses the local trusted profile and never exports account cookies to the Mac. The native callback is passed through SSH stdin, not argv or logs. See docs/mac-login-client.md.
+
+After lost SSH output, run charts-client status --online on the Mac or auth poll on the host. Never resend a callback to recover an uncertain exchange. If the host says validating, retry auth complete without any callback. A native additional-2FA response is still a verified unsupported state; do not invent a challenge endpoint or claim that the new receiver removes it.

@@ -1,5 +1,29 @@
 # TradingView native callback authorization
 
+## November 7 hardening
+
+The native provider remains the default, including for free accounts. The new
+Mac receiver packages the earlier manual callback transfer: `login` returns a
+`clientUrl`, the receiver verifies that exact pending login through a locally
+configured SSH target, and the token travels to `auth complete --callback-stdin`.
+The host remains HTTP/WebSocket only. See [setup and recovery](mac-login-client.md).
+
+Saved sessions are independently checked by `login`. Expired/rejected sessions
+start a replacement without deleting the previous account, and cookie expiry is
+retained when the server supplies it. `auth poll` correlates the outcome with a
+specific login ID. None of these changes claim automatic refresh where the
+provider has not supplied a refresh grant.
+
+The published Linux desktop package was reinspected statically using REA on
+November 7: version **3.5.0**, package SHA-256
+`0e4fca319c63c77cf92d1ca1fad96380707bf6a464b88956e880f7554693607d`.
+The bounded REA graph extraction is partial; manual inspection of the relevant
+authentication methods confirms the same native callback exchange and
+session-bound extra 2FA view. No desktop application code was executed.
+The new automatic receiver needs a live account test; the October record below
+describes the previously verified manual transfer. The additional native 2FA
+contract has not been implemented or verified.
+
 This implementation uses a genuine provider protocol, without running TradingView Desktop or a browser on the host. Its lifecycle is fixture-tested. User-approved callback exchange, independently validated account identity, saved-session reuse, watchlist reading and authenticated quotes were verified on the NVIDIA Jetson AGX Orin on October 26, 2026. See the [sanitized test record](../research/orin-auth-results.json).
 
 ## Evidence
