@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { toolDefinitions } from './tool-definitions.mjs';
 import { createCharts } from './service.mjs';
 import { publicError } from './errors.mjs';
+import { modelView } from './presentation.mjs';
 
 export function createMcpServer({ service = createCharts() } = {}) {
   const server = new McpServer({ name: 'charts', version: '0.1.0' });
@@ -14,7 +15,7 @@ export function createMcpServer({ service = createCharts() } = {}) {
     let output;
     try { output = await service.execute(tool.name, args, { signal: context?.signal }); }
     catch (error) { const detail = publicError(error, context?.signal); output = { status: 'error', message: detail.message, error: detail }; }
-    return { content: [{ type: 'text', text: JSON.stringify(output) }], structuredContent: output, isError: output.status === 'error' };
+    return { content: [{ type: 'text', text: JSON.stringify(modelView(output)) }], structuredContent: output, isError: output.status === 'error' };
   });
   return server;
 }

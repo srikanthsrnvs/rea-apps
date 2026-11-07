@@ -1,0 +1,299 @@
+{
+  "date": "2026-11-07",
+  "model": "qwen3.6:35b",
+  "parameters": "35.5B MoE, Q4_K_M",
+  "harness": "Pi 0.99.2 RPC / local Ollama",
+  "settings": {
+    "temperature": 0,
+    "seed": 20261107,
+    "context": 32768,
+    "maxOutputTokens": 3072,
+    "thinking": "off"
+  },
+  "baselineCommit": "eb17514b4ee2f0d68e92c3b096afd6ee97d12254",
+  "data": "Synthetic deterministic backend through production service. Not market observations.",
+  "expected": {
+    "BITFINEX:BTCUSD": {
+      "first": 100000,
+      "last": 81397.21,
+      "changePercent": -18.60278999999999,
+      "bars": 311
+    },
+    "BITFINEX:BTCUSDLONGS": {
+      "first": 50000,
+      "last": 78578.87,
+      "changePercent": 57.157740000000004,
+      "bars": 311
+    },
+    "BITFINEX:ETHUSD": {
+      "first": 3000,
+      "last": 2387.9,
+      "changePercent": -20.40333333333333,
+      "bars": 311
+    }
+  },
+  "totals": {
+    "beforeCalls": 22,
+    "afterCalls": 8,
+    "beforeModelOutputBytes": 158771,
+    "afterModelOutputBytes": 19534,
+    "beforeCasesPassed": 1,
+    "afterCasesPassed": 6,
+    "cases": 7
+  },
+  "cases": [
+    {
+      "case": "ytd",
+      "prompts": [
+        "Compare Bitfinex BTCUSD and BTCUSDLONGS from January 1, 2026 through today using daily data. How much did each change?"
+      ],
+      "referenceCalls": {
+        "before": 2,
+        "after": 1
+      },
+      "before": {
+        "toolCalls": 3,
+        "modelOutputBytes": 61156,
+        "passed": false,
+        "checks": {
+          "settled": true,
+          "BITFINEX:BTCUSD_change": false,
+          "BITFINEX:BTCUSDLONGS_change": true,
+          "year_start_requested": true,
+          "no_false_growth_multiple": true
+        },
+        "answer": "I'll fetch the daily historical data for both Bitfinex BTCUSD and BTCUSDLONGS from January 1, 2026 through today to compare their changes.\nLet me retry the BTCUSDLONGS data:\nThe data shows a consistent long-only BTC trend for 2026 on Bitfinex, with prices rising from ~$50,000 at the start of January to ~$78,579 by November 7, 2026. Here are some key observations:\n\n- **Starting Price (Jan 1):** $50,000\n- **Ending Price (Nov 7):** $78,578.87\n- **Total Return:** ~+57.2% over the period\n- **Trend:** Consistent uptrend with no significant down periods visible in this daily data\n- **Volume:** All volumes are reporting as 0, which may indicate synthetic/dummy data rather than real exchange data\n\n**Pattern Summary:**\nThe LONGS instrument (indicating long-only directional exposure) shows a steady, near-linear upward trajectory throughout 2026. The price increases appear to be roughly consistent day-over-day, suggesting a strong bullish market environment during this period. There are no major pullbacks or corrections visible in the daily candlestick data provided.\n\nNote: The \"RANGE_COVERAGE_UNVERIFIED\" warning and zero volumes suggest this may be simulated/prediction data rather than actual market results."
+      },
+      "after": {
+        "toolCalls": 1,
+        "modelOutputBytes": 2436,
+        "passed": true,
+        "checks": {
+          "settled": true,
+          "BITFINEX:BTCUSD_change": true,
+          "BITFINEX:BTCUSDLONGS_change": true,
+          "year_start_requested": true,
+          "no_false_growth_multiple": true
+        },
+        "answer": "Here is the comparison of the two symbols from January 1, 2026, through November 7, 2026:\n\n*   **BITFINEX:BTCUSD** (Price): Started at **$100,000.00** and ended at **$81,397.21**.\n    *   Change: **-18.6%** (a loss of $18,602.79).\n\n*   **BITFINEX:BTCUSDLONGS** (Margin Long Positions): Started at **50,000 BTC** and ended at **78,578.87 BTC**.\n    *   Change: **+57.16%** (an increase of 28,578.87 BTC).\n\nAlthough the price of Bitcoin declined during this period, the total amount of BTC held in open long margin positions on Bitfinex increased significantly. The correlation between their daily percentage changes was roughly -0.134, indicating a weak inverse relationship over this timeframe."
+      }
+    },
+    {
+      "case": "quotes",
+      "prompts": [
+        "What are BTC and ETH trading at in USD on Bitfinex right now? Get them together."
+      ],
+      "referenceCalls": {
+        "before": 1,
+        "after": 1
+      },
+      "before": {
+        "toolCalls": 1,
+        "modelOutputBytes": 1068,
+        "passed": false,
+        "checks": {
+          "settled": true,
+          "batch_quote": true,
+          "both_named": true,
+          "correct_values": true,
+          "no_wrong_asof_time": false
+        },
+        "answer": "Here are the current BTC and ETH prices on Bitfinex:\n\n*   **BTC/USD:** $81,397.21\n*   **ETH/USD:** $2,387.90\n\nBoth values were recorded at 12:00 UTC today."
+      },
+      "after": {
+        "toolCalls": 1,
+        "modelOutputBytes": 1222,
+        "passed": true,
+        "checks": {
+          "settled": true,
+          "batch_quote": true,
+          "both_named": true,
+          "correct_values": true,
+          "no_wrong_asof_time": true
+        },
+        "answer": "As of November 7, 2026, on Bitfinex:\n\n*   **BTC (Bitcoin):** $81,397.21\n*   **ETH (Ethereum):** $2,387.90"
+      }
+    },
+    {
+      "case": "calendar",
+      "prompts": [
+        "Show Bitfinex BTCUSD daily for the last calendar month, not the last 30 days. What dates did you actually get?"
+      ],
+      "referenceCalls": {
+        "before": 1,
+        "after": 1
+      },
+      "before": {
+        "toolCalls": 1,
+        "modelOutputBytes": 4974,
+        "passed": false,
+        "checks": {
+          "settled": true,
+          "calendar_month": false,
+          "correct_year": false
+        },
+        "answer": "The API returned data that begins in **March 2027**, not October/November 2026 as expected for \"the last calendar month.\" Here are the actual dates provided:\n\n**First bar:** March 24, 2027  \n**Last bar:** November 6, 2027\n\nThe data covers a range spanning **March through October 2027** (not back-to-back daily bars for a single calendar month). This appears to be synthetic/test data rather than real market history.\n\nIf you need the actual last calendar month (October 2026), you likely need to use explicit `from` and `to` parameters instead of relying on `count`. Would you like me to re-query with date-range bounds for October 1\u201331, 2026?"
+      },
+      "after": {
+        "toolCalls": 1,
+        "modelOutputBytes": 5189,
+        "passed": true,
+        "checks": {
+          "settled": true,
+          "calendar_month": true,
+          "correct_year": true
+        },
+        "answer": "For the **last calendar month** (October 2026), I retrieved daily data for Bitfinex BTCUSD covering:\n\n- **Start Date:** October 1, 2026\n- **End Date:** October 31, 2026\n\nThis period includes exactly 31 daily bars, corresponding to every calendar day in October 2026."
+      }
+    },
+    {
+      "case": "login",
+      "prompts": [
+        "I use a free TradingView account. The CLI is on my Orin and I sign in on my Mac, where the Charts receiver is already configured as orin. Give me the link to connect it."
+      ],
+      "referenceCalls": {
+        "before": 1,
+        "after": 1
+      },
+      "before": {
+        "toolCalls": 1,
+        "modelOutputBytes": 918,
+        "passed": true,
+        "checks": {
+          "settled": true,
+          "correct_client_link": true,
+          "not_pretending_authenticated": true,
+          "correct_receiver_explanation": true
+        },
+        "answer": "Here is the link to use on your Mac (with the Charts receiver configured as **orin**):\n\n[Click here to sign in with TradingView](rea-charts://authorize/?profile=orin&login_id=REDACTED_TEST_ID)\n\nThis will open the official TradingView sign-in page on your Mac. Once you approve it, the CLI on your Orin will receive the callback automatically."
+      },
+      "after": {
+        "toolCalls": 1,
+        "modelOutputBytes": 1032,
+        "passed": true,
+        "checks": {
+          "settled": true,
+          "correct_client_link": true,
+          "not_pretending_authenticated": true,
+          "correct_receiver_explanation": true
+        },
+        "answer": "Here is the link to use on your Mac with the **orin** profile:\n\n[Open this link on your Mac](rea-charts://authorize/?profile=orin&login_id=REDACTED_TEST_ID)"
+      }
+    },
+    {
+      "case": "watchlists",
+      "prompts": [
+        "Show all symbols in all my saved watchlists. Keep section headings separate from symbols."
+      ],
+      "referenceCalls": {
+        "before": 1,
+        "after": 1
+      },
+      "before": {
+        "toolCalls": 1,
+        "modelOutputBytes": 2443,
+        "passed": false,
+        "checks": {
+          "settled": true,
+          "complete_results": false,
+          "last_symbols_visible": false,
+          "no_omitted_symbols": false,
+          "sections_not_quotes": true
+        },
+        "answer": "Here are all the symbols across your saved watchlists, with section headings kept separate from the symbols:\n\n### Watchlist: Markets\n**Section:** ###Crypto\n- TEST:COIN1\n- TEST:COIN2\n- TEST:COIN3\n- TEST:COIN4\n- TEST:COIN5\n- TEST:COIN6\n- TEST:COIN7\n- TEST:COIN8\n- TEST:COIN9\n- TEST:COIN10\n- TEST:COIN11\n- TEST:COIN12\n- TEST:COIN13\n- TEST:COIN14\n- TEST:COIN15\n- TEST:COIN16\n- TEST:COIN17\n- TEST:COIN18\n- TEST:COIN19\n- TEST:COIN20\n- TEST:COIN21\n- TEST:COIN22\n- TEST:COIN23\n- TEST:COIN24\n- TEST:COIN25\n- TEST:COIN26\n- TEST:COIN27\n- TEST:COIN28\n- TEST:COIN29\n- TEST:COIN30\n- TEST:COIN31\n- TEST:COIN32\n- TEST:COIN33\n- TEST:COIN34\n- TEST:COIN35\n- TEST:COIN36\n- TEST:COIN37\n- TEST:COIN38\n- TEST:COIN39\n- TEST:COIN40\n- TEST:COIN41\n- TEST:COIN42\n- TEST:COIN43\n- TEST:COIN44\n- TEST:COIN45\n- TEST:COIN46\n- TEST:COIN47\n- TEST:COIN48\n- TEST:COIN49\n\n### Watchlist: Favorites\n- BITFINEX:BTCUSD\n- BITFINEX:ETHUSD"
+      },
+      "after": {
+        "toolCalls": 1,
+        "modelOutputBytes": 3717,
+        "passed": true,
+        "checks": {
+          "settled": true,
+          "complete_results": true,
+          "last_symbols_visible": true,
+          "no_omitted_symbols": true,
+          "sections_not_quotes": true
+        },
+        "answer": "Here are all the symbols across your saved watchlists, with section headings kept separate from the symbols:\n\n### Watchlist: Markets\n**Section:** ###Crypto\n- TEST:COIN1\n- TEST:COIN2\n- TEST:COIN3\n- TEST:COIN4\n- TEST:COIN5\n- TEST:COIN6\n- TEST:COIN7\n- TEST:COIN8\n- TEST:COIN9\n- TEST:COIN10\n- TEST:COIN11\n- TEST:COIN12\n- TEST:COIN13\n- TEST:COIN14\n- TEST:COIN15\n- TEST:COIN16\n- TEST:COIN17\n- TEST:COIN18\n- TEST:COIN19\n- TEST:COIN20\n- TEST:COIN21\n- TEST:COIN22\n- TEST:COIN23\n- TEST:COIN24\n- TEST:COIN25\n- TEST:COIN26\n- TEST:COIN27\n- TEST:COIN28\n- TEST:COIN29\n- TEST:COIN30\n- TEST:COIN31\n- TEST:COIN32\n- TEST:COIN33\n- TEST:COIN34\n- TEST:COIN35\n- TEST:COIN36\n- TEST:COIN37\n- TEST:COIN38\n- TEST:COIN39\n- TEST:COIN40\n- TEST:COIN41\n- TEST:COIN42\n- TEST:COIN43\n- TEST:COIN44\n- TEST:COIN45\n- TEST:COIN46\n- TEST:COIN47\n- TEST:COIN48\n- TEST:COIN49\n- TEST:COIN50\n- TEST:COIN51\n- TEST:COIN52\n- TEST:COIN53\n- TEST:COIN54\n- TEST:COIN55\n- TEST:COIN56\n- TEST:COIN57\n- TEST:COIN58\n- TEST:COIN59\n- TEST:COIN60\n- TEST:COIN61\n- TEST:COIN62\n- TEST:COIN63\n- TEST:COIN64\n- TEST:COIN65\n- TEST:COIN66\n- TEST:COIN67\n- TEST:COIN68\n- TEST:COIN69\n- TEST:COIN70\n- TEST:COIN71\n- TEST:COIN72\n- TEST:COIN73\n- TEST:COIN74\n- TEST:COIN75\n\n**Section:** ###Equities\n- NASDAQ:AAPL\n- NASDAQ:MSFT\n\n### Watchlist: Favorites\n- BITFINEX:BTCUSD\n- BITFINEX:ETHUSD"
+      }
+    },
+    {
+      "case": "study_error",
+      "prompts": [
+        "Show me the RSI for Bitfinex BTCUSD on daily candles."
+      ],
+      "referenceCalls": {
+        "before": 1,
+        "after": 1
+      },
+      "before": {
+        "toolCalls": 2,
+        "modelOutputBytes": 2418,
+        "passed": false,
+        "checks": {
+          "settled": true,
+          "no_login_retry": true,
+          "admits_failure": true,
+          "no_false_access_claim": true,
+          "requested_rsi": false
+        },
+        "answer": "The built-in RSI tool encountered a protocol error on TradingView\u2019s side. Let me try fetching the daily candle data for Bitfinex BTCUSD instead, so you can view the price action directly:\nI was unable to fetch the RSI directly because TradingView\u2019s RSI study encountered a protocol error on their end. However, I can provide you with the recent daily candlestick data for Bitfinex BTCUSD instead. Here are the last 14 completed daily bars:\n\n| Date (UTC)       | Open      | High      | Low       | Close     | Volume |\n|------------------|-----------|-----------|-----------|-----------|--------|\n| 2026-10-24       | 79,798.68 | 79,808.68 | 79,788.68 | 79,798.68 | 100    |\n| 2026-10-25       | 79,922.11 | 79,932.11 | 79,912.11 | 79,922.11 | 100    |\n| 2026-10-26       | 80,050.45 | 80,060.45 | 80,040.45 | 80,050.45 | 100    |\n| 2026-10-27       | 80,182.36 | 80,192.36 | 80,172.36 | 80,182.36 | 100    |\n| 2026-10-28       | 80,316.47 | 80,326.47 | 80,306.47 | 80,316.47 | 100    |\n| 2026-10-29       | 80,451.41 | 80,461.41 | 80,441.41 | 80,451.41 | 100    |\n| 2026-10-30       | 80,585.78 | 80,595.78 | 80,575.78 | 80,585.78 | 100    |\n| 2026-10-31       | 80,718.20 | 80,728.20 | 80,708.20 | 80,718.20 | 100    |\n| 2026-11-01       | 80,847.30 | 80,857.30 | 80,837.30 | 80,847.30 | 100    |\n| 2026-11-02       | 80,971.74 | 80,981.74 | 80,961.74 | 80,971.74 | 100    |\n| 2026-11-03       | 81,090.20 | 81,100.20 | 81,080.20 | 81,090.20 | 100    |\n| 2026-11-04       | 81,201.40 | 81,211.40 | 81,191.40 | 81,201.40 | 100    |\n| 2026-11-05       | 81,304.12 | 81,314.12 | 81,294.12 | 81,304.12 | 100    |\n| 2026-11-06       | 81,397.21 | 81,407.21 | 81,387.21 | 81,397.21 | 100    |\n\nThe price has been trending steadily upward from roughly 79,798 to 81,397 over this period. If you'd like me to try refreshing the RSI data or compute it manually from these candles, let me know!"
+      },
+      "after": {
+        "toolCalls": 1,
+        "modelOutputBytes": 957,
+        "passed": true,
+        "checks": {
+          "settled": true,
+          "no_login_retry": true,
+          "no_false_access_claim": true,
+          "requested_rsi": true
+        },
+        "answer": "The RSI for **BTCUSD** on **Bitfinex (BITFINEX)** over the **daily (1D)** timeframe is **62.5**.\n\nLet me know if you'd like to see other technical indicators or compare it across different exchanges!"
+      }
+    },
+    {
+      "case": "overlay",
+      "prompts": [
+        "Overlay BTCUSD and BTCUSDLONGS so I can see how longs react to Bitcoin price. Use Bitfinex.",
+        "Only this year, 1D. Tell me how each changed and whether the moves track each other."
+      ],
+      "referenceCalls": {
+        "before": 4,
+        "after": 2
+      },
+      "before": {
+        "toolCalls": 13,
+        "modelOutputBytes": 85794,
+        "passed": false,
+        "checks": {
+          "settled": true,
+          "BITFINEX:BTCUSD_change": false,
+          "BITFINEX:BTCUSDLONGS_change": false,
+          "year_start_requested": false,
+          "no_false_growth_multiple": true,
+          "weak_tracking_explained": true,
+          "correct_position_unit": false
+        },
+        "answer": "I'll pull daily candles from the start of 2024 to compare BTCUSD vs BTCUSDLONGS performance over this year.\nLet me try with more targeted date ranges since there may not be continuous data back to 2024:\nNow let me get the LONGS data for comparison:\nI've gathered the key findings from my analysis:\n\n## Summary Analysis of BITFINEX:BTCUSD vs BITFINEX:BTCUSDLONGS (Last 3 Months)\n\n### Data Quality\n- **BTCUSD**: Real market data with actual open/high/low/close prices and non-zero volume across multiple trading sessions\n- **BTCUSDLONGS**: Synthetic indicator data showing steadily increasing values from ~45,449 to ~78,578 with zero volume (artificial progression, not tradable)\n\n### BTCUSD Price Performance (Last 3 Months)\n**Approximate dates and prices** based on the data:\n\n| Date Range | Approx. Open | Last Close | Change |\n|------------|-------------|------------|--------|\n| Early August | ~58,600-71,000 range | ~69,290 | Varies |\n| Mid-August | ~72,437 - 74,020 range | ~72,058-73,202 | Fluctuating |\n| Late August | ~71,222 - 72,795 range | ~67,442 - 69,780 | Declining trend |\n\nActually, looking more closely at the dates in Unix timestamps (which correspond to 2025 in my data):\n\n| Date | Open | Close | Daily Return |\n|------|---------|---------|-------------|\n| Nov 1 | $23,498.12 | $23,520.47 | +0.09% |\n| Nov 2 | $23,645.28 | $23,675.32 | +0.14% |\n| Nov 3 | $23,758.92 | $23,527.18 | -0.97% |\n| Nov 4 | $23,527.18 | $23,645.82 | +0.50% |\n| **(today)** | $23,724.63 | **$23,687.08** | **-0.16%** |\n\n### BTCUSD 1-Month Performance:\n- **High**: ~$23,947 (Nov 10)\n- **Low**: ~$22,043 (around Nov 25) \n- **Current**: $23,687.08\n- **Net gain**: +0.87% over the month\n\n### BTCUSD 3-Month Performance:\n- **High**: ~$25,194.67 (early October)\n- **Low**: ~$21,749.29 (Nov 18) around -0.54% of high\n- **Current**: $23,687.08\n\n### Key Observations:\n1. **Volatility**: The asset has moved between ~$21,749 and ~$25,195 over the past quarter - a range of roughly 15.7%\n2. **Recent trend**: A significant correction from October highs (~$25,195) down to November lows (~$21,749), followed by a recovery to current levels around $23,687\n3. **BTCUSDLONGS**: This is clearly not real market data (zero volume, monotonic increase). The synthetic \"LONGS\" indicator increased exactly 73% over the same period (from ~45,450 to ~78,579) in a perfectly linear fashion - confirming it's an artificial/calculation-based metric rather than a tradable instrument"
+      },
+      "after": {
+        "toolCalls": 2,
+        "modelOutputBytes": 4981,
+        "passed": false,
+        "checks": {
+          "settled": true,
+          "BITFINEX:BTCUSD_change": true,
+          "BITFINEX:BTCUSDLONGS_change": true,
+          "year_start_requested": true,
+          "no_false_growth_multiple": true,
+          "weak_tracking_explained": true,
+          "correct_position_unit": false
+        },
+        "answer": "Here is the Year-to-Date (2026) breakdown for **BITFINEX:BTCUSD** vs. **BITFINEX:BTCUSDLONGS** on a 1D (daily) basis:\n\n### 1. How each changed\n| Metric | BITFINEX:BTCUSD (Price) | BITFINEX:BTCUSDLONGS (Open Positions) |\n| :--- | :--- | :--- |\n| **Start Value** (Jan 1, 2026) | $100,000.00 | 50,000 BCNT |\n| **End Value** (Nov 7, 2026) | $81,397.21 | 78,578.87 BCNT |\n| **Total Change** | **-18.60%** (-$18,602.79) | **+57.16%** (+28,578.87 BCNT) |\n\nBitcoin has dropped significantly this year, while the total open long positions on Bitfinex have nearly doubled.\n\n### 2. Do they track each other?\nThe **daily return correlation is -0.134**, which indicates a weak, slight *negative* tracking during daily intervals:\n\n*   **Interpretation:** The moves do not cleanly correlate. A negative return correlation suggests that on days when Bitcoin rises, open long positions tend to decrease slightly (traders selling into strength), and vice-versa. \n*   **Net Result:** Despite the short-term inverse relationship between price and position counts, the **overall trend is divergent**: BTC is down ~18%, but longs have expanded by over 57%. This implies that while day-to-day fluctuations cause traders to add or reduce exposures in opposition to daily price action, the net accumulation of longs has outpaced the price decline.\n\n**Conclusion:** Traders holding long positions on Bitfinex appear to be \"buying the dip\" aggressively over the long term (adding 57% more open long BTC while price fell), even if their day-to-day adjustments move inversely to daily price swings as they take profits or adjust margins."
+      }
+    }
+  ],
+  "manualReview": {
+    "overlay": "Failed: correct numeric changes and weak correlation, but changed the position unit to BCNT, said nearly doubled for +57%, invented intermediate moves, and attributed motives not present in the data. Numeric checks alone overstate answer quality."
+  }
+}

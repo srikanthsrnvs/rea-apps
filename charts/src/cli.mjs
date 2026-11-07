@@ -2,9 +2,10 @@ import { parseArgs } from 'node:util';
 import { toolDefinitions } from './tool-definitions.mjs';
 import { ChartsError, publicError } from './errors.mjs';
 import { createCharts } from './service.mjs';
+import { modelView } from './presentation.mjs';
 
 export function parse(argv) {
-  const options = { pretty: { type: 'boolean' }, help: { type: 'boolean' } };
+  const options = { pretty: { type: 'boolean' }, help: { type: 'boolean' }, 'agent-view':{type:'boolean'} };
   for (const tool of toolDefinitions) for (const [name, schema] of Object.entries(tool.inputSchema.properties)) {
     options[name] = { type: schema.type === 'boolean' ? 'boolean' : 'string' };
   }
@@ -16,7 +17,7 @@ export function parse(argv) {
     if (seen.has(token.name)) throw new ChartsError('INVALID_ARGUMENT', 'Duplicate options are not accepted.');
     seen.add(token.name);
   }
-  if (parsed.values.help || ((!command || ['tools', 'help'].includes(command)) && [...seen].every(key => ['pretty', 'help'].includes(key)))) {
+  if (parsed.values.help || ((!command || ['tools', 'help'].includes(command)) && [...seen].every(key => ['pretty', 'help','agent-view'].includes(key)))) {
     return { command: 'tools', args: {}, pretty: parsed.values.pretty };
   }
   if (command === 'mcp' && [...seen].every(key => key === 'pretty')) return { command, args: {} };
@@ -24,7 +25,7 @@ export function parse(argv) {
   if (!definition) throw new ChartsError('UNKNOWN_COMMAND', 'Unknown command. Run charts tools.');
   const args = {};
   for (const [name, value] of Object.entries(parsed.values)) {
-    if (['pretty', 'help'].includes(name)) continue;
+    if (['pretty', 'help','agent-view'].includes(name)) continue;
     const schema = definition.inputSchema.properties[name];
     if (!schema) throw new ChartsError('INVALID_ARGUMENT', 'An option is not accepted by this command. Run charts tools.');
     if (schema.type === 'integer' || schema.type === 'number') args[name] = /^-?\d+(?:\.\d+)?$/u.test(value) ? Number(value) : NaN;
@@ -32,7 +33,7 @@ export function parse(argv) {
       try { args[name] = JSON.parse(value); } catch { throw new ChartsError('INVALID_ARGUMENT', 'Array and object options must be valid JSON.'); }
     } else args[name] = value;
   }
-  return { command, args, pretty: parsed.values.pretty };
+  return { command, args, pretty: parsed.values.pretty, agentView:parsed.values['agent-view'] };
 }
 
 export async function dispatch(argv, dependencies = {}) {
@@ -80,7 +81,8 @@ export async function run(argv = process.argv.slice(2)) {
       await serveMcp();
       return;
     }
-    console.log(JSON.stringify(await dispatch(argv, { signal: controller.signal, readCallback: () => readCallbackStdin(process.stdin, controller.signal) }), null, parsed.pretty ? 2 : undefined));
+    const output=await dispatch(argv, { signal: controller.signal, readCallback: () => readCallbackStdin(process.stdin, controller.signal) });
+    console.log(JSON.stringify(parsed.agentView?modelView(output,'full CLI output without --agent-view'):output, null, parsed.pretty ? 2 : undefined));
   } catch (error) {
     const detail = publicError(error, controller.signal);
     console.error(JSON.stringify({ status: 'error', message: detail.message, error: detail }));

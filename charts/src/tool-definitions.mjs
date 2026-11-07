@@ -4,6 +4,7 @@ const integer = (description, minimum, maximum, defaultValue) => ({ type: 'integ
 const flag = description => ({ type: 'boolean', description });
 const list = (description, maxItems = 30) => ({ type: 'array', description, items: text('Value'), minItems: 1, maxItems, uniqueItems: true });
 const object = description => ({ type: 'object', description, maxProperties: 50, additionalProperties: true });
+const period = {type:'string',enum:['year_to_date','last_calendar_month','last_30_days','last_90_days','last_365_days'],description:'Exact UTC date window. Use last_calendar_month for the prior complete month, or year_to_date for this year. Do not combine with from/to.'};
 const symbol = text('Exchange-qualified symbol, for example COINBASE:BTCUSD.');
 const auth = { type: 'string', enum: ['auto', 'anonymous', 'required'], default: 'auto',
   description: 'auto uses a saved session if present; anonymous never reads account credentials; required needs a saved session.' };
@@ -19,6 +20,7 @@ const chart = {
   'chart-type': { type: 'string', enum: ['HeikinAshi', 'Renko', 'LineBreak', 'Kagi', 'PointAndFigure', 'Range'] },
   'chart-inputs': object('Provider-specific inputs for synthetic chart types.'),
   'back-adjustment': flag('Back-adjust continuous futures.'),
+  period,
 };
 const studyQuery = { ...chart, indicator: text('Study ID such as STD;RSI, PUB;..., USER;..., or Volume@tv-basicstudies-241.'),
   version: text('Pin a script version; defaults to last.', { default: 'last' }), inputs: object('Indicator input values keyed by input ID or name.') };
@@ -34,7 +36,7 @@ const define = (command, description, properties = {}, required = [], effect = '
 export const toolDefinitions = [
   define('state', 'Inspect local provider capabilities and session state. This does not validate the saved session with TradingView.'),
   define('providers', 'List the data providers and their supported operations.'),
-  define('login', 'Validate an existing session or begin free-account TradingView login. Send clientUrl to a user with the Mac receiver configured; it opens official sign-in and returns the callback over SSH automatically. approvalUrl is the manual alternative. No browser or worker runs on the host.', {
+  define('login', 'Validate an existing session or begin free-account TradingView login. Send clientUrl to the configured Mac: our Charts Login receiver opens TradingView\'s official website in the user\'s browser and returns approval over SSH. No TradingView desktop app is required. No browser runs on the host. approvalUrl is the manual alternative.', {
     replace: flag('Replace the saved account only after independent validation.'),
     username: text('Optional expected TradingView username; a different validated account is rejected.'),
     'client-profile': text('Trusted profile configured in the Mac receiver; clientUrl opens sign-in and returns the callback automatically.', { default: 'orin', pattern: '^[a-zA-Z0-9_-]{1,64}$', maxLength: 64 }),
@@ -60,27 +62,35 @@ export const toolDefinitions = [
     sector: text('Optional sector filter.'), ...page,
   }, ['query'], 'read', true),
   define('symbol', 'Resolve symbol metadata, sessions, timezone, price scale and supported resolutions.', { symbol }, ['symbol'], 'read', true),
-  define('quotes', 'Fetch a bounded quote snapshot. Missing values stay null; feed mode and price timestamps describe availability.', {
+  define('quotes', 'Get multiple quotes together in one call. asOf is the price observation time; fetchedAt is only request time. Read measurement/unit: BTCUSDLONGS is a BTC quantity, not a dollar price.', {
     symbols: list('Exchange-qualified symbols.', 20), fields: list('Optional upstream quote fields; metadata needed for normalized prices is always requested.', 50),
   }, ['symbols'], 'read', true),
-  define('candles', 'Read bounded OHLCV history with actual coverage. Daily times use venue sessions; unfinished bars and synthetic bars are labelled.', {
+  define('candles', 'Get one series of OHLCV bars with ISO dates and a change summary. For last calendar month use period=last_calendar_month; count alone is NOT a date range. For an overlay or comparison of symbols use compare.', {
     ...chart, from: text('Oldest requested time: UTC ISO timestamp with timezone or Unix seconds.', { maxLength: 40 }),
     to: text('Newest requested time: UTC ISO timestamp with timezone or Unix seconds.', { maxLength: 40 }),
   }, ['symbol'], 'read', true),
-  define('technicals', 'Read TradingView scanner ratings across eight timeframes. Scores retain the scanner scale [-1,1]; missing values are not neutral scores.', { symbol }, ['symbol'], 'read', true),
+  define('compare', 'Compare 2–6 symbols in one call: aligned dates, first/last values, percentage changes, units and return correlation. Answer from these summaries; near-zero correlation means weak linear tracking, even if its sign is negative. Position quantities do not reveal leverage ratios or trader motives. Defaults to daily year-to-date. For an overlay set include-data=true: complete plot data goes to the renderer, but the tool does not render an image.', {
+    symbols:{...list('Exchange-qualified series. BTCUSDLONGS is BITFINEX:BTCUSDLONGS and measures BTC positions.',6),minItems:2},
+    timeframe:chart.timeframe,count:integer('Maximum bars per symbol. Truncation remains explicit.',2,5000,1000),period,
+    from:text('Optional UTC ISO start or Unix seconds; omit period when supplying dates.',{maxLength:40}),
+    to:text('Optional UTC ISO end or Unix seconds; omit period when supplying dates.',{maxLength:40}),
+    'include-data':flag('Include portable overlay rows for plotting. Omit for a compact comparison summary.'),
+  },['symbols'],'read',true),
+  define('technicals', 'Get current RSI (0–100) and technical ratings for eight timeframes in one call. Use this for current RSI; it does not require running a Pine study. Ratings retain [-1,1]; missing values stay null.', { symbol }, ['symbol'], 'read', true),
   define('indicators search', 'Search built-in and community studies/strategies. Returns metadata, not Pine source or compiled scripts.', {
     query: text('Search text.'), ...page,
   }, ['query'], 'read', true),
   define('indicator', 'Read a Pine indicator definition and its editable input/plot metadata without returning compiled code.', {
     indicator: text('Pine script ID.'), version: text('Script version.', { default: 'last' }),
   }, ['indicator'], 'read', true),
-  define('indicator values', 'Run an accessible study and align plot rows to candle timestamps. Pine studies need an account; some built-in studies work anonymously.', study, ['symbol', 'indicator'], 'read', true),
+  define('indicator values', 'Run a study for historical plot series and align rows to candles. For a current RSI reading or technical ratings use technicals instead. Pine studies need an account; some built-in studies work anonymously.', study, ['symbol', 'indicator'], 'read', true),
   define('strategy report', 'Read an accessible Pine strategy report with a bounded page of trade records. This places no orders and is not Deep Backtesting.', {
     ...studyQuery, ...page,
   }, ['symbol', 'indicator'], 'read', true),
   define('indicators saved', 'Read a bounded page of account-saved private scripts. Requires a saved session.', page, [], 'read', true),
-  define('watchlists', 'Read account watchlists without modifying them. Section markers are separate from market symbols.', {
-    ...page, 'symbol-limit': integer('Maximum entries returned per watchlist.', 1, 200, 50),
+  define('watchlists', 'Read account watchlists; section headings are not symbols. When asked to list all symbols, include every symbol, without ellipsis or samples. complete=false requires following nextRequests first.', {
+    ...page, 'symbol-limit': integer('Maximum entries returned per watchlist page.', 1, 200, 200),
+    'entry-offset':integer('Zero-based entry offset within each selected watchlist. Follow nextRequests for remaining entries.',0,100000,0),
   }, [], 'read', true),
   define('screener fields', 'List curated common scanner fields. Provider-defined fields remain accepted; this is not the complete upstream field catalog.'),
   define('screener', 'Run one bounded scanner page with explicit columns, filters and ranking. A snapshot is not a real-time subscription.', {

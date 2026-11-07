@@ -1,4 +1,5 @@
 import { ChartsError } from './errors.mjs';
+import { periodBounds } from './periods.mjs';
 
 const invalid = message => { throw new ChartsError('INVALID_ARGUMENT', message); };
 function jsonValue(value, depth = 0) {
@@ -76,8 +77,10 @@ export function timestamp(value) {
   return number;
 }
 
-export function chartQuery(o) {
-  const from = timestamp(o.from), to = timestamp(o.to);
+export function chartQuery(o, now=Date.now()) {
+  if(o.period&&(o.from!==undefined||o.to!==undefined))invalid('Use period or explicit from/to timestamps, not both.');
+  const bounds=o.period?periodBounds(o.period,now):{};
+  const from = bounds.from??timestamp(o.from), to = bounds.to??timestamp(o.to);
   if (from !== undefined && to !== undefined && from > to) invalid('from must be before or equal to to.');
   if (o['chart-inputs'] && !o['chart-type']) invalid('chart-inputs requires chart-type.');
   return { symbol: marketSymbol(o.symbol), timeframe: timeframe(o.timeframe), count: o.count,

@@ -1,6 +1,6 @@
 # Charts
 
-A native Node CLI and optional stdio MCP server for market research. Its 28 tools wrap `@mathieuc/tradingview@4.1.0`: symbol discovery, quotes, candles, technical ratings, screening, studies, strategy reports, saved account data, chart datasets and finite streams. The public interface leaves room for additional market and crypto providers.
+A native Node CLI and optional stdio MCP server for market research. Its 29 tools wrap `@mathieuc/tradingview@4.1.0`: symbol discovery, quotes, candles, technical ratings, screening, studies, strategy reports, saved account data, chart datasets and finite streams. The public interface leaves room for additional market and crypto providers.
 
 The Orin uses HTTP and WebSocket only. No Chrome, CDP, Playwright, desktop app, emulator or display server is used, including during login. Public tools work anonymously. Account authorization happens on the user's separate device through TradingView's native callback protocol.
 
@@ -31,6 +31,8 @@ charts symbols search --query COINBASE:BTCUSD --type crypto --limit 5
 charts symbol --symbol COINBASE:BTCUSD
 charts quotes --symbols '["COINBASE:BTCUSD","BINANCE:BTCUSDT"]'
 charts candles --symbol COINBASE:BTCUSD --timeframe 1h --count 100
+charts candles --symbol BITFINEX:BTCUSD --timeframe 1d --period last_calendar_month
+charts compare --symbols '["BITFINEX:BTCUSD","BITFINEX:BTCUSDLONGS"]' --period year_to_date --include-data
 charts technicals --symbol COINBASE:BTCUSD
 charts screener fields
 charts screener --market crypto --columns '["name","close","volume","RSI"]' --sort-by volume --limit 10
@@ -46,7 +48,7 @@ Network tools accept `--auth auto|anonymous|required` and `--timeout-ms 15000`. 
 
 Candles are ordered and include requested/returned coverage, venue, settings and a warning that the final bar may be open. Counts do not prove gap-free history; completeness stays unknown when the provider cannot establish it. Missing prices and ratings remain null. Technical ratings retain the scanner's original [-1,1] scale. Study rows align to candle timestamps, excluding earlier warm-up rows; compiled scripts and Pine source are omitted.
 
-`chart` returns a portable candlestick/volume dataset, without launching a viewer. Strategy reports are provider-generated reports, can contain open positions, and place no orders. Local calculations, comparisons, watchlist writes, a visual viewer and deeper crypto providers remain future work.
+`chart` returns a portable candlestick/volume dataset, without launching a viewer. Strategy reports are provider-generated reports, can contain open positions, and place no orders. `compare` performs local calculations on aligned source bars and can return a normalized line-overlay dataset with `--include-data`. Watchlist writes, a visual viewer and deeper crypto providers remain future work.
 
 ## Finite stream samples
 
@@ -137,3 +139,33 @@ The deterministic tests cover argument validation, normalization, crash recovery
 - [Original roadmap and remaining work](docs/v1-plan.md)
 
 TradingView's separate [official MCP service](https://www.tradingview.com/mcp/docs) uses OAuth and is a possible future provider. Its OAuth tokens are not interchangeable with the Mathieu adapter's session cookies.
+
+## Agent-friendly comparisons and evaluation
+
+`compare` fetches 2–6 series sequentially in one tool call, aligns exact timestamps,
+and returns first/last values, percentage changes and return correlation. By
+default it reports daily year-to-date summaries. `--include-data` adds normalized
+and raw plot rows; it prepares data and does not claim to render an image.
+MCP returns the full plot and exact sample observations in `structuredContent`,
+with only summaries in its model-facing text. Integrations must keep the full
+structured result for rendering. CLI consumers receive all rows by default;
+`--agent-view` explicitly selects the compact model view.
+Hosts that also serialize `structuredContent` into the model context must route
+the plot payload to their renderer separately to get the context reduction.
+`BTCUSDLONGS` is identified as a quantity in BTC, so it is not confused with the
+BTC/USD price. The difference between these differently measured series is not
+short interest.
+
+Named UTC periods such as `last_calendar_month` remove calendar arithmetic from
+the agent. Candle results retain numeric timestamps and also expose ISO dates
+and a change summary. Quote `asOf` identifies observation time separately from
+request time. Watchlists report `complete` and executable `nextRequests`; an
+agent must follow them before claiming to have listed everything.
+`technicals` includes current RSI on eight timeframes without a Pine request.
+Historical indicator plots still use `indicator values`; this does not fix the
+upstream Pine protocol error documented in the provider assessment.
+
+The [local Qwen/Pi evaluation](eval/agent-tools/README.md) compares the old and
+revised contracts on the same prompts and deterministic backend. Model runs use
+only Charts tools, without a shell or hidden answer-specific prompts. Live runs
+are restricted to public reads; the evaluation never modifies a real account.

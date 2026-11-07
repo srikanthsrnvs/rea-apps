@@ -45,3 +45,26 @@ The runtime/provider is unchanged and supports free accounts. `login` validates 
 The user's Mac requires one-time receiver setup with a trusted SSH target and an absolute remote CLI path. Send `clientUrl` (rea-charts scheme) to that configured client; it will open official TradingView sign-in. Links contain no SSH commands and cannot choose a host. The receiver uses the local trusted profile and never exports account cookies to the Mac. The native callback is passed through SSH stdin, not argv or logs. See docs/mac-login-client.md.
 
 After lost SSH output, run charts-client status --online on the Mac or auth poll on the host. Never resend a callback to recover an uncertain exchange. If the host says validating, retry auth complete without any callback. A native additional-2FA response is still a verified unsupported state; do not invent a challenge endpoint or claim that the new receiver removes it.
+
+## Choosing tools and reporting data
+
+- For two or more series, use `compare` instead of separate parallel candle
+  requests. The host permits one active operation per process. It fetches each
+  series in sequence and performs normalization and return correlation locally.
+- Set `include-data: true` when the user needs a portable overlay dataset.
+  `chart.rendered` remains false: data preparation does not display a chart.
+  MCP keeps the complete dataset in `structuredContent`; model-facing text has
+  summaries. Do not invent intermediate observations or trader motives.
+  The CLI returns full JSON unless you explicitly pass `--agent-view`.
+- Prefer a named `period` for year-to-date or the last full calendar month;
+  do not approximate a calendar period using `count`. Custom from/to bounds
+  remain available and cannot be combined with period.
+- Quote `asOf` is the observation timestamp. `fetchedAt` is the time the CLI
+  received the response. Candle time is the bar-open timestamp; the last bar
+  can still be open.
+- Use `instrument.measurement`, `unit` and `meaning`. Bitfinex BTCUSDLONGS is
+  measured in BTC; subtracting it from BTC/USD does not measure shorts.
+- `complete: false` and `nextRequests` on watchlists require another page before
+  saying all entries were retrieved. Section entries are headings, not tickers.
+- For the current RSI use `technicals`, which includes `rsi` on each timeframe
+  alongside the technical ratings. Use indicator plots for a historical series.

@@ -51,11 +51,12 @@ test('malformed candles fail rather than presenting invalid charts', async () =>
 
 test('technical ratings keep unavailable values null on the original scanner scale', async () => {
   const result = await sdkWith({ getScreener: async query => {
-    assert.equal(query.columns.length, 25); assert.equal(query.symbols[0], 'X:Y');
-    return { rows: [{ values: { 'Recommend.All': null, 'Recommend.MA': 0.5, 'Recommend.Other': 0, update_mode: 'delayed_streaming_900' } }] };
+    assert.equal(query.columns.length, 33); assert.equal(query.symbols[0], 'X:Y');
+    return { rows: [{ values: { 'Recommend.All': null, 'Recommend.MA': 0.5, 'Recommend.Other': 0, RSI:62.5,update_mode: 'delayed_streaming_900' } }] };
   } }).execute('technicals', { symbol: 'X:Y' });
   const daily = result.data.find(row => row.timeframe === '1D');
   assert.equal(daily.summary, null); assert.equal(daily.movingAverages, 0.5); assert.equal(daily.oscillators, 0);
+  assert.equal(daily.rsi,62.5);assert.equal(result.data[0].rsi,null);
   assert.equal(result.feed.delaySeconds, 900); assert.equal(result.scale.maximum, 1);
 });
 
@@ -131,6 +132,9 @@ test('scanner pages stay bounded even if the provider ignores the requested limi
 test('CLI schemas are strict, typed and help never executes a tool', async () => {
   assert.equal(parse(['candles', '--symbol', 'X:Y', '--count', '20']).args.count, 20);
   assert.deepEqual(parse(['quotes', '--symbols', '["X:Y"]']).args.symbols, ['X:Y']);
+  const compact=parse(['compare','--symbols','["X:A","X:B"]','--include-data','--agent-view']);
+  assert.equal(compact.agentView,true);assert.equal(compact.args['include-data'],true);
+  assert.equal(Object.hasOwn(compact.args,'agent-view'),false);
   for (const argv of [['candles', '--count', '2', '--count', '3'], ['login', '--cdp-url', 'secret'], ['quotes', '--password', 'secret']]) assert.throws(() => parse(argv));
   const result = await dispatch(['quotes', '--symbols', '["X:Y"]', '--help'], { service: { execute() { throw new Error('must not execute'); } } });
   assert.ok(result.tools.some(tool => tool.name === 'charts_candles'));

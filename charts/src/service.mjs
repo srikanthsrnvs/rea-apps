@@ -6,6 +6,7 @@ import { candleResult, quote, indicatorMetadata, searchMetadata, studyResult, nu
 import { sampleStream } from './streams.mjs';
 import { createAuth } from './auth.mjs';
 import { boundedFetch } from './http.mjs';
+import { compareResult } from './compare.mjs';
 
 export const provider = {
   id: 'tradingview', implementation: '@mathieuc/tradingview', version: '4.1.0', official: false,
@@ -40,7 +41,9 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
     // Cross-field and market validation precede local state and network access.
     if (o.symbol) marketSymbol(o.symbol);
     if (o.symbols) o.symbols.forEach(marketSymbol);
-    const chart = o.timeframe !== undefined ? chartQuery(o) : null;
+    const chart = o.timeframe !== undefined&&o.symbol ? chartQuery(o,Date.parse(now())) : null;
+    const comparisons=definition.command==='compare'?o.symbols.map(symbol=>chartQuery({...o,symbol,
+      period:o.period??(o.from===undefined&&o.to===undefined?'year_to_date':undefined)},Date.parse(now()))):null;
     if (accountCommands.has(definition.command) && o.auth === 'anonymous') throw new ChartsError('AUTH_REQUIRED', 'This tool requires a saved TradingView account session.');
     const timeout = AbortSignal.timeout(o['timeout-ms'] ?? 15000);
     const signal = externalSignal ? AbortSignal.any([externalSignal, timeout]) : timeout;
@@ -102,9 +105,14 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
             series: [{ id: 'price', kind: 'candlestick', pane: 0 }, { id: 'volume', kind: 'histogram', pane: 1 }] }, warnings: data.warnings });
           return result({ ...data, status: data.coverage.complete === false ? 'partial' : 'ok' });
         }
+        case 'compare': {
+          const series=[];
+          for(const query of comparisons)series.push(await sdk.getCandles({...query,...socket}));
+          return result(compareResult(series,comparisons,{includeData:o['include-data']??false}));
+        }
         case 'technicals': {
           const periods = ['1', '5', '15', '60', '240', '1D', '1W', '1M'];
-          const names = ['Recommend.All', 'Recommend.MA', 'Recommend.Other'];
+          const names = ['Recommend.All', 'Recommend.MA', 'Recommend.Other', 'RSI'];
           const columns = periods.flatMap(period => names.map(field => period === '1D' ? field : `${field}|${period}`));
           // getTechnicalAnalysis() in 4.1.0 coerces upstream nulls to zero. Use
           // this same SDK's scanner primitive so absent ratings stay absent.
@@ -115,7 +123,8 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
             feed: feed(values.update_mode), data: periods.map(period => ({ timeframe: period,
               summary: numberOrNull(values[period === '1D' ? names[0] : `${names[0]}|${period}`]),
               movingAverages: numberOrNull(values[period === '1D' ? names[1] : `${names[1]}|${period}`]),
-              oscillators: numberOrNull(values[period === '1D' ? names[2] : `${names[2]}|${period}`]) })) });
+              oscillators: numberOrNull(values[period === '1D' ? names[2] : `${names[2]}|${period}`]),
+              rsi:numberOrNull(values[period==='1D'?'RSI':`RSI|${period}`]) })) });
         }
         case 'indicators search': return result(page((await sdk.searchIndicators(o.query, http)).map(searchMetadata), o));
         case 'indicator': return result({ data: indicatorMetadata(await sdk.getIndicator(o.indicator, { ...http, version: o.version })) });
@@ -133,9 +142,15 @@ export function createCharts({ sdk: injectedSdk, store = createSessionStore(),
         case 'watchlists': {
           const rows = await sdk.getWatchlists({ ...http, credentials });
           const selected = page(rows, o);
-          return result({ ...selected, data: selected.data.map(list => ({ id: list.id, name: list.name,
-            entries: list.symbols.slice(0, o['symbol-limit']).map(value => ({ value, kind: !value.startsWith('###') && /^[A-Za-z0-9_./-]+:[A-Za-z0-9_!./%+@=-]+$/u.test(value) ? 'symbol' : 'section' })),
-            entryCount: list.symbols.length, entriesTruncated: list.symbols.length > o['symbol-limit'] })) });
+          const data=selected.data.map(list=>({id:list.id,name:list.name,
+            entries:list.symbols.slice(o['entry-offset'],o['entry-offset']+o['symbol-limit']).map(value=>({value,kind:!value.startsWith('###')&&/^[A-Za-z0-9_./-]+:[A-Za-z0-9_!./%+@=-]+$/u.test(value)?'symbol':'section'})),
+            entryCount:list.symbols.length,entryOffset:o['entry-offset'],entriesTruncated:list.symbols.length>o['entry-offset']+o['symbol-limit'],
+            nextEntryOffset:list.symbols.length>o['entry-offset']+o['symbol-limit']?o['entry-offset']+o['symbol-limit']:null}));
+          const nextRequests=[];
+          if(selected.pagination.nextOffset!==null)nextRequests.push({tool:'charts_watchlists',arguments:{offset:selected.pagination.nextOffset,limit:o.limit,'symbol-limit':o['symbol-limit']}});
+          if(data.some(list=>list.entriesTruncated))nextRequests.push({tool:'charts_watchlists',arguments:{offset:o.offset,limit:o.limit,'symbol-limit':o['symbol-limit'],'entry-offset':o['entry-offset']+o['symbol-limit']}});
+          return result({...selected,data,status:nextRequests.length?'partial':'ok',complete:nextRequests.length===0,nextRequests,
+            warnings:nextRequests.length?['MORE_WATCHLIST_DATA_AVAILABLE']:[]});
         }
         case 'screener': return result(scannerPage(await sdk.getScreener({ market: o.market, columns: o.columns,
           symbols: o.symbols, filter: o.filters, sort: o['sort-by'] ? { sortBy: o['sort-by'], sortOrder: o['sort-order'] } : undefined,

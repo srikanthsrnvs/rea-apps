@@ -31,7 +31,7 @@ export function completionUrl(pending, token) {
 export function approvalResult(pending) {
   const client = new URL('rea-charts://authorize/');
   client.search = new URLSearchParams({ profile: pending.clientProfile ?? 'orin', login_id: pending.id }).toString();
-  return { status: 'authorization_required', message: 'On a Mac with the Charts login receiver configured, open clientUrl. It opens the official TradingView sign-in and returns approval to this host automatically. approvalUrl is the manual/native-client alternative; a browser alone cannot receive its callback.',
+  return { status: 'authorization_required', message: 'Open clientUrl on the configured Mac. It launches our Charts Login receiver, which opens the official TradingView website in the user\'s browser. The user signs in there; the receiver returns approval to this host over SSH. The TradingView desktop app is not required. approvalUrl is only the manual/native-client alternative; a browser alone cannot receive its callback.',
     loginId: pending.id, approvalUrl: pending.approvalUrl, expiresAt: new Date(pending.expiresAt).toISOString(),
     clientUrl: client.href, clientProfile: pending.clientProfile ?? 'orin',
     callbackType: CALLBACK, callbackReceiverRequired: true, hostRuntime: 'Node HTTP only', automaticPolling: false };
