@@ -1,0 +1,42 @@
+// Optional live browser verification on the CLIENT machine, never the Orin.
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+const {chromium}=await import(process.env.CHARTS_PLAYWRIGHT_MODULE??'playwright');
+const bin=fileURLToPath(new URL('../../bin/charts',import.meta.url));
+const output=process.env.CHARTS_BROWSER_OUTPUT??await fs.mkdtemp(path.join(os.tmpdir(),'charts-browser-'));
+await fs.mkdir(output,{recursive:true,mode:0o700});
+const run=(...args)=>JSON.parse(execFileSync(process.execPath,[bin,...args],{encoding:'utf8',maxBuffer:500000}));
+const view=run('view','create','--symbols','["BITFINEX:BTCUSD","BITFINEX:BTCUSDLONGS"]','--period','year_to_date','--duration-seconds','180');
+const cli=(command,...args)=>run('view',command,'--view-id',view.viewId,...args);
+let browser;
+try{
+ browser=await chromium.launch({headless:true,...(process.env.CHARTS_BROWSER_EXECUTABLE?{executablePath:process.env.CHARTS_BROWSER_EXECUTABLE}:{})});
+ const page=await browser.newPage({viewport:{width:1440,height:980}}),errors=[];
+ page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(view.viewerUrl);await page.waitForFunction(()=>window.chartEditor);
+ const changes={title:'Verified interactive chart',studies:[{kind:'SMA',length:20,pane:0},{kind:'RSI',length:14,pane:1}],drawings:[{series:'s1',kind:'horizontal',start:{time:1767225600,value:-10},label:'Reference',color:'#ff6b8b'}]};
+ const updated=cli('update','--changes',JSON.stringify(changes));
+ await page.waitForFunction(revision=>window.chartEditor.state.revision===revision,updated.revision);
+ assert.equal(await page.locator('h1').textContent(),changes.title);
+ assert.equal(await page.evaluate(()=>window.chartEditor.chart.panes().length),2);
+ await page.selectOption('#theme','light');await page.click('#apply-settings');
+ await page.waitForFunction(()=>window.chartEditor.state.config.theme==='light');
+ assert.equal(cli('state').config.theme,'light');
+ const count=cli('state').config.drawings.length;
+ await page.click('#draw-line');const box=await page.locator('#chart').boundingBox();
+ await page.mouse.click(box.x+200,box.y+100);await page.mouse.click(box.x+500,box.y+200);
+ await page.waitForFunction(n=>window.chartEditor.state.config.drawings.length>n,count);
+ assert.equal(cli('state').config.drawings.length,count+1);
+ await page.evaluate(()=>window.chartEditor.chart.timeScale().setVisibleRange({from:1782864000,to:1794009600}));
+ await page.click('#save-zoom');await page.waitForFunction(()=>Boolean(window.chartEditor.state.config.range));
+ assert.equal(cli('state').config.range.from,1782864000);
+ await page.waitForTimeout(500);await page.screenshot({path:path.join(output,'editor.png')});
+ assert.deepEqual(errors,[]);
+ const report={passed:true,checks:['rendered_canvas','CLI_edit_visible','two_indicator_panes','browser_edit_visible_in_CLI','rapid_two_point_drawing','saved_zoom'],pageErrors:errors};
+ await fs.writeFile(path.join(output,'report.json'),JSON.stringify(report,null,2),{mode:0o600});
+ console.log(JSON.stringify(report));
+}finally{await browser?.close();cli('close');}

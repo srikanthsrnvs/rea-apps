@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-07",
+  "mode": "Anonymous public reads; no account mutations or login",
+  "cases": [
+    {
+      "case": "quotes",
+      "calls": 1,
+      "fetchedAt": "2026-11-07T23:25:07.521Z",
+      "status": "passed_numeric_checks",
+      "values": [
+        {
+          "symbol": "BITFINEX:BTCUSD",
+          "last": 75784,
+          "asOf": "2026-11-07T23:25:06.000Z",
+          "dailyChangePercent": -0.1
+        },
+        {
+          "symbol": "BITFINEX:ETHUSD",
+          "last": 2234.2,
+          "asOf": "2026-11-07T23:24:45.000Z",
+          "dailyChangePercent": -0.2
+        }
+      ],
+      "answer": "Here are the current BTC and ETH prices on Bitfinex:\n\n*   **BTC/USD:** $75,784 (Bid: $75,777 / Ask: $75,784)\n*   **ETH/USD:** $2,234.20 (Bid: $2,234.30 / Ask: $2,234.40)\n\nBoth assets are currently down slightly on the day (-0.1% for BTC and -0.2% for ETH)."
+    },
+    {
+      "case": "ytd",
+      "calls": 1,
+      "fetchedAt": "2026-11-07T23:25:13.585Z",
+      "status": "passed_numeric_checks",
+      "values": {
+        "window": {
+          "requestedFrom": "2026-01-01T00:00:00.000Z",
+          "requestedTo": "2026-11-07T23:59:59.000Z",
+          "firstObservation": "2026-01-01T00:00:00.000Z",
+          "lastObservation": "2026-11-07T00:00:00.000Z",
+          "timeframe": "D",
+          "observations": 311,
+          "lastBarMayBeOpen": true
+        },
+        "series": [
+          {
+            "providerSymbol": "BITFINEX:BTCUSD",
+            "venue": "BITFINEX",
+            "measurement": "price",
+            "unit": "USD per BTC",
+            "observations": 311,
+            "first": {
+              "at": "2026-01-01T00:00:00.000Z",
+              "value": 88876
+            },
+            "last": {
+              "at": "2026-11-07T00:00:00.000Z",
+              "value": 75784
+            },
+            "changeAbsolute": -13092,
+            "changePercent": -14.730636,
+            "latestBarChangePercent": -0.096234,
+            "sourceObservations": 311
+          },
+          {
+            "providerSymbol": "BITFINEX:BTCUSDLONGS",
+            "venue": "BITFINEX",
+            "measurement": "margin_long_positions",
+            "unit": "BTC",
+            "meaning": "Amount of BTC in open Bitfinex margin positions.",
+            "observations": 311,
+            "first": {
+              "at": "2026-01-01T00:00:00.000Z",
+              "value": 72925.94644384
+            },
+            "last": {
+              "at": "2026-11-07T00:00:00.000Z",
+              "value": 90611.04901446
+            },
+            "changeAbsolute": 17685.102571,
+            "changePercent": 24.250769,
+            "latestBarChangePercent": 0.07333,
+            "sourceObservations": 311
+          }
+        ],
+        "correlations": [
+          {
+            "left": "BITFINEX:BTCUSD",
+            "right": "BITFINEX:BTCUSDLONGS",
+            "returnCorrelation": -0.246869,
+            "observations": 310
+          }
+        ]
+      },
+      "answer": "Here is the comparison of the two symbols from January 1, 2026, through November 7, 2026:\n\n*   **BITFINEX:BTCUSD (Price):** This series tracks the price of Bitcoin in USD per BTC. \n    *   Starting Value (Jan 1): $88,876\n    *   Ending Value (Nov 7): $75,784\n    *   **Change:** It decreased by **$13,092**, or **-14.73%**.\n\n*   **BITFINEX:BTCUSDLONGS (Margin Long Positions):** This series measures the amount of BTC quantity held in open margin long positions on Bitfinex. \n    *   Starting Value (Jan 1): ~72,926 BTC\n    *   Ending Value (Nov 7): ~90,611 BTC\n    *   **Change:** It increased by ~**17,685**, or **+24.25%**.\n\nWhile Bitcoin's price dropped significantly during this period, the aggregate quantity of BTC held in long margin positions on Bitfinex increased. The Pearson correlation between their percentage changes over these intervals is **-0.25**, indicating only a weak linear association between daily moves and long position accumulation. As noted by TradingView, position quantities do not necessarily reveal individual trader motives or risk (such as leverage levels)."
+    }
+  ]
+}

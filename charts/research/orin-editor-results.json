@@ -1,0 +1,30 @@
+{
+  "testedAt": "2026-11-07T23:45:17Z",
+  "host": "NVIDIA Jetson AGX Orin",
+  "platform": "linux-arm64",
+  "node": "v24.21.0",
+  "applicationCommit": "4b15abc",
+  "tests": {
+    "deterministicPassed": 64,
+    "deterministicFailed": 0,
+    "publicBrowserRendered": true,
+    "browserPageErrors": [],
+    "cliEditsVisibleInBrowser": true,
+    "browserThemeEditReadBackByCLI": true,
+    "viewRevision": 3,
+    "seriesPoints": [
+      311,
+      311
+    ],
+    "indicators": [
+      "SMA",
+      "RSI"
+    ]
+  },
+  "deployment": "/home/truffle/.local/share/charts-cli/build-4b15abc/charts",
+  "workerCurrentRssMiB": 77.8,
+  "memoryMeasurement": "Single ps RSS snapshot after initial load; not peak, not including cloudflared or the client browser.",
+  "hostBrowserInstalledOrRun": false,
+  "tunnel": "Reused installed cloudflared for temporary HTTPS.",
+  "accountState": "Existing account session preserved; chart source requests explicitly anonymous."
+}

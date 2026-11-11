@@ -1,0 +1,42 @@
+{
+  "testedAt": "2026-10-26T23:57:02.735Z",
+  "hardware": "NVIDIA Jetson AGX Orin Developer Kit",
+  "platform": "linux",
+  "arch": "arm64",
+  "node": "v24.21.0",
+  "nodeArgs": ["--max-old-space-size=64"],
+  "provider": "@mathieuc/tradingview@4.1.0",
+  "checks": [
+    {"name": "anonymous_quote", "status": "passed"},
+    {"name": "user_approved_native_callback", "status": "passed"},
+    {"name": "independent_account_validation", "status": "passed"},
+    {"name": "saved_session_validation_in_fresh_cli_process", "status": "passed"},
+    {"name": "authenticated_watchlist_read", "status": "passed"},
+    {"name": "authenticated_quote", "status": "passed"},
+    {"name": "pending_state_cleanup", "status": "passed"},
+    {"name": "state_directory_mode_0700", "status": "passed"},
+    {"name": "session_file_mode_0600", "status": "passed"}
+  ],
+  "exchange": {
+    "method": "POST",
+    "observedSuccessStatus": 201,
+    "identityIndependentlyValidated": true,
+    "userDeviceCallbackReceiverRequired": true,
+    "testReceiver": "Temporary native-scheme receiver on the user's Mac",
+    "hostBrowser": false,
+    "hostDesktopApp": false,
+    "hostCallbackTunnel": false
+  },
+  "memory": {
+    "anonymousQuotePeakRssMiB": 71.8,
+    "authenticatedWatchlistAndQuoteSequencePeakRssMiB": 104.6,
+    "note": "Measured on the actual Orin. The authenticated figure covers sequential operations in one process, not isolated per-command usage."
+  },
+  "limitations": [
+    "Additional native-app 2FA remains unsupported.",
+    "Private Pine scripts, saved private indicators, layouts and strategy reports were not tested.",
+    "Watchlist API access was verified; populated-list UI parity was not compared.",
+    "A browser-only sign-in page cannot receive the native callback without a user-device client receiver.",
+    "Account identifiers, cookies, proof values and callback credentials are deliberately omitted."
+  ]
+}

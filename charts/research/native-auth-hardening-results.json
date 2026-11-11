@@ -1,0 +1,213 @@
+{
+  "testedAt": "2026-11-07T22:27:39.843Z",
+  "provider": "@mathieuc/tradingview@4.1.0",
+  "planRequirement": "No paid plan required; native provider retained",
+  "deterministicTests": {
+    "passed": 50,
+    "failed": 0,
+    "platforms": [
+      "macOS ARM64",
+      "Linux ARM64"
+    ]
+  },
+  "liveAnonymousChecks": {
+    "testedAt": "2026-11-07T22:27:39.843Z",
+    "platform": "darwin",
+    "arch": "arm64",
+    "node": "v24.22.1",
+    "nodeArgs": [],
+    "provider": "@mathieuc/tradingview@4.1.0",
+    "authentication": "anonymous",
+    "results": [
+      {
+        "command": "symbols search",
+        "status": "passed",
+        "elapsedMs": 196
+      },
+      {
+        "command": "symbol",
+        "status": "passed",
+        "elapsedMs": 186
+      },
+      {
+        "command": "quotes",
+        "status": "passed",
+        "elapsedMs": 508
+      },
+      {
+        "command": "candles",
+        "status": "passed",
+        "elapsedMs": 500
+      },
+      {
+        "command": "technicals",
+        "status": "passed",
+        "elapsedMs": 106
+      },
+      {
+        "command": "screener",
+        "status": "passed",
+        "elapsedMs": 39
+      },
+      {
+        "command": "hotlist",
+        "status": "passed",
+        "elapsedMs": 234
+      },
+      {
+        "command": "indicators search",
+        "status": "passed",
+        "elapsedMs": 169
+      },
+      {
+        "command": "indicator values",
+        "status": "passed",
+        "elapsedMs": 380
+      },
+      {
+        "command": "stream quotes",
+        "status": "passed",
+        "elapsedMs": 1349
+      },
+      {
+        "command": "stream candles",
+        "status": "passed",
+        "elapsedMs": 303
+      },
+      {
+        "command": "stream indicator",
+        "status": "passed",
+        "elapsedMs": 679
+      },
+      {
+        "command": "chart",
+        "status": "passed",
+        "elapsedMs": 510
+      }
+    ],
+    "peakRssMiB": 121.2,
+    "limitations": [
+      "Development-host run; not an Orin memory measurement.",
+      "No account login, paid entitlements, UI parity or sustained streaming verified."
+    ]
+  },
+  "macClient": {
+    "compiled": true,
+    "urlSchemeRegistrationVerified": true,
+    "nativeHandlerSelectionVerified": true,
+    "realApprovalOverSshVerified": true
+  },
+  "staticDesktopInspection": {
+    "version": "3.5.0",
+    "packageSha256": "0e4fca319c63c77cf92d1ca1fad96380707bf6a464b88956e880f7554693607d",
+    "reaEvidenceId": "ev_920dabfd0ec29384f54a80818491ed76dd359337cd758aadf0c13031f560031d",
+    "coverage": "Partial bounded graph; relevant authentication methods manually inspected",
+    "appExecuted": false
+  },
+  "remaining": [
+    "Additional native-app 2FA is not implemented.",
+    "Pine execution returned a provider payload parse error; strategy parity remains unverified.",
+    "Mac receiver only; iOS and Windows clients remain unsupported."
+  ],
+  "orinAnonymousChecks": {
+    "testedAt": "2026-11-07T22:32:38.551Z",
+    "platform": "linux",
+    "arch": "arm64",
+    "node": "v24.21.0",
+    "nodeArgs": [
+      "--max-old-space-size=64"
+    ],
+    "provider": "@mathieuc/tradingview@4.1.0",
+    "authentication": "anonymous",
+    "results": [
+      {
+        "command": "symbols search",
+        "status": "passed",
+        "elapsedMs": 274
+      },
+      {
+        "command": "symbol",
+        "status": "passed",
+        "elapsedMs": 432
+      },
+      {
+        "command": "quotes",
+        "status": "passed",
+        "elapsedMs": 509
+      },
+      {
+        "command": "candles",
+        "status": "passed",
+        "elapsedMs": 420
+      },
+      {
+        "command": "technicals",
+        "status": "passed",
+        "elapsedMs": 211
+      },
+      {
+        "command": "screener",
+        "status": "passed",
+        "elapsedMs": 84
+      },
+      {
+        "command": "hotlist",
+        "status": "passed",
+        "elapsedMs": 281
+      },
+      {
+        "command": "indicators search",
+        "status": "passed",
+        "elapsedMs": 318
+      },
+      {
+        "command": "indicator values",
+        "status": "passed",
+        "elapsedMs": 444
+      },
+      {
+        "command": "stream quotes",
+        "status": "passed",
+        "elapsedMs": 514
+      },
+      {
+        "command": "stream candles",
+        "status": "passed",
+        "elapsedMs": 484
+      },
+      {
+        "command": "stream indicator",
+        "status": "passed",
+        "elapsedMs": 499
+      },
+      {
+        "command": "chart",
+        "status": "passed",
+        "elapsedMs": 515
+      }
+    ],
+    "peakRssMiB": 106,
+    "limitations": [
+      "Measured on the actual Orin; not a total memory bound or sustained-stream benchmark.",
+      "No account login, paid entitlements, UI parity or sustained streaming verified."
+    ],
+    "hardware": "NVIDIA Jetson AGX Orin Developer Kit"
+  },
+  "accountChecks": {
+    "userApprovedCallback": true,
+    "restrictedSshKey": true,
+    "noManualCredentialCopy": true,
+    "independentValidation": true,
+    "persistenceInFreshCliProcess": true,
+    "watchlists": true,
+    "authenticatedQuotes": true,
+    "savedIndicatorListing": true,
+    "pineDefinition": true,
+    "pineExecution": {
+      "status": "failed",
+      "code": "PINE_PROTOCOL_ERROR"
+    },
+    "pendingStateCleaned": true,
+    "cookieExpiryRecorded": true
+  }
+}

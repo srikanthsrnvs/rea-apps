@@ -1,0 +1,111 @@
+{
+  "assessedAt": "2026-10-26T20:20:30.638Z",
+  "package": "@mathieuc/tradingview",
+  "version": "4.1.0",
+  "node": "v25.6.1",
+  "authentication": "anonymous; no cookies or account credentials supplied",
+  "probes": [
+    {
+      "name": "search",
+      "status": "passed",
+      "elapsedMs": 377,
+      "summary": {
+        "query": "COINBASE:BTCUSD",
+        "count": 43,
+        "exactMatch": true
+      }
+    },
+    {
+      "name": "hourly-candles",
+      "status": "passed",
+      "elapsedMs": 490,
+      "summary": {
+        "symbol": "COINBASE:BTCUSD",
+        "timeframe": "60",
+        "count": 20,
+        "firstBar": 1792976400,
+        "lastBar": 1793044800,
+        "schemaAndOrderingValid": true
+      }
+    },
+    {
+      "name": "quote",
+      "status": "passed",
+      "elapsedMs": 510,
+      "summary": {
+        "symbol": "BINANCE:BTCUSDT",
+        "hasFiniteLastPrice": true,
+        "updateMode": "streaming",
+        "quoteFields": 34
+      }
+    },
+    {
+      "name": "screener",
+      "status": "passed",
+      "elapsedMs": 182,
+      "summary": {
+        "totalCount": 2,
+        "rows": [
+          {
+            "symbol": "BINANCE:BTCUSDT",
+            "updateMode": "streaming",
+            "populatedFields": [
+              "name",
+              "close",
+              "volume",
+              "update_mode",
+              "Recommend.All",
+              "RSI"
+            ]
+          },
+          {
+            "symbol": "COINBASE:BTCUSD",
+            "updateMode": "streaming",
+            "populatedFields": [
+              "name",
+              "close",
+              "volume",
+              "update_mode",
+              "Recommend.All",
+              "RSI"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "technical-ratings",
+      "status": "passed",
+      "elapsedMs": 61,
+      "summary": {
+        "symbol": "BINANCE:BTCUSDT",
+        "timeframes": [
+          "1",
+          "5",
+          "15",
+          "60",
+          "240",
+          "1D",
+          "1W",
+          "1M"
+        ],
+        "allValuesFinite": true
+      }
+    },
+    {
+      "name": "anonymous-built-in-study",
+      "status": "passed",
+      "elapsedMs": 589,
+      "summary": {
+        "indicator": "Volume@tv-basicstudies-241",
+        "candles": 20,
+        "studyRows": 120
+      }
+    }
+  ],
+  "limitations": [
+    "One bounded anonymous run on one host; not a service guarantee.",
+    "No authenticated Pine, account watchlists, strategies, UI parity, prolonged streams or market-data entitlements verified.",
+    "No exchange cross-check or independent price accuracy verification performed."
+  ]
+}

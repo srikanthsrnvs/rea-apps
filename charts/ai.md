@@ -1,0 +1,81 @@
+# Charts agent guide
+
+Read the root AGENTS.md, this app's README and docs/auth-protocol.md before changing runtime/authentication. This app targets a low-memory headless Orin. Never add Chrome, CDP, Playwright, desktop binaries, emulators or display servers to its runtime, even for login.
+
+## Interface and architecture
+
+`src/tool-definitions.mjs` is the shared CLI/MCP schema catalog. `cli.mjs` handles typed flags; `validation.mjs` rejects unknown/invalid arguments before state/network access; `service.mjs` normalizes the pinned Mathieu provider. `mcp.mjs` loads only for explicit stdio use. New providers belong behind the same interface rather than separate user-facing CLIs.
+
+Call `state` to inspect local capabilities/session metadata. A saved session's `authenticated` flag means present; `validated: false` means it was not checked online in that call. Use `auth validate` for an independent account read. Public reads need no login; `auth=anonymous` avoids reading account credentials. Never silently switch away from a rejected saved account.
+
+Tools return structured JSON with status/message, provenance and coverage. Preserve unknown values as null. Provider exceptions can contain account cookies or compiled code: use the static safe error mapping, not raw messages, details or stacks.
+
+## Authentication
+
+Use the genuine native TradingView callback protocol described in docs/auth-protocol.md. The user opens the official approval URL on another device and provides the final app callback link through `auth complete`, preferably in an owner-only callback file. There is no generic HTTPS callback or polling API for this grant. Do not collect passwords, export browser cookies or pretend an ordinary login page transfers a session.
+
+Persist the pending proof before returning the approval URL. Mark an exchange as started before submission; never replay an uncertain exchange. Persist a candidate before independent `getUser` validation, and allow validation retries without resubmission. Verify expected username and previous-session binding before replacing the saved account. Cancellation preserves the saved account; logout removes local state. Keep all proof/cookie records private and out of logs/results.
+
+Recover a persisted candidate if interruption occurred before its phase update. Reconcile a committed login ID before applying the previous-account binding check, so a post-save cleanup failure cannot strand a successfully validated account. Keep file reads bounded by actual bytes, refuse FIFOs/symlinks and respect cancellation while waiting for state locks.
+
+Native extra 2FA currently returns an explicit unsupported result. Callback exchange, independent identity validation, saved-session reuse, watchlist reads and authenticated quotes were verified on the actual Orin. See research/orin-auth-results.json. Do not extend that evidence to private Pine, saved scripts, populated-watchlist UI parity, strategies or private layouts.
+
+The client on the user's device must receive the native `tradingview://browser-auth/` callback. Prefer `clientUrl` with the configured Mac receiver; it checks the host login and returns the callback over SSH automatically. Never treat a bare `approvalUrl` as sufficient in a normal browser. A plain browser approval link cannot complete that handoff without a registered receiver; Safari's invalid-address message demonstrates this. The test used a temporary Mac receiver, then removed it. Never turn that client requirement into a browser or desktop-app dependency on the Orin. The completion request is POST, not GET. Accept 2xx responses with independently validated session cookies: the real service returned 201 Created despite the inspected desktop client's narrower status checks.
+
+## Data pitfalls
+
+- The SDK's high-level technical-analysis helper converts missing values to zero and rescales ratings. Use its scanner primitive, preserve nulls and retain the raw [-1,1] scale.
+- SDK study rows can precede the candle window. Align by `$time`, not array position; report excluded warm-up rows. Never return Pine source or compiled `.script` values.
+- A fulfilled bar count does not prove complete/gap-free history. Label partial counts, unknown coverage, synthetic chart types and the possibly open last bar. Preserve source venue, timeframe, session, adjustment and currency.
+- Quotes may be absent in a batch; preserve per-symbol availability and missing values. Provider feed mode is not independent proof of latency or exchange entitlement.
+- Crypto hotlists need `filter: []` to avoid inheriting the SDK's stock-only default. Scanner pages are snapshots; field availability varies by universe.
+- Watchlist `###` entries are section markers, not markets. Saved account lists are read-only.
+- Strategy records may include open positions. Use the upstream summary and retain its settings/currency; don't infer that a populated exit field proves closure or advertise Deep Backtesting.
+
+## Memory and verification
+
+Keep one online operation active per process, load provider/MCP dependencies lazily, and retain compact finite stream events. Bound response bytes, WebSocket payloads, symbols, history, pages and graphics before introducing richer datasets. No automatic resident monitors or reconnect loops currently exist. Always stop watchers on limits, aborts and errors.
+
+Use `npm test` for deterministic checks and `npm run test:live` only when anonymous integration reads are appropriate. Record platform, Node version and peak RSS with measurements; development Mac results are not Orin results. Live anonymous checks do not establish account access, independent price accuracy, UI parity or sustained stream reliability.
+
+## Mac receiver and session recovery
+
+The runtime/provider is unchanged and supports free accounts. `login` validates an existing saved account before reporting it authenticated; expired or rejected cookies trigger a replacement grant that preserves the existing session until validation succeeds. `auth status` is local metadata only. Use `auth poll --login-id ID` to correlate completion with the particular grant.
+
+The user's Mac requires one-time receiver setup with a trusted SSH target and an absolute remote CLI path. Send `clientUrl` (rea-charts scheme) to that configured client; it will open official TradingView sign-in. Links contain no SSH commands and cannot choose a host. The receiver uses the local trusted profile and never exports account cookies to the Mac. The native callback is passed through SSH stdin, not argv or logs. See docs/mac-login-client.md.
+
+After lost SSH output, run charts-client status --online on the Mac or auth poll on the host. Never resend a callback to recover an uncertain exchange. If the host says validating, retry auth complete without any callback. A native additional-2FA response is still a verified unsupported state; do not invent a challenge endpoint or claim that the new receiver removes it.
+
+## Choosing tools and reporting data
+
+- To display or edit a real interactive chart, use `view create` and send its
+  `viewerUrl`, then `view update` with the same `viewId`. `chart` and `compare`
+  alone only prepare data. Use `--public` on a remote host if a temporary HTTPS
+  link is needed. This requires installed cloudflared.
+- Read `actualView` after editing. Set `chartType: "candlestick"` for candles;
+  changing the timeframe does not change the style. Study IDs are optional for
+  additions; existing IDs support partial edits. Prefer explicit removal lists.
+- Use `snapshot` for multiple symbols/timeframes and current RSI/MACD/EMA/SMA.
+  Use `screen` for ordinary stock cap/volume/RSI filters; it avoids guessing raw
+  scanner field names. Neither tool executes arbitrary Pine.
+
+- For two or more series, use `compare` instead of separate parallel candle
+  requests. The host permits one active operation per process. It fetches each
+  series in sequence and performs normalization and return correlation locally.
+- Set `include-data: true` when the user needs a portable overlay dataset.
+  `chart.rendered` remains false: data preparation does not display a chart.
+  MCP keeps the complete dataset in `structuredContent`; model-facing text has
+  summaries. Do not invent intermediate observations or trader motives.
+  The CLI returns full JSON unless you explicitly pass `--agent-view`.
+- Prefer a named `period` for year-to-date or the last full calendar month;
+  do not approximate a calendar period using `count`. Custom from/to bounds
+  remain available and cannot be combined with period.
+- Quote `asOf` is the observation timestamp. `fetchedAt` is the time the CLI
+  received the response. Candle time is the bar-open timestamp; the last bar
+  can still be open.
+- Use `instrument.measurement`, `unit` and `meaning`. Bitfinex BTCUSDLONGS is
+  measured in BTC; subtracting it from BTC/USD does not measure shorts.
+- `complete: false` and `nextRequests` on watchlists require another page before
+  saying all entries were retrieved. Section entries are headings, not tickers.
+- For the current RSI use `technicals`, which includes `rsi` on each timeframe
+  alongside the technical ratings. Use indicator plots for a historical series.

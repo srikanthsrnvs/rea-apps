@@ -1,0 +1,83 @@
+{
+  "testedAt": "2026-10-26T23:21:36.426Z",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v25.6.1",
+  "nodeArgs": [
+    "--max-old-space-size=64"
+  ],
+  "provider": "@mathieuc/tradingview@4.1.0",
+  "authentication": "anonymous",
+  "results": [
+    {
+      "command": "symbols search",
+      "status": "passed",
+      "elapsedMs": 296
+    },
+    {
+      "command": "symbol",
+      "status": "passed",
+      "elapsedMs": 581
+    },
+    {
+      "command": "quotes",
+      "status": "passed",
+      "elapsedMs": 520
+    },
+    {
+      "command": "candles",
+      "status": "passed",
+      "elapsedMs": 505
+    },
+    {
+      "command": "technicals",
+      "status": "passed",
+      "elapsedMs": 390
+    },
+    {
+      "command": "screener",
+      "status": "passed",
+      "elapsedMs": 99
+    },
+    {
+      "command": "hotlist",
+      "status": "passed",
+      "elapsedMs": 306
+    },
+    {
+      "command": "indicators search",
+      "status": "passed",
+      "elapsedMs": 434
+    },
+    {
+      "command": "indicator values",
+      "status": "passed",
+      "elapsedMs": 503
+    },
+    {
+      "command": "stream quotes",
+      "status": "passed",
+      "elapsedMs": 1544
+    },
+    {
+      "command": "stream candles",
+      "status": "passed",
+      "elapsedMs": 581
+    },
+    {
+      "command": "stream indicator",
+      "status": "passed",
+      "elapsedMs": 896
+    },
+    {
+      "command": "chart",
+      "status": "passed",
+      "elapsedMs": 511
+    }
+  ],
+  "peakRssMiB": 113,
+  "limitations": [
+    "Development-host run; not an Orin memory measurement.",
+    "No account login, paid entitlements, UI parity or sustained streaming verified."
+  ]
+}

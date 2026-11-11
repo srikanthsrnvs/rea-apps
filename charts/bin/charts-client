@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+import { runClient } from '../src/client.mjs';
+await runClient();
