@@ -1,0 +1,12 @@
+{
+  "product": { "name": "Cappuccino", "brand": "Erewhon", "sku": "030162" },
+  "quantity": 1,
+  "size": "Large 16 oz",
+  "choices": [
+    { "group": "Milk", "option": "Organic Whole Milk (Clover Sonoma)" },
+    { "group": "Sweeteners", "option": "Scratch Vanilla Syrup" },
+    { "group": "Drink Options", "option": "Light Sweetener" }
+  ],
+  "fulfillment": { "type": "pickup", "store": "Venice" },
+  "redeemPoints": false
+}
