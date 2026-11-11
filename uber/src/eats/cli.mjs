@@ -1,14 +1,16 @@
 import fs from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { eatsToolManifest } from './tools.mjs';
+import { eatsToolManifest, advancedEatsToolManifest } from './tools.mjs';
+import { eatsAgentView } from './agent-view.mjs';
 
 const common = ['help'];
 const commandOptions = {
   help: [],
-  tools: [],
+  tools: ['advanced'],
   locations: ['near', 'raw'],
-  search: ['query', 'near', 'mode', 'offset', 'limit', 'raw'],
+  search: ['query', 'near', 'mode', 'offset', 'limit', 'raw', 'compact'],
   menu: [
+    'compact',
     'store-id',
     'item-id',
     'section-id',
@@ -24,6 +26,7 @@ const commandOptions = {
     'line-id',
     'store-id',
     'request',
+    'json',
     'operation-id',
     'raw',
   ],
@@ -66,6 +69,7 @@ const stringOptions = [
   'line-id',
   'action',
   'request',
+  'json',
   'plan-id',
   'order-id',
   'operation-id',
@@ -84,6 +88,8 @@ const options = Object.fromEntries(
 options.help = { type: 'boolean', short: 'h' };
 options.confirm = { type: 'boolean' };
 options.raw = { type: 'boolean' };
+options.compact = { type: 'boolean' };
+options.advanced = { type: 'boolean' };
 options['frame-origin'] = { type: 'string', multiple: true };
 
 function required(values, name) {
@@ -99,6 +105,8 @@ function validate(values, command) {
     if (typeof value === 'string' && !value.trim())
       throw new Error(`--${name} cannot be empty`);
   }
+  if (values.raw && values.compact)
+    throw new Error('Use --raw or --compact, not both');
   if (values.near !== undefined) {
     const parts = values.near.split(',');
     const valid =
@@ -185,8 +193,14 @@ function validate(values, command) {
       throw new Error('Unsupported Eats cart action');
     if (values.action !== 'list' && values.action !== 'create')
       required(values, 'draft-id');
-    if (['create', 'add', 'update'].includes(values.action))
-      required(values, 'request');
+    if (values.request !== undefined && values.json !== undefined)
+      throw new Error('Use --request FILE or --json JSON, not both');
+    if (
+      ['create', 'add', 'update'].includes(values.action) &&
+      values.request === undefined &&
+      values.json === undefined
+    )
+      throw new Error('--request FILE or --json JSON is required');
     if (values.action === 'remove') required(values, 'line-id');
     if (values['line-id'] && !['update', 'remove'].includes(values.action))
       throw new Error('--line-id is only supported for cart update or remove');
@@ -199,9 +213,12 @@ function validate(values, command) {
       ['list', 'get', 'discard'].includes(values.action)
     )
       throw new Error('--store-id is not supported for this cart action');
-    if (values.request && !['create', 'add', 'update'].includes(values.action))
+    if (
+      (values.request !== undefined || values.json !== undefined) &&
+      !['create', 'add', 'update'].includes(values.action)
+    )
       throw new Error(
-        '--request is only supported for cart create, add or update',
+        '--request and --json are only supported for cart create, add or update',
       );
     if (values['operation-id'] && ['list', 'get'].includes(values.action))
       throw new Error('--operation-id is only supported for cart mutations');
@@ -247,7 +264,26 @@ function validate(values, command) {
   }
 }
 
+function inlineRequest(value) {
+  if (
+    typeof value !== 'string' ||
+    Buffer.byteLength(value, 'utf8') > 1024 * 1024
+  )
+    throw new Error('--json must contain a JSON object of at most 1 MiB');
+  let request;
+  try {
+    request = JSON.parse(value);
+  } catch {
+    throw new Error('--json must contain valid JSON');
+  }
+  if (!request || typeof request !== 'object' || Array.isArray(request))
+    throw new Error('--json must contain a JSON object');
+  return request;
+}
+
 async function readRequest(filename) {
+  if (/^\s*[\[{]/.test(filename))
+    throw new Error('--request is a file path; use --json for inline JSON');
   const handle = await fs.open(filename, 'r');
   try {
     const stat = await handle.stat();
@@ -314,7 +350,7 @@ export async function runEatsCli(argv, { execute, print = console.log } = {}) {
       ),
       operation: 'uber eats operation --operation-id ID',
       request:
-        'Cart create/add/update accept --request FILE containing a JSON object. Draft changes do not place an order.',
+        'Cart create/add/update accept --json JSON or --request FILE. Agent tools accept a structured request object. Draft changes do not place an order.',
       checkout:
         'Choose --tip-amount explicitly; review the priced plan before order --action confirm --plan-id ID --confirm.',
     };
@@ -322,15 +358,24 @@ export async function runEatsCli(argv, { execute, print = console.log } = {}) {
     return result;
   }
   validate(values, command);
+  if (command === 'search' && values.compact) values.limit ??= 5;
   if (command === 'tools') {
-    print(JSON.stringify(eatsToolManifest, null, 2));
-    return eatsToolManifest;
+    const manifest = values.advanced
+      ? advancedEatsToolManifest
+      : eatsToolManifest;
+    print(JSON.stringify(manifest, null, 2));
+    return manifest;
   }
   if (command === 'track' && !execute)
     return (await import('./tracking-cli.mjs')).runEatsTracking(values);
   if (values.request) values.request = await readRequest(values.request);
+  if (values.json !== undefined) {
+    values.request = inlineRequest(values.json);
+    delete values.json;
+  }
   const service = execute ?? (await import('./service.mjs')).executeEats;
   const result = await service(command, values);
-  print(JSON.stringify(result, null, 2));
-  return result;
+  const output = values.compact ? eatsAgentView(command, result) : result;
+  print(JSON.stringify(output, null, 2));
+  return output;
 }

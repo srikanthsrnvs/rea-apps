@@ -6,11 +6,11 @@ Requires Node.js 22.19 or later. No npm dependencies, Java, ADB or REA are neede
 
 Uber Eats uses the same login and runtime. It calls native endpoints directly; no Chromium, WebView, emulator, browser automation, proxy, tunnel or background food-ordering service runs on the server. Ordinary commands exit after producing JSON; explicitly requested tracking streams and viewers stay running. Like the native Spotify CLI, installation reuses a compatible Node runtime. Ride and food-delivery map viewers start only when explicitly requested.
 
-On the ARM64 Orin, sampled ride status, Eats status and food search commands peaked at roughly **94–100 MiB RSS** and completed in **0.65–1.03 seconds**. These are measured workloads, not a memory ceiling. The complete Uber/Eats package is about **160 KB compressed / 0.55 MB unpacked**, excluding the shared Node runtime.
+On the ARM64 Orin, sampled ride status, Eats status and food search commands peaked at roughly **94–100 MiB RSS** and completed in **0.65–1.03 seconds**. These are measured workloads, not a memory ceiling. The 0.6.2 Uber/Eats package is about **173 KB compressed / 0.60 MB unpacked**, excluding the shared Node runtime.
 
 ## Uber Eats
 
-`uber eats tools` returns seven model tools: location context, food/restaurant search, menus/item options, cart management, checkout review, orders/history/cancellation, and delivery tracking. Use this focused toolset for food rather than loading every ride tool. No separate Eats login is required.
+`uber eats tools` returns eight model tools: location context, food/restaurant search, menus/item options, cart management, checkout review, orders/history/cancellation, delivery tracking, and mutation recovery. Use this focused toolset for food rather than loading every ride tool. No separate Eats login is required.
 
 ```sh
 uber eats locations
@@ -29,6 +29,36 @@ uber eats order --action cancel --order-id ORDER_UUID
 # Show the returned cancellation terms before submitting its separate plan.
 uber eats order --action cancel --plan-id APPROVED_CANCEL_PLAN_UUID --confirm
 ```
+
+For model integrations, pass **flat cart arguments**: `action`, `storeId`, `diningMode`, `deliveryAddress`, and `items`. Items accept named `choices`, such as `[{"group":"Milk","option":"Oat Milk"},{"group":"Foam","option":"No foam"}]`. The CLI resolves exact names against fresh item data, applies unchanged native defaults, and validates every nested group before writing. Ambiguous names, inactive branches, missing required choices and unavailable ingredients fail before mutation. Keep literal preparation requests in `specialInstructions`; requests are never guarantees.
+
+Example model tool arguments after selecting actual item/address identifiers:
+
+```json
+{
+  "action": "create",
+  "storeId": "STORE_UUID",
+  "diningMode": "pickup",
+  "deliveryAddress": {"latitude": 34.05, "longitude": -118.25},
+  "items": [{
+    "itemId": "ITEM_UUID", "sectionId": "SECTION_UUID", "quantity": 2,
+    "choices": [
+      {"group": "Size", "option": "Large 16 oz"},
+      {"group": "Milk", "option": "Oat Milk"},
+      {"group": "Foam", "option": "No foam"},
+      {"group": "Extras", "option": "Espresso Shot", "quantity": 2}
+    ]
+  }]
+}
+```
+
+The JavaScript adapter `runEatsTool(name, args)` in `src/eats/tool-dispatch.mjs` executes the schemas without a shell. Shell callers can use `--json '{...}'` or keep using `--request cart.json`. `uber eats tools --advanced` retains the original file-based tool schemas. Native customization trees remain supported alongside named choices; supply one representation per item.
+
+The agent search view defaults to five feed entries and preserves `nextOffset`, all returned restaurants/items, and their identifiers. It never silently truncates a page. Menu item inspection returns complete nested options and a copyable `standardItem` only when native defaults pass selection validation (`standardSelectionsVerified: true`). Ordinary CLI output remains complete; use `--compact` explicitly on search/menu to select the agent view. Agent tools also accept `raw: true` for complete native fields. Search/menu prices are never checkout totals.
+
+To change two drinks to **three total**, call `eats_cart` with `action: "update"`, the existing `draftId` and `lineId`, and `quantity: 3`. Other options, preparation instructions and cart lines are preserved. No new model search/menu call is required; the service still rechecks availability. After a write with an unknown outcome, call `eats_operation` with its returned `operationId` instead of repeating it.
+
+See the [local Qwen/Pi usability evaluation](eval/agent-tools/README.md) for measured trajectories and limitations.
 
 Both delivery and pickup use `--mode` for search/menu and `diningMode` in the creation request. Cart requests use exact server identifiers:
 

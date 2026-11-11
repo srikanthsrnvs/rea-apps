@@ -1,3 +1,4 @@
+import { resolveEatsChoices } from './choices.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import { authenticatedOperation } from '../client.mjs';
 import { coordinate } from '../protocol.mjs';
@@ -313,7 +314,7 @@ export function createEatsService({
 } = {}) {
   return async function execute(command, values = {}) {
     if (command === 'operation')
-      return inspectOperation(values['operation-id']);
+      return inspectOperation(values['operation-id'], { read });
     return operation(async ({ session, send }) => {
       if (!session.userUUID)
         throw error('Sign in again to initialize your account identity');
@@ -686,8 +687,18 @@ export function createEatsService({
               location,
               selectedMode,
             );
+            if (
+              item.choices !== undefined &&
+              (item.customizationV2s !== undefined ||
+                item.customizations !== undefined)
+            )
+              throw error(
+                'Use named choices or native customizations, not both',
+              );
             const selections =
-              item.customizationV2s ?? item.customizations ?? [];
+              item.choices !== undefined
+                ? resolveEatsChoices(detail, item.choices)
+                : (item.customizationV2s ?? item.customizations ?? []);
             validateEatsSelections(detail, selections);
             items.push(
               protocol.eatsCartItem({
