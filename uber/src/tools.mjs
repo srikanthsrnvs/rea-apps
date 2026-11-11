@@ -10,7 +10,7 @@ export const toolManifest = {
       name: 'uber-eats',
       command: 'uber eats tools',
       description:
-        'Six headless tools for food search, menus, carts, checkout, orders and location context. Shares this Uber login.',
+        'Eight headless tools for food search, menus, carts, checkout, orders, location context, delivery tracking and mutation recovery. Shares this Uber login.',
     },
   ],
   transport: 'CLI',

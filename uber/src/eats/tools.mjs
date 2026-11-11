@@ -16,7 +16,7 @@ const schema = (properties, required = []) => ({
   additionalProperties: false,
 });
 
-export const eatsTools = [
+export const legacyEatsTools = [
   {
     name: 'eats_track',
     command:
@@ -156,12 +156,189 @@ export const eatsTools = [
   },
 ];
 
-export const eatsToolManifest = {
+const baseManifest = {
   name: 'uber-eats',
   version: 1,
   transport: 'CLI',
   output: 'JSON on stdout; errors are handled by the parent Uber CLI.',
   authentication:
     'Shares the saved Uber CLI login. Use uber login and auth complete for verification-code login; no Android device or browser is required at runtime.',
+  tools: legacyEatsTools,
+};
+
+const customization = {
+  type: 'array',
+  maxItems: 100,
+  items: {
+    type: 'object',
+    required: ['uuid', 'childOptions'],
+    properties: {
+      uuid: id,
+      childOptions: {
+        type: 'object',
+        required: ['options'],
+        properties: {
+          options: {
+            type: 'array',
+            maxItems: 100,
+            items: {
+              type: 'object',
+              required: ['uuid', 'quantity'],
+              properties: {
+                uuid: id,
+                quantity: { type: 'integer', minimum: 0 },
+                customizationV2List: {
+                  type: 'array',
+                  items: { type: 'object', additionalProperties: true },
+                },
+              },
+              additionalProperties: true,
+            },
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+    additionalProperties: true,
+  },
+};
+const cartItem = schema(
+  {
+    itemId: id,
+    sectionId: id,
+    subsectionId: id,
+    choices: {
+      type: 'array',
+      maxItems: 100,
+      description:
+        'Preferred: exact group/option names from item detail. Overrides that group; unspecified groups keep verified native defaults. Quantities are per drink/item. Empty array requests the standard recipe.',
+      items: schema(
+        {
+          group: id,
+          option: id,
+          quantity: { type: 'integer', minimum: 0, default: 1 },
+          path: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Ancestor group/option path, optionally ending with this group name. Only needed when names are ambiguous.',
+          },
+        },
+        ['group', 'option'],
+      ),
+    },
+    quantity: { type: 'integer', minimum: 1 },
+    specialInstructions: {
+      type: 'string',
+      maxLength: 2000,
+      description:
+        'Literal kitchen/preparation requests from the user. These are requests, not guaranteed recipe changes.',
+    },
+    customizationV2s: customization,
+    customizations: customization,
+  },
+  ['itemId', 'sectionId', 'quantity'],
+);
+const cartRequest = schema({
+  storeId: id,
+  diningMode: {
+    type: 'string',
+    enum: ['delivery', 'pickup', 'DELIVERY', 'PICKUP'],
+  },
+  deliveryAddress: {
+    type: 'object',
+    required: ['latitude', 'longitude'],
+    properties: {
+      latitude: { type: 'number', minimum: -90, maximum: 90 },
+      longitude: { type: 'number', minimum: -180, maximum: 180 },
+      address: { type: 'object', additionalProperties: true },
+    },
+    additionalProperties: true,
+    description:
+      'Copy the complete selected address from eats_locations, including latitude and longitude. Never invent address details.',
+  },
+  paymentProfileId: id,
+  items: { type: 'array', minItems: 1, maxItems: 100, items: cartItem },
+  lineId: id,
+  quantity: { type: 'integer', minimum: 0 },
+  specialInstructions: { type: 'string', maxLength: 2000 },
+  customizations: customization,
+  customizationV2s: customization,
+});
+const rawView = {
+  type: 'boolean',
+  description:
+    'Return the complete native response when additional fields are needed. Default false uses the compact agent view.',
+};
+const operationTool = {
+  name: 'eats_operation',
+  command: 'uber eats operation --operation-id <operationId>',
+  description:
+    'Read a recorded mutation result after interruption or uncertainty. Use the exact operationId returned by the failed call. Unknown/submitting means the operation may have succeeded: do not resend with a new ID, clear a cart, or claim failure/success. This tool does not mutate anything.',
+  inputSchema: schema({ operationId: { type: 'string', format: 'uuid' } }, [
+    'operationId',
+  ]),
+};
+export const advancedEatsToolManifest = {
+  ...baseManifest,
+  profile: 'advanced',
+  tools: [...legacyEatsTools, operationTool],
+};
+export const eatsTools = [
+  ...legacyEatsTools.map((tool) => {
+    if (tool.name === 'eats_cart')
+      return {
+        ...tool,
+        command:
+          'uber eats cart --action ACTION --json REQUEST_JSON [--draft-id ID --line-id ID --operation-id ID]',
+        description:
+          'Manage a food cart without buying. Preferred flat arguments for create: action, storeId, diningMode, deliveryAddress, items. Copy address from eats_locations. Read item options first; items use itemId, sectionId, quantity, choices:[{group:"Size",option:"Large 16 oz"},{group:"Milk",option:"Oat Milk"}], and literal specialInstructions. Use exact displayed names; the CLI resolves current IDs and nested choices and validates availability before writes. Unspecified groups retain native defaults. Choice quantities are per item: two shots per drink means quantity:2 even for three drinks. To update only quantity, use action:update, draftId, lineId, quantity:3 (THREE TOTAL), preserving other choices/lines; no model search/menu/get needed. Errors are not success: never claim a cart is ready without a successful cart response. Unknown outcome: eats_operation with returned operationId; do not retry. Checkout is separate.',
+        inputSchema: {
+          ...tool.inputSchema,
+          properties: {
+            action: tool.inputSchema.properties.action,
+            draftId: id,
+            lineId: id,
+            operationId: tool.inputSchema.properties.operationId,
+            ...cartRequest.properties,
+          },
+        },
+      };
+    if (tool.name === 'eats_search')
+      return {
+        ...tool,
+        inputSchema: {
+          ...tool.inputSchema,
+          properties: {
+            ...tool.inputSchema.properties,
+            limit: { ...tool.inputSchema.properties.limit, default: 5 },
+            raw: rawView,
+          },
+        },
+        command: tool.command + ' --compact',
+        description:
+          tool.description +
+          ' Agent view defaults to five feed entries per page, retaining all returned item/store identities and paging information. Use nextOffset for more results; limit can be increased when needed. Use a small shortlist; do not copy a whole menu to the user. Ingredient claims and customization defaults require eats_menu item detail. Menu prices exclude final fees/tip; never call them checkout totals.',
+      };
+    if (tool.name === 'eats_menu')
+      return {
+        ...tool,
+        inputSchema: {
+          ...tool.inputSchema,
+          properties: { ...tool.inputSchema.properties, raw: rawView },
+        },
+        command: tool.command + ' --compact',
+        description:
+          tool.description +
+          ' Agent view preserves the entire nested choice hierarchy and constraints without duplicate raw DTOs. Copy standardItem for a regular recipe only when standardSelectionsVerified:true; prefer named choices for custom orders. Otherwise ask about required choices; do not guess or use maximum counts as defaults. Prices are menu prices, not a confirmed checkout total.',
+      };
+    return tool;
+  }),
+  operationTool,
+];
+export const eatsToolManifest = {
+  ...baseManifest,
+  profile: 'agent',
+  advancedTools: 'uber eats tools --advanced',
   tools: eatsTools,
 };

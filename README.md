@@ -1,6 +1,6 @@
 # REA apps
 
-Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude, ChatGPT, Airbnb, Amex, Bank Accounts and Charts.
+Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia, Amazon, Claude, ChatGPT, Airbnb, Amex, Instacart, Bank Accounts and Charts.
 
 | App | Commands | Runtime |
 | --- | --- | --- |
@@ -8,7 +8,8 @@ Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia,
 | [Uber](uber/README.md) | Verification-code login, address search, ride options, fares, payment selection, booking, cancellation, experimental iframe map | Native Node.js HTTP; map renders in the client's browser; no Android device or browser on the host |
 | [Instagram](instagram/README.md) | Search, Explore, inbox summaries, followers, following, saved collections | Headless HTTP login with an Instagram approval link; Android used for protocol investigation |
 | [OpenTable](opentable/README.md) | Verification-code login, paginated restaurant search, tables, payments, reservations, reviewed booking and cancellation | Headless Node HTTP; no Android, browser or display required on the host |
-| [Erewhon](erewhon/README.md) | SMS login, membership, rewards, purchase history, catalog, pickup and delivery carts, reviewed order submission | Headless Node HTTP; no Android, browser, display or developer API key input required |
+| [Erewhon](erewhon/README.md) | SMS login, membership, rewards, purchase history, catalog, named recipes, pickup and delivery carts, reviewed order submission | Headless Node HTTP; no Android, browser, display or developer API key input required |
+| [Instacart](instacart/README.md) | Native phone/email code login, store discovery, paginated product search, product details/prices, carts, checkout previews and order history; purchasing not enabled | Headless Node HTTP; verified on Linux ARM64; no browser, Android or API key at runtime |
 | [Resy](resy/README.md) | Restaurant search, tables, calendars, prices, payment methods, reservations, booking, cancellation | Headless Node HTTP; official Resy widget login in a separate client browser |
 | [Expedia](expedia/README.md) | Flight search, fare selection, round trips, checkout preparation and guarded booking; live payment verification pending | Node HTTP; email code plus a verification link in the user’s own browser; no host browser or Android |
 | [Amazon](amazon/README.md) | Official code pairing, product search, cart, orders and checkout review; guarded submissions with live mutation verification pending | Node HTTP and HTML parsing; no host browser or Android runtime |
@@ -20,7 +21,7 @@ Standalone CLIs for Spotify, Uber, Instagram, Resy, OpenTable, Erewhon, Expedia,
 | [Charts](charts/README.md) | Market discovery, quotes, candles, ratings, screening, studies, strategy reports, account reads and finite streams; callback login and account reads verified on Linux ARM64 | Native Node HTTP/WebSocket; JSON CLI and optional MCP; callback receiver on the user's device; no host browser or persistent helper |
 
 
-The CLIs output JSON and expose tool definitions for models. Uber, OpenTable and Erewhon accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Amazon uses official code approval at amazon.com/code. Subsequent use is headless. Bank Accounts can begin with its browser session; its optional private environment API secret enables persistent server access.
+The CLIs output JSON and expose tool definitions for models. Uber, OpenTable, Erewhon and Instacart accept verification codes directly; Spotify, Instagram and Resy use approval in a browser on another phone or computer. Amazon uses official code approval at amazon.com/code. Subsequent use is headless. Bank Accounts can begin with its browser session; its optional private environment API secret enables persistent server access.
 
 ## Install on Linux
 
@@ -30,9 +31,9 @@ cd rea-apps
 ./scripts/setup-linux.sh
 ```
 
-The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `expedia`, `amazon`, `claude-chat`, `chatgpt`, `airbnb`, experimental `amex`, Sandbox `bank-accounts` and `charts` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia, Claude, Airbnb and Bank Accounts also install cloudflared for temporary verification relays.
+The installer sets up Spotify's native Node runtime, then installs `spotify`, `uber`, `instagram`, `resy`, `opentable`, `erewhon`, `instacart`, `expedia`, `amazon`, `claude-chat`, `chatgpt`, `airbnb`, experimental `amex`, Sandbox `bank-accounts` and `charts` in `~/.local/bin`. Add that directory to your shell's `PATH` if needed. Spotify uses native HTTP/WebSocket protocols and needs no Docker or emulator; see its [Linux setup](spotify/docs/headless-linux.md). The other apps reuse the native Node runtime for API commands. Expedia login uses an email code and a temporary verification link opened on the user’s device. Instagram and Resy return login links opened in a separate browser; the Linux host needs no browser, display, or developer API key. Resy, Expedia, Claude, Airbnb and Bank Accounts also install cloudflared for temporary verification relays.
 
-For one app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, `--chatgpt-only`, `--airbnb-only`, `--amex-only`, `--bank-accounts-only` or `--charts-only`.
+For one app, use `./scripts/setup-linux.sh --uber-only`, `--instagram-only`, `--resy-only`, `--opentable-only`, `--erewhon-only`, `--instacart-only`, `--expedia-only`, `--amazon-only`, `--claude-only`, `--chatgpt-only`, `--airbnb-only`, `--amex-only`, `--bank-accounts-only` or `--charts-only`.
 
 For an existing Spotify installation, rerun setup and complete the new native `spotify login` pairing. Once native commands work, stop the old desktop container with `spotify/bin/spotify-headless service stop` to reclaim RAM. Its saved profile volume can remain as a recovery copy; native sessions are separate. See the [migration guide](spotify/docs/headless-linux.md#existing-desktop-deployments).
 
@@ -63,6 +64,8 @@ For OpenTable, run `opentable login --phone NUMBER` (or `--email ADDRESS`), then
 
 For Erewhon, run `erewhon login --phone NUMBER`, then `erewhon auth complete --login-id LOGIN_ID --code CODE`. Codes can also come from `--code-file FILE`. The CLI validates and saves the opaque account token; new-user registration stops without creating an account. See its [login, shopping and live verification guide](erewhon/README.md).
 
+For Instacart, run `instacart login --phone NUMBER`, then `instacart auth complete --code CODE`. Search, products, carts and history use direct native HTTP; no browser or phone is required after verification. See its [guide and verification limits](instacart/README.md).
+
 Expedia's flight search, fare selection and checkout preparation use HTTP. Login combines an email code with official verification in the user's browser; the Linux host runs Node and a temporary tunnel. See its [flight tools and verification limits](expedia/README.md).
 
 Amazon runs `amazon login`, then `amazon auth complete --login-id LOGIN_ID` after approval in the user’s browser. Its host uses only HTTP, including cart and checkout review. Purchase and cancellation adapters still need live submission verification; see its [guide](amazon/README.md).
@@ -90,6 +93,7 @@ npm --prefix instagram test
 npm --prefix resy test
 npm --prefix opentable test
 npm --prefix erewhon test
+npm --prefix instacart test
 npm --prefix expedia test
 npm --prefix amazon ci
 npm --prefix amazon test
