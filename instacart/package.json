@@ -1,0 +1,10 @@
+{
+  "name": "instacart-standalone-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless Instacart customer CLI using the Android app's HTTP protocol",
+  "bin": { "instacart": "bin/instacart" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=22.19" }
+}
